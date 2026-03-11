@@ -1,0 +1,10 @@
+{
+    "go.alternateTools": {},
+    "go.toolsManagement.autoUpdate": true,
+    "go.useLanguageServer": true,
+    "gopls": {
+        "build.directoryFilters": [
+            "-frontend"
+        ]
+    }
+}

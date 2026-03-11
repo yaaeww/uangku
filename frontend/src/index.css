@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #faf8f3;
+  --foreground: #1a1f16;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'DM Sans', sans-serif;
+  overflow-x: hidden;
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-8 py-4 bg-dagang-green text-white rounded-full hover:bg-dagang-green-light transition-all duration-200 font-semibold shadow-sm flex items-center gap-2;
+  }
+
+  .btn-secondary {
+    @apply px-7 py-4 bg-transparent text-dagang-dark border-[1.5px] border-black/15 rounded-full hover:border-dagang-green hover:text-dagang-green transition-all duration-200 font-medium;
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

@@ -1,0 +1,19 @@
+{
+    "brand": "Dagang<span>Finance</span>",
+    "nav": {
+        "features": "Fitur",
+        "howItWorks": "Cara Kerja",
+        "pricing": "Harga",
+        "blog": "Blog",
+        "trial": "Mulai Trial Gratis"
+    },
+    "hero": {
+        "badge": "🎉 Trial 7 Hari Gratis — Tanpa Kartu Kredit",
+        "title": "Atur Keuangan <em>Keluarga</em> Lebih Cerdas",
+        "subtitle": "Catat, pantau, dan rencanakan keuangan keluarga bersama-sama. Satu platform untuk semua anggota keluarga, dari mana saja.",
+        "cta_trial": "🚀 Mulai Trial 7 Hari",
+        "cta_trial_sub": "Gratis",
+        "cta_demo": "Lihat Demo",
+        "trust": "<strong>2.400+ keluarga</strong> sudah bergabung bulan ini"
+    }
+}
