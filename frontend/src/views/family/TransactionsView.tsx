@@ -16,6 +16,7 @@ import {
     Clock
 } from 'lucide-react';
 import { Transaction, Wallet as WalletModel } from '../../models';
+import { Calculator as CalculatorComp } from '../../components/Calculator';
 
 interface TransactionsViewProps {
     transactions: Transaction[];
@@ -60,6 +61,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
     const [expandedTxId, setExpandedTxId] = useState<string | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editingTxId, setEditingTxId] = useState<string | null>(null);
+    const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
 
     // Filtered Transactions
     const filteredTransactions = useMemo(() => {
@@ -214,6 +216,17 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                 isEditing={isEditing}
                 editingTxId={editingTxId}
                 savings={savings}
+                onOpenCalculator={() => setIsCalculatorOpen(true)}
+            />
+
+            <CalculatorComp
+                isOpen={isCalculatorOpen}
+                onClose={() => setIsCalculatorOpen(false)}
+                onApply={(val) => {
+                    setNewTx({ ...newTx, amount: val });
+                    setIsCalculatorOpen(false);
+                }}
+                initialValue={newTx.amount}
             />
 
             <BulkTransactionModal
@@ -483,7 +496,8 @@ const SingleTransactionModal = ({
     handleUpdateTransaction,
     isEditing,
     editingTxId,
-    savings
+    savings,
+    onOpenCalculator
 }: any) => {
     if (!isOpen) return null;
 
@@ -563,8 +577,14 @@ const SingleTransactionModal = ({
                                             setNewTx({ ...newTx, amount: isNaN(val) ? 0 : val });
                                         }}
                                         placeholder="0"
-                                        className="w-full pl-14 pr-5 py-4 bg-dagang-cream/30 border-none rounded-2xl outline-none font-bold text-lg"
+                                        className="w-full pl-14 pr-14 py-4 bg-dagang-cream/30 border-none rounded-2xl outline-none font-bold text-lg"
                                     />
+                                    <button 
+                                        onClick={onOpenCalculator}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white text-dagang-green rounded-xl shadow-sm hover:scale-110 transition-all active:scale-90"
+                                    >
+                                        <Calculator className="w-5 h-5" />
+                                    </button>
                                 </div>
                             </div>
                         </div>

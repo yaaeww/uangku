@@ -2,19 +2,19 @@ import { useState, useEffect } from 'react';
 import {
     LayoutDashboard,
     Wallet,
-    PieChart,
     Users,
     Settings,
     Bell,
     Target,
-    LogOut,
-    ChevronDown,
-    Menu,
     Plus,
     X,
     Home,
     History,
-    Banknote
+    Banknote,
+    Brain,
+    LogOut,
+    ChevronDown,
+    Menu
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { FinanceController } from '../controllers/FinanceController';
@@ -31,6 +31,7 @@ export const FamilyDashboard = () => {
     const { familyName: urlFamilyName } = useParams();
     const navigate = useNavigate();
     const user = useAuthStore(state => state.user);
+    const setUser = useAuthStore(state => state.setUser);
     const logout = useAuthStore(state => state.logout);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [wallets, setWallets] = useState<WalletModel[]>([]);
@@ -90,6 +91,22 @@ export const FamilyDashboard = () => {
             setWallets(walletData);
             setSavings(savingData);
             setDebts(debtData);
+
+            // Sync family name and status to user store if changed
+            if (user && summaryData.family) {
+                const needsSync = user.familyName !== summaryData.family.name || 
+                                 user.familyStatus !== summaryData.family.status ||
+                                 user.trialEndsAt !== summaryData.family.trial_ends_at;
+                
+                if (needsSync) {
+                    setUser({ 
+                        ...user, 
+                        familyName: summaryData.family.name,
+                        familyStatus: summaryData.family.status,
+                        trialEndsAt: summaryData.family.trial_ends_at
+                    });
+                }
+            }
 
             if (walletData.length > 0 && !newTx.walletId) {
                 setNewTx(prev => ({ ...prev, walletId: walletData[0].id }));
@@ -281,6 +298,16 @@ export const FamilyDashboard = () => {
             alert('Gagal mencatat cicilan');
         }
     };
+    
+    const handleDeleteDebt = async (id: string) => {
+        if (!confirm('Hapus catatan hutang ini?')) return;
+        try {
+            await FinanceController.deleteDebt(id);
+            fetchData();
+        } catch (error) {
+            alert('Gagal menghapus hutang');
+        }
+    };
 
     const handleAllocateToSaving = async (walletId: string, savingId: string, amount: number) => {
         try {
@@ -330,6 +357,13 @@ export const FamilyDashboard = () => {
                         onClick={() => setIsMobileMenuOpen(false)}
                     />
                     <SidebarItem
+                        icon={Brain}
+                        label="AI Coach"
+                        active={currentPath === 'coach'}
+                        to="coach"
+                        onClick={() => { }}
+                    />
+                    <SidebarItem
                         icon={Wallet}
                         label="Dompet"
                         active={currentPath === 'wallets'}
@@ -341,13 +375,6 @@ export const FamilyDashboard = () => {
                         label="Transaksi"
                         active={currentPath === 'transactions'}
                         to="transactions"
-                        onClick={() => { }}
-                    />
-                    <SidebarItem
-                        icon={PieChart}
-                        label="Analisa"
-                        active={currentPath === 'analytics'}
-                        to="analytics"
                         onClick={() => { }}
                     />
                     <SidebarItem
@@ -367,24 +394,62 @@ export const FamilyDashboard = () => {
                     <div className="pt-8 pb-4">
                         <span className="px-4 text-[10px] font-black uppercase tracking-[0.2em] text-white/20">Keluarga</span>
                     </div>
-                    <SidebarItem icon={Users} label="Anggota" />
-                    <SidebarItem icon={Bell} label="Notifikasi" />
-                    <SidebarItem icon={Settings} label="Pengaturan" />
+                     <SidebarItem 
+                         icon={Users} 
+                         label="Keluarga" 
+                         active={currentPath === 'members'}
+                         to="family"
+                         onClick={() => { }}
+                     />
+                     <SidebarItem 
+                        icon={Bell} 
+                        label="Notifikasi" 
+                        active={currentPath === 'notifications'}
+                        to="notifications"
+                        onClick={() => { }}
+                    />
+                     <SidebarItem 
+                        icon={Settings} 
+                        label="Pengaturan" 
+                        active={currentPath === 'settings'}
+                        to="settings"
+                        onClick={() => { }}
+                    />
                 </nav>
 
                 <div className="mt-auto space-y-6">
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                        <div className="flex items-center justify-between mb-3 text-[11px] font-bold">
-                            <span className="text-dagang-accent uppercase tracking-wider">Free Trial</span>
-                            <span className="text-white/50">5 hari lagi</span>
+                    {summary?.family?.status === 'trial' && (
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                            <div className="flex items-center justify-between mb-3 text-[11px] font-bold">
+                                <span className="text-dagang-accent uppercase tracking-wider">Free Trial</span>
+                                <span className="text-white/50">
+                                    {(() => {
+                                        const trialEnds = new Date(summary.family.trial_ends_at);
+                                        const diff = trialEnds.getTime() - new Date().getTime();
+                                        const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                                        return days > 0 ? `${days} hari lagi` : 'Berakhir';
+                                    })()}
+                                </span>
+                            </div>
+                            <div className="h-1.5 bg-white/10 rounded-full mb-4 overflow-hidden">
+                                <div
+                                    className="h-full bg-dagang-green transition-all duration-1000"
+                                    style={{
+                                        width: `${(() => {
+                                            const trialEnds = new Date(summary.family.trial_ends_at);
+                                            const diff = trialEnds.getTime() - new Date().getTime();
+                                            const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                                            // Using 10 as fallback if not provided, but making it more resilient
+                                    return Math.max(0, Math.min(100, (days / (summary?.trial_duration || 7)) * 100));
+                                        })()}%`
+                                    }}
+                                />
+                            </div>
+                            <a href="/pricing" className="block w-full py-2.5 bg-dagang-green text-white text-[12px] font-bold rounded-xl text-center hover:bg-dagang-green-light transition-all shadow-lg shadow-dagang-green/10">
+                                Upgrade Sekarang
+                            </a>
                         </div>
-                        <div className="h-1.5 bg-white/10 rounded-full mb-4 overflow-hidden">
-                            <div className="h-full bg-dagang-green w-[70%]" />
-                        </div>
-                        <a href="/pricing" className="block w-full py-2.5 bg-dagang-green text-white text-[12px] font-bold rounded-xl text-center hover:bg-dagang-green-light transition-all shadow-lg shadow-dagang-green/10">
-                            Upgrade Sekarang
-                        </a>
-                    </div>
+                    )}
 
                     <div className="pt-6 border-t border-white/10 flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -420,7 +485,17 @@ export const FamilyDashboard = () => {
                     </div>
                     <div className="flex items-center gap-3">
                         <div className="hidden sm:flex items-center gap-2 px-5 py-3 bg-white border border-black/5 rounded-2xl text-[13px] font-bold shadow-sm cursor-pointer hover:bg-dagang-cream/50 transition-all">
-                            <Home className="w-4 h-4 text-dagang-green" /> {user?.familyName || 'Keluarga'} <ChevronDown className="w-4 h-4 opacity-40" />
+                            {summary?.family?.photo_url ? (
+                                <img 
+                                    src={`http://localhost:3001${summary.family.photo_url}`} 
+                                    className="w-5 h-5 rounded-md object-cover" 
+                                    alt="Family"
+                                />
+                            ) : (
+                                <Home className="w-4 h-4 text-dagang-green" />
+                            )}
+                            <span className="truncate max-w-[150px]">{summary?.family?.name || user?.familyName || 'Keluarga'}</span>
+                            <ChevronDown className="w-4 h-4 opacity-40" />
                         </div>
                         <button className="p-3 bg-white border border-black/5 rounded-2xl text-dagang-gray hover:text-dagang-green transition-all relative shadow-sm">
                             <Bell className="w-5 h-5" />
@@ -450,6 +525,7 @@ export const FamilyDashboard = () => {
                     handleAllocateToSaving,
                     handleCreateDebt,
                     handleRecordPayment,
+                    handleDeleteDebt,
                     handleBulkCreateTransactions,
                     handleUpdateTransaction,
                     handleDeleteTransaction,
@@ -457,7 +533,8 @@ export const FamilyDashboard = () => {
                     setIsSingleModalOpen,
                     isBulkModalOpen,
                     setIsBulkModalOpen,
-                    categories: CATEGORIES
+                    categories: CATEGORIES,
+                    refreshDashboard: fetchData
                 }} />
             </main>
 
@@ -509,6 +586,13 @@ export const FamilyDashboard = () => {
                             onClick={() => setIsMobileMenuOpen(false)}
                         />
                         <MobileMenuItem
+                            icon={Brain}
+                            label="AI Coach"
+                            to="coach"
+                            active={currentPath === 'coach'}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        />
+                        <MobileMenuItem
                             icon={Wallet}
                             label="Dompet"
                             to="wallets"
@@ -520,13 +604,6 @@ export const FamilyDashboard = () => {
                             label="Transaksi"
                             to="transactions"
                             active={currentPath === 'transactions'}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                        />
-                        <MobileMenuItem
-                            icon={PieChart}
-                            label="Analisa"
-                            to="analytics"
-                            active={currentPath === 'analytics'}
                             onClick={() => setIsMobileMenuOpen(false)}
                         />
                         <MobileMenuItem
@@ -547,7 +624,13 @@ export const FamilyDashboard = () => {
                         <div className="pt-8 pb-4">
                             <span className="px-4 text-[10px] font-black uppercase tracking-[0.2em] text-white/20">Keluarga</span>
                         </div>
-                        <MobileMenuItem icon={Users} label="Anggota" onClick={() => setIsMobileMenuOpen(false)} />
+                        <MobileMenuItem 
+                            icon={Users} 
+                            label="Anggota" 
+                            to="members" 
+                            active={currentPath === 'members'}
+                            onClick={() => setIsMobileMenuOpen(false)} 
+                        />
                         <MobileMenuItem icon={Bell} label="Notifikasi" onClick={() => setIsMobileMenuOpen(false)} />
                         <MobileMenuItem icon={Settings} label="Pengaturan" onClick={() => setIsMobileMenuOpen(false)} />
                     </nav>

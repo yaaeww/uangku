@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
     ShieldCheck,
@@ -7,17 +8,90 @@ import {
     CheckCircle2,
     ChevronRight,
     HelpCircle,
-    Tag,
     Wallet,
-    Smartphone
+    Smartphone,
+    Loader2,
+    ExternalLink,
+    Copy,
+    Info
 } from 'lucide-react';
 
-import { useAuthStore } from '../store/authStore';
+import { AdminController } from '../controllers/AdminController';
+import { PaymentController } from '../controllers/PaymentController';
+
+const TRIPAY_MAPPING: Record<string, string> = {
+    'qris': 'QRIS2',
+    'ewallet': 'OVO',
+    'va': 'BRIVA',
+    'card': 'BRIVA' // Fallback or inform not supported
+};
 
 export const CheckoutPage = () => {
-    const user = useAuthStore(state => state.user);
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const planId = searchParams.get('plan_id');
+    
+    const [plan, setPlan] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
     const [method, setMethod] = useState('qris');
-    const [success, setSuccess] = useState(false);
+    const [paymentResult, setPaymentResult] = useState<any>(null);
+
+    useEffect(() => {
+        if (!planId) {
+            navigate('/pricing');
+            return;
+        }
+
+        const fetchPlan = async () => {
+            try {
+                const planData = await AdminController.getPlanByID(planId);
+                setPlan(planData);
+            } catch (error) {
+                console.error("Failed to fetch plan", error);
+                navigate('/pricing');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPlan();
+    }, [planId, navigate]);
+
+    const handlePayment = async () => {
+        if (!planId) return;
+        setSubmitting(true);
+        try {
+            const result = await PaymentController.createPayment(planId, TRIPAY_MAPPING[method]);
+            
+            // If it's a redirect method and has a checkout URL
+            if (result.checkout_url && (method === 'ewallet' || method === 'card')) {
+                window.location.href = result.checkout_url;
+                return;
+            }
+
+            setPaymentResult(result);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (error: any) {
+            alert(error.response?.data?.error || "Gagal membuat pembayaran");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        alert("Nomor pembayaran disalin!");
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-dagang-cream/50 flex flex-col items-center justify-center">
+                <Loader2 className="w-12 h-12 text-dagang-green animate-spin mb-4" />
+                <p className="font-bold text-dagang-dark">Menyiapkan pembayaran aman...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-dagang-cream/50 text-dagang-dark font-sans selection:bg-dagang-green-pale selection:text-dagang-green relative">
@@ -28,8 +102,8 @@ export const CheckoutPage = () => {
                 </div>
                 <div className="hidden md:flex items-center gap-10">
                     <Step num="1" label="Pilih Paket" done />
-                    <Step num="2" label="Pembayaran" active />
-                    <Step num="3" label="Selesai" />
+                    <Step num="2" label="Pembayaran" active={!paymentResult} done={!!paymentResult} />
+                    <Step num="3" label="Selesai" active={!!paymentResult} />
                 </div>
                 <div className="text-[13px] text-dagang-gray hidden sm:flex items-center gap-2">
                     <HelpCircle className="w-4 h-4" /> Butuh bantuan?
@@ -37,78 +111,142 @@ export const CheckoutPage = () => {
             </header>
 
             <main className="max-w-[1200px] mx-auto p-6 md:p-12 lg:p-[72px] grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-                {/* Left Column: Payment Methods */}
+                {/* Left Column */}
                 <div className="lg:col-span-7 space-y-10">
-                    <div className="flex items-center gap-3 mb-2">
-                        <a href="/pricing" className="p-2 hover:bg-black/5 rounded-full transition-all">
-                            <ArrowLeft className="w-5 h-5 text-dagang-gray" />
-                        </a>
-                        <h1 className="font-serif text-[32px]">Metode Pembayaran</h1>
-                    </div>
+                    {!paymentResult ? (
+                        <>
+                            <div className="flex items-center gap-3 mb-2">
+                                <a href="/pricing" className="p-2 hover:bg-black/5 rounded-full transition-all">
+                                    <ArrowLeft className="w-5 h-5 text-dagang-gray" />
+                                </a>
+                                <h1 className="font-serif text-[32px]">Metode Pembayaran</h1>
+                            </div>
 
-                    <div className="space-y-4">
-                        <PaymentMethod
-                            id="qris"
-                            title="QRIS (Gopay, OVO, Dana, LinkAja)"
-                            description="Bayar cepat dengan scan kode QR"
-                            icon={<ImageIcon className="w-5 h-5" />}
-                            active={method === 'qris'}
-                            onClick={() => setMethod('qris')}
-                        />
-                        <PaymentMethod
-                            id="ewallet"
-                            title="E-Wallet (OVO / ShopeePay)"
-                            description="Konfirmasi bayar di aplikasi HP Anda"
-                            icon={<Smartphone className="w-5 h-5" />}
-                            active={method === 'ewallet'}
-                            onClick={() => setMethod('ewallet')}
-                        />
-                        <PaymentMethod
-                            id="va"
-                            title="Virtual Account"
-                            description="Transfer bank otomatis terkonfirmasi"
-                            icon={<Wallet className="w-5 h-5" />}
-                            active={method === 'va'}
-                            onClick={() => setMethod('va')}
-                        />
-                        <PaymentMethod
-                            id="card"
-                            title="Kartu Kredit / Debit"
-                            description="Mendukung Visa, Mastercard, JCB"
-                            icon={<CreditCard className="w-5 h-5" />}
-                            active={method === 'card'}
-                            onClick={() => setMethod('card')}
-                        />
-                    </div>
-
-                    <div className="bg-white rounded-[24px] p-8 border border-black/5 shadow-sm space-y-6">
-                        <h3 className="font-bold">Detail Pembayaran</h3>
-                        {method === 'card' ? (
                             <div className="space-y-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[12px] font-bold text-dagang-gray/60 uppercase tracking-wider">Nomor Kartu</label>
-                                    <input type="text" placeholder="xxxx xxxx xxxx xxxx" className="w-full px-4 py-3.5 bg-dagang-cream/50 border-none rounded-xl text-sm focus:ring-2 focus:ring-dagang-green/20 outline-none" />
+                                <PaymentMethod
+                                    id="qris"
+                                    title="QRIS (Gopay, OVO, Dana, LinkAja)"
+                                    description="Bayar cepat dengan scan kode QR"
+                                    icon={<ImageIcon className="w-5 h-5" />}
+                                    active={method === 'qris'}
+                                    onClick={() => setMethod('qris')}
+                                />
+                                <PaymentMethod
+                                    id="ewallet"
+                                    title="E-Wallet (OVO / ShopeePay)"
+                                    description="Konfirmasi bayar di aplikasi HP Anda"
+                                    icon={<Smartphone className="w-5 h-5" />}
+                                    active={method === 'ewallet'}
+                                    onClick={() => setMethod('ewallet')}
+                                />
+                                <PaymentMethod
+                                    id="va"
+                                    title="Virtual Account"
+                                    description="Transfer bank otomatis terkonfirmasi"
+                                    icon={<Wallet className="w-5 h-5" />}
+                                    active={method === 'va'}
+                                    onClick={() => setMethod('va')}
+                                />
+                                <PaymentMethod
+                                    id="card"
+                                    title="Kartu Kredit / Debit"
+                                    description="Mendukung Visa, Mastercard, JCB"
+                                    icon={<CreditCard className="w-5 h-5" />}
+                                    active={method === 'card'}
+                                    onClick={() => setMethod('card')}
+                                />
+                            </div>
+
+                            <div className="bg-white rounded-[24px] p-8 border border-black/5 shadow-sm space-y-6">
+                                <h3 className="font-bold">Detail Pembayaran</h3>
+                                <div className="text-center py-6 border-2 border-dashed border-dagang-green/20 rounded-[20px] bg-dagang-green-pale/50">
+                                    <div className="text-[32px] mb-3">⚡</div>
+                                    <p className="text-[14px] text-dagang-gray max-w-[300px] mx-auto">
+                                        Setelah menekan tombol bayar, Anda akan melihat detail pembayaran TriPay yang aman.
+                                    </p>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[12px] font-bold text-dagang-gray/60 uppercase tracking-wider">Masa Berlaku</label>
-                                        <input type="text" placeholder="MM / YY" className="w-full px-4 py-3.5 bg-dagang-cream/50 border-none rounded-xl text-sm focus:ring-2 focus:ring-dagang-green/20 outline-none" />
+                            </div>
+                        </>
+                    ) : (
+                        <div className="space-y-8 animate-fade-in">
+                            <div className="bg-white rounded-[32px] p-8 md:p-10 border border-black/5 shadow-xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-dagang-green/5 rounded-bl-full -mr-16 -mt-16" />
+                                
+                                <div className="flex items-center gap-3 text-dagang-green font-bold mb-6">
+                                    <CheckCircle2 className="w-6 h-6" /> Pesanan Berhasil Dibuat
+                                </div>
+                                
+                                <h2 className="font-serif text-[32px] mb-8">Selesaikan Pembayaran</h2>
+
+                                {paymentResult.qr_code_url ? (
+                                    <div className="text-center mb-10">
+                                        <div className="bg-white p-6 inline-block rounded-2xl border-2 border-dagang-green/10 shadow-lg text-center">
+                                            <img src={paymentResult.qr_code_url} alt="QR Code" className="w-[200px] h-[200px] mx-auto mb-4" />
+                                            <p className="text-[12px] font-bold text-dagang-gray">SCAN DENGAN APLIKASI PEMBAYARAN ANDA</p>
+                                        </div>
                                     </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[12px] font-bold text-dagang-gray/60 uppercase tracking-wider">CVV</label>
-                                        <input type="text" placeholder="3 Digit" className="w-full px-4 py-3.5 bg-dagang-cream/50 border-none rounded-xl text-sm focus:ring-2 focus:ring-dagang-green/20 outline-none" />
+                                ) : (
+                                    <div className="bg-dagang-cream/50 p-8 rounded-2xl mb-10 border border-dagang-green/10">
+                                        <div className="text-[12px] font-bold text-dagang-gray uppercase tracking-widest mb-2">Nomor Pembayaran / VA</div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[32px] font-serif tracking-widest text-dagang-green">{paymentResult.pay_code}</span>
+                                            <button 
+                                                onClick={() => copyToClipboard(paymentResult.pay_code)}
+                                                className="p-3 bg-white rounded-xl shadow-sm hover:bg-dagang-green hover:text-white transition-all group"
+                                            >
+                                                <Copy className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                        <div className="mt-4 pt-4 border-t border-dagang-gray/10 flex items-center justify-between text-sm">
+                                            <span className="text-dagang-gray">Metode: {paymentResult.payment_name}</span>
+                                            <span className="font-bold">Total: Rp {paymentResult.amount.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="space-y-6">
+                                    <h3 className="font-bold flex items-center gap-2">
+                                        <Info className="w-5 h-5 text-dagang-accent" /> Instruksi Pembayaran
+                                    </h3>
+                                    <div className="space-y-4">
+                                        {JSON.parse(paymentResult.instructions || "[]").map((section: any, idx: number) => (
+                                            <details key={idx} className="group bg-dagang-cream/30 rounded-xl overflow-hidden" open={idx === 0}>
+                                                <summary className="p-4 font-bold text-sm cursor-pointer list-none flex justify-between items-center hover:bg-dagang-cream transition-all">
+                                                    {section.title}
+                                                    <ChevronRight className="w-4 h-4 group-open:rotate-90 transition-all text-dagang-gray" />
+                                                </summary>
+                                                <div className="p-4 pt-0 space-y-3">
+                                                    {section.steps.map((step: string, sIdx: number) => (
+                                                        <div key={sIdx} className="flex gap-3 text-[13px] text-dagang-gray leading-relaxed">
+                                                            <span className="w-5 h-5 rounded-full bg-dagang-green/10 text-dagang-green flex items-center justify-center flex-shrink-0 text-[10px] font-black">{sIdx + 1}</span>
+                                                            <p dangerouslySetInnerHTML={{ __html: step }} />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </details>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
-                        ) : (
-                            <div className="text-center py-6 border-2 border-dashed border-dagang-green/20 rounded-[20px] bg-dagang-green-pale/50">
-                                <div className="text-[32px] mb-3">⚡</div>
-                                <p className="text-[14px] text-dagang-gray max-w-[300px] mx-auto">
-                                    Setelah menekan tombol bayar, Anda akan dialihkan ke gerbang pembayaran aman kami.
-                                </p>
+
+                            <div className="bg-dagang-green/5 border border-dagang-green/20 rounded-2xl p-6 flex items-start gap-4">
+                                <div className="p-2 bg-dagang-green/10 rounded-lg text-dagang-green">
+                                    <ExternalLink className="w-5 h-5" />
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-sm font-bold">Sudah membayar?</p>
+                                    <p className="text-[13px] text-dagang-gray leading-relaxed">
+                                        Setelah Anda membayar, sistem akan mendeteksi secara otomatis dan mengaktifkan akun Anda dalam beberapa saat. Anda bisa menutup halaman ini.
+                                    </p>
+                                    {paymentResult.checkout_url && (
+                                        <a href={paymentResult.checkout_url} target="_blank" rel="noopener noreferrer" className="text-dagang-green text-sm font-bold inline-block mt-2 underline">
+                                            Lihat Halaman Checkout TriPay
+                                        </a>
+                                    )}
+                                </div>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Column: Order Summary */}
@@ -121,13 +259,13 @@ export const CheckoutPage = () => {
                         <div className="bg-white/5 border border-white/10 rounded-[20px] p-5 mb-8">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
-                                    <div className="text-[11px] font-bold text-dagang-accent tracking-[0.1em] mb-1">PAKET TERPILIH</div>
-                                    <div className="text-[20px] font-serif">Paket Family (Bulanan)</div>
+                                    <div className="text-[11px] font-bold text-dagang-accent tracking-[0.1em] mb-1 uppercase">PAKET TERPILIH</div>
+                                    <div className="text-[20px] font-serif">{plan?.name}</div>
                                 </div>
-                                <div className="text-xl font-serif">Rp 49.000</div>
+                                <div className="text-xl font-serif">Rp {plan?.price?.toLocaleString()}</div>
                             </div>
                             <ul className="space-y-2.5">
-                                {['Akses 6 Anggota Keluarga', 'Target Tabungan Unlimited', 'Laporan Visual Lengkap'].map((f, i) => (
+                                {(plan?.features ? (typeof plan.features === 'string' ? plan.features.split(';') : plan.features) : []).map((f: string, i: number) => (
                                     <li key={i} className="text-[13px] text-white/50 flex items-center gap-2.5">
                                         <CheckCircle2 className="w-4 h-4 text-dagang-green" /> {f}
                                     </li>
@@ -135,33 +273,44 @@ export const CheckoutPage = () => {
                             </ul>
                         </div>
 
-                        <div className="space-y-4 mb-8">
-                            <div className="flex justify-between text-[14px]">
-                                <span className="text-white/40">Subtotal</span>
-                                <span>Rp 49.000</span>
+                        {!paymentResult ? (
+                            <div className="space-y-4 mb-8">
+                                <div className="flex justify-between text-[14px]">
+                                    <span className="text-white/40">Subtotal</span>
+                                    <span>Rp {plan?.price?.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between text-[14px]">
+                                    <span className="text-white/40">Biaya Layanan</span>
+                                    <span className="italic text-white/20">Dihitung otomatis</span>
+                                </div>
+                                <div className="h-px bg-white/10 my-4" />
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[18px] font-serif">Total Bayar</span>
+                                    <span className="text-[28px] font-serif text-dagang-accent">Rp {plan?.price?.toLocaleString()}</span>
+                                </div>
                             </div>
-                            <div className="flex justify-between text-[14px]">
-                                <span className="text-white/40">Biaya Layanan</span>
-                                <span>Rp 2.500</span>
+                        ) : (
+                            <div className="space-y-4 mb-8">
+                                <div className="flex justify-between text-[14px]">
+                                    <span className="text-white/40">Total Tagihan</span>
+                                    <span className="text-[24px] font-serif text-dagang-accent">Rp {paymentResult.amount.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between text-[12px]">
+                                    <span className="text-white/40">Berlaku Hingga</span>
+                                    <span className="text-dagang-accent font-bold">{new Date(paymentResult.expired_at).toLocaleString()}</span>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-3 py-3 px-4 bg-white/5 border border-dashed border-white/20 rounded-xl">
-                                <Tag className="w-4 h-4 text-dagang-accent" />
-                                <input type="text" placeholder="Kode Promo" className="bg-transparent border-none text-sm focus:ring-0 w-full placeholder:text-white/20" />
-                                <button className="text-[12px] font-bold text-white/40 hover:text-white uppercase">Pakai</button>
-                            </div>
-                            <div className="h-px bg-white/10 my-4" />
-                            <div className="flex justify-between items-center">
-                                <span className="text-[18px] font-serif">Total Bayar</span>
-                                <span className="text-[28px] font-serif text-dagang-accent">Rp 51.500</span>
-                            </div>
-                        </div>
+                        )}
 
-                        <button
-                            onClick={() => setSuccess(true)}
-                            className="w-full py-4.5 bg-dagang-green text-white rounded-2xl text-[16px] font-bold shadow-xl shadow-black/20 hover:bg-dagang-green-light hover:-translate-y-0.5 transition-all flex items-center justify-center gap-3 group"
-                        >
-                            Bayar Sekarang <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </button>
+                        {!paymentResult && (
+                            <button
+                                onClick={handlePayment}
+                                disabled={submitting}
+                                className="w-full py-4.5 bg-dagang-green text-white rounded-2xl text-[16px] font-bold shadow-xl shadow-black/20 hover:bg-dagang-green-light hover:-translate-y-0.5 transition-all flex items-center justify-center gap-3 group disabled:opacity-50 disabled:translate-y-0"
+                            >
+                                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Bayar Sekarang <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /></>}
+                            </button>
+                        )}
 
                         <div className="mt-6 flex items-center justify-center gap-2 text-[11px] text-white/30">
                             <ShieldCheck className="w-3.5 h-3.5" /> Transaksi Aman & Terenkripsi
@@ -169,30 +318,6 @@ export const CheckoutPage = () => {
                     </div>
                 </div>
             </main>
-
-            {/* Success Overlay */}
-            {success && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
-                    <div className="absolute inset-0 bg-[#faf8f3]/95 backdrop-blur-md" />
-                    <div className="bg-white rounded-[32px] max-w-[480px] w-full p-8 md:p-12 text-center relative z-10 shadow-[0_32px_120px_rgba(0,0,0,0.1)] border border-black/5 animate-fade-in">
-                        <div className="w-[100px] h-[100px] bg-dagang-green/10 text-dagang-green rounded-full flex items-center justify-center mx-auto mb-8">
-                            <CheckCircle2 className="w-[64px] h-[64px]" />
-                        </div>
-
-                        <h2 className="font-serif text-[42px] mb-3 leading-tight tracking-tight">Pembayaran <br /><em className="italic font-serif not-italic text-dagang-green">Berhasil!</em></h2>
-                        <p className="text-dagang-gray text-[16px] leading-relaxed mb-10">
-                            Selamat! Akun keluarga Anda kini telah aktif kembali. Silakan kembali ke dashboard untuk melanjutkan pencatatan.
-                        </p>
-
-                        <a
-                            href={user?.role === 'super_admin' ? "/admin" : (user?.familyName ? `/${encodeURIComponent(user.familyName)}/dashboard` : "/")}
-                            className="block w-full py-4.5 bg-dagang-dark text-white rounded-2xl text-[16px] font-bold shadow-xl shadow-black/10 hover:bg-[#212822] transition-all"
-                        >
-                            Ke Dashboard Utama
-                        </a>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

@@ -15,8 +15,12 @@ import { useOutletContext } from 'react-router-dom';
 import { DashboardOverview } from './views/family/DashboardOverview';
 import { TransactionsView } from './views/family/TransactionsView';
 import { WalletsView } from './views/family/WalletsView';
-import { AnalyticsView } from './views/family/AnalyticsView';
 import { BudgetView } from './views/family/BudgetView';
+import { CoachView } from './views/family/CoachView';
+import { MembersView } from './views/family/MembersView';
+import { DebtView } from './views/family/DebtView';
+import { NotificationsView } from './views/family/NotificationsView';
+import { SettingsView } from './views/family/SettingsView';
 
 const DashboardOverviewWrapper = () => {
   const context = useOutletContext<any>();
@@ -28,10 +32,6 @@ const TransactionsViewWrapper = () => {
   return <TransactionsView {...context} />;
 };
 
-const AnalyticsViewWrapper = () => {
-  const context = useOutletContext<any>();
-  return <AnalyticsView {...context} />;
-};
 
 const WalletsViewWrapper = () => {
   const context = useOutletContext<any>();
@@ -43,10 +43,27 @@ const BudgetViewWrapper = () => {
   return <BudgetView {...context} />;
 };
 
+const CoachViewWrapper = () => {
+  const context = useOutletContext<any>();
+  return <CoachView {...context} />;
+};
+
+const MembersViewWrapper = () => {
+  const context = useOutletContext<any>();
+  return <MembersView {...context} />;
+};
+
 const DebtViewWrapper = () => {
-  // Assuming DebtView exists or will be implemented. 
-  // For now, let's keep it consistent or redirect.
-  return <div className="p-8">Debt View (Coming Soon)</div>;
+  const context = useOutletContext<any>();
+  return <DebtView {...context} />;
+};
+
+const NotificationsViewWrapper = () => {
+  return <NotificationsView />;
+};
+
+const SettingsViewWrapper = () => {
+    return <SettingsView />;
 };
 
 function App() {
@@ -96,17 +113,27 @@ function App() {
             <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview" element={<DashboardOverviewWrapper />} />
             <Route path="transactions" element={<TransactionsViewWrapper />} />
-            <Route path="analytics" element={<AnalyticsViewWrapper />} />
             <Route path="wallets" element={<WalletsViewWrapper />} />
             <Route path="budget" element={<BudgetViewWrapper />} />
+            <Route path="coach" element={<CoachViewWrapper />} />
+            <Route path="family" element={<MembersViewWrapper />} />
             <Route path="debts" element={<DebtViewWrapper />} />
+            <Route path="notifications" element={<NotificationsViewWrapper />} />
+            <Route path="settings" element={<SettingsViewWrapper />} />
           </Route>
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route
             path="/admin"
             element={token && user?.role === 'super_admin' ? <AdminDashboard /> : <Navigate to="/" />}
-          />
+          >
+            <Route index element={<Navigate to="overview" replace />} />
+            <Route path="overview" element={<AdminDashboard activeSection="overview" />} />
+            <Route path="users" element={<AdminDashboard activeSection="users" />} />
+            <Route path="families" element={<AdminDashboard activeSection="families" />} />
+            <Route path="settings" element={<AdminDashboard activeSection="settings" />} />
+            <Route path="plans" element={<AdminDashboard activeSection="plans" />} />
+          </Route>
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>

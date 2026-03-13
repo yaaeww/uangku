@@ -4,16 +4,27 @@ import (
 	"keuangan-keluarga/internal/config"
 	"keuangan-keluarga/internal/models"
 	"time"
+	"fmt"
 
 	"github.com/google/uuid"
 )
 
+type DailyActivity struct {
+	Income  float64 `json:"income"`
+	Expense float64 `json:"expense"`
+}
+
 type DashboardSummary struct {
-	TotalBalance     float64            `json:"total_balance"`
-	TotalIncome      float64            `json:"total_income"`
-	TotalExpense     float64            `json:"total_expense"`
-	TrendBalance     float64            `json:"trend_balance"`
-	CategoryExpenses map[string]float64 `json:"category_expenses"`
+	TotalBalance     float64               `json:"total_balance"`
+	TotalIncome      float64               `json:"total_income"`
+	TotalExpense     float64               `json:"total_expense"`
+	TrendBalance     float64               `json:"trend_balance"`
+	TrendIncome      float64               `json:"trend_income"`
+	TrendExpense     float64               `json:"trend_expense"`
+	CategoryExpenses map[string]float64    `json:"category_expenses"`
+	DailyActivity    map[int]DailyActivity `json:"daily_activity"`
+	Family           models.Family         `json:"family"`
+	TrialDuration    int                   `json:"trial_duration"`
 }
 
 type FinanceRepository interface {
@@ -96,6 +107,12 @@ func (r *financeRepository) GetDashboardSummary(familyID uuid.UUID, month int, y
 	if prevBalance != 0 {
 		summary.TrendBalance = ((summary.TotalBalance - prevBalance) / prevBalance) * 100
 	}
+	if prevIncome != 0 {
+		summary.TrendIncome = ((summary.TotalIncome - prevIncome) / prevIncome) * 100
+	}
+	if prevExpense != 0 {
+		summary.TrendExpense = ((summary.TotalExpense - prevExpense) / prevExpense) * 100
+	}
 
 	// 3. Category Breakdown
 	type CatResult struct {
@@ -117,6 +134,43 @@ func (r *financeRepository) GetDashboardSummary(familyID uuid.UUID, month int, y
 			catName = "Lainnya"
 		}
 		summary.CategoryExpenses[catName] = res.Total
+	}
+
+	// 4. Daily aggregates
+	summary.DailyActivity = make(map[int]DailyActivity)
+	var dailyResults []struct {
+		Day   int
+		Type  string
+		Total float64
+	}
+	config.DB.Model(&models.Transaction{}).
+		Select("CAST(EXTRACT(DAY FROM date) AS INTEGER) as day, type, sum(amount) as total").
+		Where("family_id = ? AND date >= ? AND date < ?", familyID, startDate, endDate).
+		Group("day, type").
+		Scan(&dailyResults)
+
+	for _, res := range dailyResults {
+		day := res.Day
+		activity := summary.DailyActivity[day]
+		if res.Type == "income" {
+			activity.Income = res.Total
+		} else {
+			activity.Expense = res.Total
+		}
+		summary.DailyActivity[day] = activity
+	}
+
+	// 5. Family Info
+	config.DB.First(&summary.Family, "id = ?", familyID)
+
+	// 6. Current Trial Duration Setting
+	var durationStr string
+	summary.TrialDuration = 7 // Default fallback
+	if err := config.DB.Table("system_settings").Select("value").Where("key = ?", "trial_duration_days").Scan(&durationStr).Error; err == nil && durationStr != "" {
+		var d int
+		if _, err := fmt.Sscanf(durationStr, "%d", &d); err == nil {
+			summary.TrialDuration = d
+		}
 	}
 
 	return &summary, nil

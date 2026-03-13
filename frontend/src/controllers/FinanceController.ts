@@ -25,11 +25,16 @@ export const FinanceController = {
         return {
             totalIncome: s.total_income,
             totalExpense: s.total_expense,
-            balance: s.balance,
+            totalBalance: s.total_balance,
+            trendIncome: s.trend_income,
+            trendExpense: s.trend_expense,
+            trendBalance: s.trend_balance,
             monthlySavings: s.monthly_savings,
             incomeByCategory: s.income_by_category,
             expenseByCategory: s.expense_by_category,
-            comparison: s.comparison
+            comparison: s.comparison,
+            dailyActivity: s.daily_activity,
+            family: s.family
         };
     },
 
@@ -196,8 +201,11 @@ export const FinanceController = {
             id: d.id,
             familyId: d.family_id,
             name: d.name,
+            description: d.description,
             totalAmount: d.total_amount,
+            paidAmount: d.paid_amount,
             remainingAmount: d.remaining_amount,
+            status: d.status,
             dueDate: d.due_date,
             createdAt: d.created_at
         }));
@@ -206,21 +214,66 @@ export const FinanceController = {
     createDebt: async (debt: any): Promise<any> => {
         const payload = {
             name: debt.name,
+            description: debt.description,
             total_amount: debt.totalAmount,
-            remaining_amount: debt.remainingAmount,
-            due_date: debt.dueDate
+            due_date: new Date(debt.dueDate).toISOString()
         };
         const response = await api.post('/finance/debts', payload);
         return response.data;
     },
 
     recordDebtPayment: async (payment: any): Promise<any> => {
-        const response = await api.post('/finance/debts/payment', payment);
+        const payload = {
+            debt_id: payment.debtId,
+            wallet_id: payment.walletId,
+            amount: payment.amount,
+            description: payment.description,
+            date: new Date(payment.paymentDate || new Date()).toISOString()
+        };
+        const response = await api.post('/finance/debts/payment', payload);
         return response.data;
+    },
+
+    getDebtHistory: async (id: string): Promise<any[]> => {
+        const response = await api.get(`/finance/debts/${id}/history`);
+        return response.data.map((h: any) => ({
+            id: h.id,
+            debtId: h.debt_id,
+            walletId: h.wallet_id,
+            amount: h.amount,
+            date: h.date,
+            description: h.description,
+            createdAt: h.created_at
+        }));
     },
 
     deleteDebt: async (id: string): Promise<any> => {
         const response = await api.delete(`/finance/debts/${id}`);
+        return response.data;
+    },
+
+    getBehaviorSummary: async (): Promise<any> => {
+        const response = await api.get('/finance/behavior');
+        return response.data;
+    },
+
+    getMembers: async (): Promise<any> => {
+        const response = await api.get('/finance/members');
+        return response.data;
+    },
+
+    updateMemberRole: async (id: string, role: string): Promise<any> => {
+        const response = await api.put(`/finance/members/${id}/role`, { role });
+        return response.data;
+    },
+
+    removeMember: async (id: string): Promise<any> => {
+        const response = await api.delete(`/finance/members/${id}`);
+        return response.data;
+    },
+
+    inviteMember: async (email: string, role: string): Promise<any> => {
+        const response = await api.post('/finance/members/invite', { email, role });
         return response.data;
     }
 };

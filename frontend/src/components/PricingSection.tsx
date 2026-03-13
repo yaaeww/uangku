@@ -1,5 +1,6 @@
-import React from 'react';
-import { Check, Star } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Check, Star, Loader2 } from 'lucide-react';
+import { AuthController } from '../controllers/AuthController';
 
 interface PricingPlan {
     id: string;
@@ -12,118 +13,115 @@ interface PricingPlan {
     color: string;
 }
 
-const PLANS: PricingPlan[] = [
-    {
-        id: 'basic',
-        name: 'BASIC',
-        price: '29rb',
-        period: 'bulan',
-        description: 'Mulai gratis 7 hari, lanjutkan sesuai kebutuhan.',
-        features: [
-            'Hingga 3 anggota',
-            'Catat transaksi tak terbatas',
-            'Budget dasar',
-            'Laporan bulanan',
-            'Support email'
-        ],
-        color: 'bg-dagang-green'
-    },
-    {
-        id: 'family',
-        name: 'FAMILY',
-        price: '49rb',
-        period: 'bulan',
-        description: 'Pilihan terbaik untuk keluarga harmonis.',
-        features: [
-            'Hingga 6 anggota',
-            'Semua fitur Basic',
-            'Tabungan tujuan',
-            'Pelacak utang & piutang',
-            'Notifikasi otomatis'
-        ],
-        isPopular: true,
-        color: 'bg-dagang-accent'
-    },
-    {
-        id: 'premium',
-        name: 'PREMIUM',
-        price: '79rb',
-        period: 'bulan',
-        description: 'Fitur lengkap untuk kontrol finansial total.',
-        features: [
-            'Anggota tak terbatas',
-            'Semua fitur Family',
-            'Analitik lanjutan',
-            'Referral & rewards',
-            'Priority support'
-        ],
-        color: 'bg-dagang-dark'
-    }
-];
-
 interface PricingSectionProps {
     onSelectPlan?: (planId: string) => void;
     selectedPlanId?: string;
 }
 
 export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, selectedPlanId }) => {
+    const [plans, setPlans] = useState<PricingPlan[]>([]);
+    const [trialDays, setTrialDays] = useState('7');
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [plansData, settingsData] = await Promise.all([
+                    AuthController.getPublicPlans(),
+                    AuthController.getPublicSettings()
+                ]);
+                
+                // Map the backend plans to the internal PricingPlan interface
+                const mappedPlans = plansData.map((p: any) => ({
+                    id: p.name, // Using name as ID for selection consistency
+                    name: p.name.toUpperCase(),
+                    price: `${(p.price / 1000)}rb`,
+                    period: 'tahun',
+                    description: `Nikmati semua fitur premium gratis selama ${settingsData.trial_duration_days || '7'} hari pertama.`,
+                    features: typeof p.features === 'string' ? p.features.split(';') : (p.features || [
+                        'Anggota keluarga tak terbatas',
+                        'Semua fitur premium terbuka',
+                        'Analitik & laporan mendalam',
+                        'Lansiran anggaran real-time',
+                        'Sinkronisasi antar perangkat'
+                    ]),
+                    isPopular: true,
+                    color: 'bg-dagang-accent'
+                }));
+
+                setPlans(mappedPlans);
+                setTrialDays(settingsData.trial_duration_days || '7');
+            } catch (err) {
+                console.error("Failed to fetch public pricing info", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <Loader2 className="w-10 h-10 text-dagang-green animate-spin" />
+                <p className="text-dagang-gray font-bold">Memuat Penawaran Spesial...</p>
+            </div>
+        );
+    }
+
     return (
-        <section className="py-20 px-6 bg-white" id="pricing">
-            <div className="max-w-7xl mx-auto">
-                <div className="text-center mb-16">
-                    <h2 className="text-3xl sm:text-4xl font-serif mb-4 text-dagang-dark">Pilih Paket Keluarga Anda</h2>
-                    <p className="text-dagang-gray max-w-2xl mx-auto">
-                        Mulai gratis 7 hari, lanjutkan dengan paket yang sesuai kebutuhan keluarga.
+        <section className="py-12 px-4 bg-white" id="pricing">
+            <div className="max-w-4xl mx-auto">
+                <div className="text-center mb-10">
+                    <h2 className="text-2xl sm:text-3xl font-serif mb-3 text-dagang-dark">Mulai Uji Coba Gratis Anda</h2>
+                    <p className="text-dagang-gray text-sm max-w-lg mx-auto">
+                        Coba gratis {trialDays} hari. Batalkan kapan saja jika tidak sesuai.
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {PLANS.map((plan) => (
+                <div className="flex justify-center flex-wrap gap-8">
+                    {plans.map((plan) => (
                         <div
                             key={plan.id}
                             className={`
-                                relative p-8 rounded-[32px] border-2 transition-all duration-300 hover:-translate-y-2
-                                ${plan.isPopular ? 'border-dagang-accent shadow-2xl shadow-dagang-accent/10 scale-105 z-10' : 'border-black/5 hover:border-dagang-green/20'}
+                                relative p-8 md:p-10 rounded-[40px] border-2 transition-all duration-300 w-full max-w-md
+                                ${plan.isPopular ? 'border-dagang-accent shadow-2xl shadow-dagang-accent/5 z-10' : 'border-black/5'}
                                 ${selectedPlanId === plan.id ? 'ring-4 ring-dagang-green/20' : ''}
                             `}
                         >
-                            {plan.isPopular && (
-                                <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-dagang-accent text-white px-5 py-2 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg">
-                                    <Star className="w-3 h-3 fill-current" /> ⭐ Paling Populer
-                                </div>
-                            )}
+                            <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-dagang-accent text-white px-6 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl">
+                                <Star className="w-3.5 h-3.5 fill-current" /> Trial {trialDays} Hari
+                            </div>
 
-                            <div className="mb-8">
-                                <h3 className="text-lg font-bold text-dagang-gray mb-1">{plan.name}</h3>
-                                <div className="flex items-baseline gap-1">
-                                    <span className="text-4xl font-serif text-dagang-dark">Rp {plan.price}</span>
-                                    <span className="text-dagang-gray text-sm">/{plan.period}</span>
+                            <div className="mb-10 text-center">
+                                <h3 className="text-sm font-black text-dagang-gray/60 uppercase tracking-[0.2em] mb-4">{plan.name}</h3>
+                                <div className="flex flex-col items-center justify-center">
+                                    <span className="text-xl text-dagang-gray/40 line-through font-serif mb-1">Rp {plan.price}</span>
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-6xl font-serif text-dagang-dark">Rp 0</span>
+                                        <span className="text-dagang-gray text-lg font-medium">/ {trialDays} hari</span>
+                                    </div>
+                                    <p className="text-xs font-bold text-dagang-green mt-3 bg-dagang-green/10 px-4 py-1.5 rounded-full">
+                                        Kemudian Rp {plan.price} / {plan.period}
+                                    </p>
                                 </div>
-                                <p className="text-[13px] text-dagang-gray/70 mt-3 leading-relaxed">
-                                    {plan.description}
-                                </p>
                             </div>
 
                             <button
                                 onClick={() => onSelectPlan?.(plan.id)}
-                                className={`
-                                    w-full py-4 rounded-2xl font-bold transition-all mb-8
-                                    ${plan.isPopular
-                                        ? 'bg-dagang-accent text-white hover:bg-dagang-accent/90 shadow-lg shadow-dagang-accent/20'
-                                        : plan.id === 'premium' ? 'bg-dagang-dark text-white hover:bg-black' : 'bg-dagang-cream text-dagang-dark hover:bg-dagang-cream/70'}
-                                    ${selectedPlanId === plan.id ? 'ring-2 ring-offset-2 ring-dagang-green' : ''}
-                                `}
+                                className="w-full h-16 bg-dagang-accent text-white rounded-2xl font-black text-sm tracking-wide hover:bg-dagang-accent/90 shadow-xl shadow-dagang-accent/20 transition-all mb-10 active:scale-[0.98]"
                             >
-                                Pilih {plan.name.charAt(0) + plan.name.slice(1).toLowerCase()}
+                                MULAI TRIAL GRATIS
                             </button>
 
-                            <div className="space-y-4">
+                            <div className="space-y-5">
+                                <p className="text-[11px] font-black text-dagang-gray/40 uppercase tracking-widest mb-2">Fitur Termasuk:</p>
                                 {plan.features.map((feature, idx) => (
-                                    <div key={idx} className="flex items-center gap-3">
-                                        <div className={`w-5 h-5 rounded-full ${plan.id === 'premium' ? 'bg-dagang-dark/10 text-dagang-dark' : 'bg-dagang-green/10 text-dagang-green'} flex items-center justify-center`}>
-                                            <Check className="w-3 h-3" strokeWidth={3} />
+                                    <div key={idx} className="flex items-center gap-4">
+                                        <div className="w-6 h-6 rounded-full bg-dagang-green/10 text-dagang-green flex items-center justify-center flex-shrink-0">
+                                            <Check className="w-3.5 h-3.5" strokeWidth={4} />
                                         </div>
-                                        <span className="text-[14px] text-dagang-dark/80">{feature}</span>
+                                        <span className="text-[14px] font-medium text-dagang-dark/80">{feature}</span>
                                     </div>
                                 ))}
                             </div>

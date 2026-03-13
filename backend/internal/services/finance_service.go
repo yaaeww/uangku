@@ -17,15 +17,17 @@ type FinanceService interface {
 	CreateBulkTransactions(txs []models.Transaction) error
 	DeleteTransaction(id uuid.UUID, familyID uuid.UUID) error
 	UpdateTransaction(id uuid.UUID, updatedTx *models.Transaction) error
+	GetBehaviorSummary(familyID uuid.UUID) (*repositories.BehaviorSummary, error)
 }
 
 type financeService struct {
-	repo       repositories.FinanceRepository
-	walletRepo repositories.WalletRepository
+	repo         repositories.FinanceRepository
+	walletRepo   repositories.WalletRepository
+	behaviorRepo repositories.BehaviorRepository
 }
 
-func NewFinanceService(repo repositories.FinanceRepository, walletRepo repositories.WalletRepository) FinanceService {
-	return &financeService{repo: repo, walletRepo: walletRepo}
+func NewFinanceService(repo repositories.FinanceRepository, walletRepo repositories.WalletRepository, behaviorRepo repositories.BehaviorRepository) FinanceService {
+	return &financeService{repo: repo, walletRepo: walletRepo, behaviorRepo: behaviorRepo}
 }
 
 func (s *financeService) GetMonthlyTransactions(familyID uuid.UUID, month int, year int) ([]models.Transaction, error) {
@@ -45,6 +47,10 @@ func (s *financeService) CreateBulkTransactions(txs []models.Transaction) error 
 
 func (s *financeService) GetDashboardSummary(familyID uuid.UUID, month int, year int) (*repositories.DashboardSummary, error) {
 	return s.repo.GetDashboardSummary(familyID, month, year)
+}
+
+func (s *financeService) GetBehaviorSummary(familyID uuid.UUID) (*repositories.BehaviorSummary, error) {
+	return s.behaviorRepo.GetBehaviorSummary(familyID)
 }
 
 func (s *financeService) CreateTransaction(tx *models.Transaction) error {

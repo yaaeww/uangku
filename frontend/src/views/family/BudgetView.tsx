@@ -153,51 +153,69 @@ export const BudgetView = () => {
         }
     };
 
-    const renderCategoryGroup = (cat: CategoryConfig) => {
-        const catSavings = savings.filter((s: any) => s.category === cat.id);
-        const allocationPercent = (categoryAllocations as any)[cat.id];
-        const categoryBudget = (totalBudget * allocationPercent) / 100;
-        const catTransactions = (context.transactions || []).filter((tx: any) =>
-            tx.type === 'expense' && savings.some((s: any) => s.id === tx.savingId && s.category === cat.id)
-        );
-        const totalTarget = catSavings.reduce((acc: number, s: any) => acc + s.targetAmount, 0);
-        const totalUsed = catTransactions.reduce((acc: number, tx: any) => acc + tx.amount, 0);
+const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDeleteSaving, setSelectedGoal, setIsAllocateOpen, categoryAllocations, totalBudget }: any) => {
+    const [showInfo, setShowInfo] = useState(false);
+    const savings = context.savings || [];
+    const catSavings = savings.filter((s: any) => s.category === cat.id);
+    const allocationPercent = (categoryAllocations as any)[cat.id];
+    const categoryBudget = (totalBudget * allocationPercent) / 100;
+    const catTransactions = (context.transactions || []).filter((tx: any) =>
+        tx.type === 'expense' && savings.some((s: any) => s.id === tx.savingId && s.category === cat.id)
+    );
+    const totalTarget = catSavings.reduce((acc: number, s: any) => acc + s.targetAmount, 0);
+    const totalUsed = catTransactions.reduce((acc: number, tx: any) => acc + tx.amount, 0);
 
-        const progress = categoryBudget > 0 ? (totalTarget / categoryBudget) * 100 : 0;
-        const usedProgress = categoryBudget > 0 ? (totalUsed / categoryBudget) * 100 : 0;
+    const progress = categoryBudget > 0 ? (totalTarget / categoryBudget) * 100 : 0;
+    const usedProgress = categoryBudget > 0 ? (totalUsed / categoryBudget) * 100 : 0;
 
-        return (
-            <div key={cat.id} className="space-y-4">
-                <div className="flex items-center justify-between group">
-                    <div className="flex items-center gap-3">
-                        <div className={`p-2.5 ${cat.bg} ${cat.color} rounded-xl shadow-inner`}>
-                            <cat.icon className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <h3 className="font-serif text-lg text-dagang-dark flex items-center gap-2">
-                                {cat.label}
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full ${cat.bg} ${cat.color} font-black`}>
-                                    {allocationPercent}%
-                                </span>
-                            </h3>
-                            <p className="text-[11px] text-dagang-gray/60 font-medium">{cat.description}</p>
-                        </div>
+    return (
+        <div className="space-y-6 bg-white/50 backdrop-blur-sm p-8 rounded-[40px] border border-black/5 shadow-sm transition-all hover:shadow-xl hover:shadow-black/[0.02]">
+            <div className="flex items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                    <div className={`p-4 ${cat.bg} ${cat.color} rounded-2xl shadow-sm`}>
+                        <cat.icon className="w-6 h-6" />
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="text-right">
-                            <div className="text-[10px] font-black text-dagang-gray/30 uppercase">Alokasi</div>
-                            <div className="text-sm font-serif text-dagang-dark">Rp {categoryBudget.toLocaleString()}</div>
+                    <div>
+                        <div className="flex items-center gap-3 mb-1">
+                            <h3 className="font-serif text-2xl text-dagang-dark">
+                                {cat.label}
+                            </h3>
+                            <span className={`text-[12px] px-3 py-1 rounded-full ${cat.bg} ${cat.color} font-black`}>
+                                {allocationPercent}%
+                            </span>
+                            <button
+                                onClick={() => setShowInfo(!showInfo)}
+                                className={`p-1.5 rounded-full transition-all ${showInfo ? 'bg-dagang-dark text-white' : 'text-dagang-gray/40 hover:text-dagang-dark hover:bg-black/5'}`}
+                            >
+                                <Info className="w-4 h-4" />
+                            </button>
                         </div>
-                        <button
-                            onClick={() => openCreateModal(cat.id)}
-                            className="p-2 bg-dagang-cream rounded-lg text-dagang-gray hover:text-dagang-green transition-all"
-                        >
-                            <Plus className="w-4 h-4" />
-                        </button>
+                        {showInfo ? (
+                            <div className="text-[12px] text-dagang-dark font-bold bg-dagang-cream/50 px-3 py-1.5 rounded-lg animate-in fade-in slide-in-from-left-2 duration-300 border border-black/5">
+                                {cat.description.replace(/\(\d+%\)/, `(${allocationPercent}%)`)}
+                            </div>
+                        ) : (
+                            <p className="text-[13px] text-dagang-gray/60 font-medium">Klik ikon "i" untuk penjelasan</p>
+                        )}
                     </div>
                 </div>
 
-                <div className="h-2 bg-black/5 rounded-full overflow-hidden relative">
+                <div className="flex items-center gap-8">
+                    <div className="text-right">
+                        <div className="text-[11px] font-black text-dagang-gray/30 uppercase tracking-widest mb-1">Total Alokasi Baris</div>
+                        <div className="text-xl font-serif text-dagang-dark">Rp {categoryBudget.toLocaleString()}</div>
+                    </div>
+                    <button
+                        onClick={() => openCreateModal(cat.id)}
+                        className="w-12 h-12 bg-dagang-dark text-white rounded-2xl flex items-center justify-center hover:bg-dagang-dark/90 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/10"
+                    >
+                        <Plus className="w-6 h-6" />
+                    </button>
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <div className="h-3 bg-black/5 rounded-full overflow-hidden relative shadow-inner">
                     <div
                         className={`absolute inset-y-0 left-0 transition-all duration-1000 opacity-20 ${cat.id === 'savings' ? 'bg-dagang-green' : (cat.id === 'emergency' ? 'bg-red-500' : (cat.id === 'needs' ? 'bg-blue-500' : 'bg-amber-500'))}`}
                         style={{ width: `${Math.min(progress, 100)}%` }}
@@ -207,72 +225,71 @@ export const BudgetView = () => {
                         style={{ width: `${Math.min(usedProgress, 100)}%` }}
                     />
                 </div>
-
-                <div className="flex justify-between items-center text-[10px] font-bold text-dagang-gray/40 uppercase tracking-widest px-1">
-                    <span>Terpakai: Rp {totalUsed.toLocaleString()}</span>
-                    <span>Batas: Rp {categoryBudget.toLocaleString()}</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {catSavings.map((s: any) => {
-                        const sProgress = (s.currentBalance / s.targetAmount) * 100;
-                        const sUsed = (context.transactions || []).filter((tx: any) => tx.savingId === s.id && tx.type === 'expense').reduce((a: number, b: any) => a + b.amount, 0);
-                        return (
-                            <div key={s.id} className="bg-white border border-black/5 rounded-2xl p-5 hover:shadow-lg hover:shadow-black/5 transition-all group">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-10 h-10 bg-dagang-cream/50 rounded-xl flex items-center justify-center text-xl shadow-inner">
-                                        {s.emoji || '💰'}
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="font-bold text-sm text-dagang-dark truncate">{s.name}</h4>
-                                        <div className="text-[10px] text-dagang-gray/40 font-bold uppercase tracking-wider">
-                                            Jatuh Tempo: {s.dueDate || '-'}
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => openEditModal(s)} className="p-1.5 text-dagang-gray hover:text-dagang-green hover:bg-dagang-green/5 rounded-md">
-                                            <Edit3 className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button onClick={() => handleDeleteSaving(s.id)} className="p-1.5 text-dagang-gray hover:text-red-500 hover:bg-red-50 rounded-md">
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="flex justify-between items-end mb-3">
-                                    <div>
-                                        <div className="text-[10px] font-black text-dagang-gray/30 uppercase tracking-widest">Digunakan</div>
-                                        <div className="text-sm font-serif">Rp {sUsed.toLocaleString()}</div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-[10px] font-black text-dagang-gray/30 uppercase tracking-widest">Alokasi</div>
-                                        <div className="text-sm font-serif">Rp {s.targetAmount.toLocaleString()}</div>
-                                    </div>
-                                </div>
-                                <div className="h-1 bg-black/5 rounded-full overflow-hidden mb-4">
-                                    <div className={`h-full ${cat.color.replace('text', 'bg')} opacity-40`} style={{ width: `${Math.min(sProgress, 100)}%` }} />
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        setSelectedGoal(s);
-                                        setIsAllocateOpen(true);
-                                    }}
-                                    className="w-full py-2 bg-dagang-cream hover:bg-dagang-green/5 text-dagang-gray hover:text-dagang-green text-[11px] font-black rounded-xl transition-all flex items-center justify-center gap-2"
-                                >
-                                    <TrendingUp className="w-3.5 h-3.5" /> NABUNG
-                                </button>
-                            </div>
-                        );
-                    })}
-                    {catSavings.length === 0 && (
-                        <div className="col-span-1 md:col-span-2 py-8 border-2 border-dashed border-black/5 rounded-2xl flex flex-col items-center justify-center text-dagang-gray/40">
-                            <Info className="w-6 h-6 mb-2 opacity-50" />
-                            <p className="text-xs font-bold uppercase tracking-widest">Belum ada alokasi</p>
-                        </div>
-                    )}
+                <div className="flex justify-between items-center text-[11px] font-black text-dagang-gray/40 uppercase tracking-[0.2em] px-1">
+                    <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${cat.id === 'savings' ? 'bg-dagang-green' : (cat.id === 'emergency' ? 'bg-red-500' : (cat.id === 'needs' ? 'bg-blue-500' : 'bg-amber-500'))}`} />
+                        Terpakai: Rp {totalUsed.toLocaleString()}
+                    </div>
+                    <span>Sisa: Rp {(categoryBudget - totalUsed).toLocaleString()}</span>
                 </div>
             </div>
-        );
-    };
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {catSavings.map((s: any) => {
+                    const sProgress = (s.currentBalance / s.targetAmount) * 100;
+                    const sUsed = (context.transactions || []).filter((tx: any) => tx.savingId === s.id && tx.type === 'expense').reduce((a: number, b: any) => a + b.amount, 0);
+                    return (
+                        <div key={s.id} className="bg-white border border-black/5 rounded-3xl p-5 hover:shadow-xl hover:shadow-black/[0.03] transition-all group relative overflow-hidden">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 bg-dagang-cream/50 rounded-xl flex items-center justify-center text-xl shadow-inner group-hover:scale-110 transition-transform">
+                                    {s.emoji || '💰'}
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className="font-bold text-[14px] text-dagang-dark truncate">{s.name}</h4>
+                                    <div className="text-[10px] text-dagang-gray/40 font-black uppercase tracking-wider flex items-center gap-1">
+                                        <Info className="w-2.5 h-2.5" /> Tgl {s.dueDate || '-'}
+                                    </div>
+                                </div>
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => openEditModal(s)} className="p-1.5 text-dagang-gray hover:text-dagang-green hover:bg-dagang-green/5 rounded-lg">
+                                        <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button onClick={() => handleDeleteSaving(s.id)} className="p-1.5 text-dagang-gray hover:text-red-500 hover:bg-red-50 rounded-lg">
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-end mb-3">
+                                <div className="text-right flex-1">
+                                    <div className="text-[9px] font-black text-dagang-gray/30 uppercase tracking-widest">Alokasi</div>
+                                    <div className="text-[13px] font-serif font-bold">Rp {s.targetAmount.toLocaleString()}</div>
+                                </div>
+                            </div>
+                            <div className="h-1.5 bg-black/5 rounded-full overflow-hidden mb-4">
+                                <div className={`h-full ${cat.color.replace('text', 'bg')} transition-all duration-1000`} style={{ width: `${Math.min(sProgress, 100)}%` }} />
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setSelectedGoal(s);
+                                    setIsAllocateOpen(true);
+                                }}
+                                className={`w-full py-2.5 ${cat.bg} ${cat.color} opacity-80 hover:opacity-100 text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest`}
+                            >
+                                <Plus className="w-3.5 h-3.5" /> Isi Saldo
+                            </button>
+                        </div>
+                    );
+                })}
+                {catSavings.length === 0 && (
+                    <div className="col-span-full py-6 border-2 border-dashed border-black/5 rounded-3xl flex flex-col items-center justify-center text-dagang-gray/30 hover:bg-black/[0.01] transition-colors cursor-pointer" onClick={() => openCreateModal(cat.id)}>
+                        <Plus className="w-5 h-5 mb-2 opacity-50" />
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em]">Tambah Item Baru</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -384,8 +401,10 @@ export const BudgetView = () => {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                {CATEGORIES.map(renderCategoryGroup)}
+            <div className="grid grid-cols-1 gap-12">
+                {CATEGORIES.map(cat => (
+                    <CategoryRow key={cat.id} cat={cat} context={context} openCreateModal={openCreateModal} openEditModal={openEditModal} handleDeleteSaving={handleDeleteSaving} setSelectedGoal={setSelectedGoal} setIsAllocateOpen={setIsAllocateOpen} categoryAllocations={categoryAllocations} totalBudget={totalBudget} />
+                ))}
             </div>
 
             {isModalOpen && (

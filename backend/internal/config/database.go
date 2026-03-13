@@ -9,6 +9,7 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
@@ -18,7 +19,9 @@ func ConnectDatabase() {
 		AppConfig.DBHost, AppConfig.DBUser, AppConfig.DBPassword, AppConfig.DBName, AppConfig.DBPort, AppConfig.DBSSLMode)
 
 	log.Printf("Connecting to database %s on %s:%s...", AppConfig.DBName, AppConfig.DBHost, AppConfig.DBPort)
-	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
@@ -29,21 +32,36 @@ func ConnectDatabase() {
 
 	// Run migrations
 	log.Println("Running AutoMigrate for core models...")
-	DB.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`)
+	if err := DB.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`).Error; err != nil {
+		log.Printf("Warning: Failed to create uuid-ossp extension: %v", err)
+	}
+	if err := DB.Exec(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`).Error; err != nil {
+		log.Printf("Warning: Failed to create pgcrypto extension: %v", err)
+	}
 
 	err = DB.AutoMigrate(
 		&models.User{},
 		&models.Family{},
 		&models.FamilyMember{},
 		&models.FamilyApplication{},
+		&models.FamilyInvitation{},
 		&models.Wallet{},
 		&models.Saving{},
 		&models.Debt{},
 		&models.DebtPayment{},
+		&models.Notification{},
+		&models.SystemSetting{},
+		&models.SubscriptionPlan{},
+		&models.PaymentTransaction{},
 	)
 	if err != nil {
 		log.Fatal("Failed to run migrations:", err)
 	}
+
+	// Seed default settings
+	seedDefaultSettings()
+	// Seed subscription plans
+	seedSubscriptionPlans()
 
 	// Manual Migration for Partitioning (SAS Method)
 	log.Println("Setting up transactions partitioning (SAS Method)...")
@@ -92,7 +110,7 @@ func setupPartitionedTransactions() {
 		DB.Raw(`
 			SELECT EXISTS (
 				SELECT 1 FROM pg_partitioned_table 
-				WHERE partrelid = 'transactions'::regclass
+				WHERE partrelid = to_regclass('transactions')
 			)
 		`).Scan(&isPartitioned)
 
@@ -124,7 +142,7 @@ func setupPartitionedTransactions() {
 	// 1. Create the main partitioned table
 	DB.Exec(`
 		CREATE TABLE IF NOT EXISTS transactions (
-			id UUID NOT NULL DEFAULT uuid_generate_v4(),
+			id UUID NOT NULL,
 			family_id UUID NOT NULL,
 			user_id UUID NOT NULL,
 			wallet_id UUID NOT NULL,
@@ -183,4 +201,60 @@ func setupPartitionedTransactions() {
 		}
 	}
 	log.Println("Database partitioning (SAS Method) verified")
+}
+
+func seedDefaultSettings() {
+	defaultSettings := []models.SystemSetting{
+		{
+			Key:   "trial_duration_days",
+			Value: "7",
+		},
+	}
+
+	for _, s := range defaultSettings {
+		var exists bool
+		DB.Model(&models.SystemSetting{}).
+			Select("count(*) > 0").
+			Where("key = ?", s.Key).
+			Scan(&exists)
+
+		if !exists {
+			log.Printf("Seeding default setting: %s = %s", s.Key, s.Value)
+			DB.Create(&s)
+		}
+	}
+}
+
+func seedSubscriptionPlans() {
+	defaultPlans := []models.SubscriptionPlan{
+		{
+			Name:         "Standard",
+			Price:        25000,
+			MaxMembers:   2,
+			DurationDays: 30,
+			Description:  "Cocok untuk pasangan muda",
+			Features:     "Hingga 2 Anggota;Laporan Bulanan;Multi Dompet;Eksport Data",
+		},
+		{
+			Name:         "Family",
+			Price:        50000,
+			MaxMembers:   5,
+			DurationDays: 30,
+			Description:  "Pilihan populer untuk keluarga kecil",
+			Features:     "Hingga 5 Anggota;Laporan Mingguan & Bulanan;Analisis Anggaran;Target Menabung",
+		},
+		{
+			Name:         "Premium",
+			Price:        100000,
+			MaxMembers:   10,
+			DurationDays: 30,
+			Description:  "Fitur lengkap untuk keluarga besar",
+			Features:     "Hingga 10 Anggota;Prioritas Support;Backup Otomatis;Manajemen Utang",
+		},
+	}
+
+	for _, p := range defaultPlans {
+		// Use FirstOrCreate to ensure we don't duplicate names
+		DB.Where(models.SubscriptionPlan{Name: p.Name}).FirstOrCreate(&p)
+	}
 }

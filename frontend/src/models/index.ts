@@ -4,8 +4,11 @@ export interface User {
     id: string;
     email: string;
     fullName: string;
+    phoneNumber?: string;
     familyName: string;
     role: 'super_admin' | 'family_admin' | 'family_member';
+    familyStatus?: 'active' | 'trial' | 'expired';
+    trialEndsAt?: string;
 }
 
 export interface Wallet {

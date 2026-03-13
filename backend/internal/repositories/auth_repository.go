@@ -17,6 +17,8 @@ type AuthRepository interface {
 	UpdateUser(user *models.User) error
 	CreateFamily(family *models.Family) error
 	CreateMember(member *models.FamilyMember) error
+	FindInvitationByEmail(email string) (*models.FamilyInvitation, error)
+	DeleteInvitation(id uuid.UUID) error
 }
 
 type authRepository struct{}
@@ -72,4 +74,14 @@ func (r *authRepository) CreateFamily(family *models.Family) error {
 
 func (r *authRepository) CreateMember(member *models.FamilyMember) error {
 	return config.DB.Create(member).Error
+}
+
+func (r *authRepository) FindInvitationByEmail(email string) (*models.FamilyInvitation, error) {
+	var invitation models.FamilyInvitation
+	err := config.DB.Where("email = ?", email).First(&invitation).Error
+	return &invitation, err
+}
+
+func (r *authRepository) DeleteInvitation(id uuid.UUID) error {
+	return config.DB.Delete(&models.FamilyInvitation{}, "id = ?", id).Error
 }

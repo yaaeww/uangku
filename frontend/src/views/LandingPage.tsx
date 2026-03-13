@@ -235,12 +235,12 @@ export const LandingPage = () => {
                     <div className="text-center mb-14">
                         <div className="text-xs font-bold text-dagang-green tracking-[0.08em] uppercase mb-3">Harga Terjangkau</div>
                         <h2 className="font-serif text-5xl mb-4">Pilih Paket Keluarga Anda</h2>
-                        <p className="text-dagang-gray text-lg">Mulai gratis 7 hari, lanjutkan dengan paket yang sesuai kebutuhan keluarga.</p>
+                        <p className="text-dagang-gray text-lg">Mulai gratis 10 hari, lanjutkan dengan paket yang sesuai kebutuhan keluarga.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-[900px] mx-auto">
                         <div className="bg-white rounded-[24px] p-9 border border-black/5 flex flex-col items-center">
-                            <div className="text-xs font-bold opacity-70 mb-4 tracking-wider uppercase">BASIC</div>
+                            <div className="text-xs font-bold opacity-70 mb-4 tracking-wider uppercase">Basic</div>
                             <div className="font-serif text-[40px] mb-1">Rp 29rb</div>
                             <div className="text-[13px] text-dagang-gray mb-7">per bulan</div>
                             <ul className="w-full list-none space-y-3 mb-8">
@@ -253,7 +253,7 @@ export const LandingPage = () => {
 
                         <div className="bg-dagang-green rounded-[24px] p-9 text-white relative flex flex-col items-center shadow-xl shadow-dagang-green/20 scale-[1.04]">
                             <div className="absolute top-[-12px] left-1/2 -translate-x-1/2 bg-dagang-accent text-white text-[11px] font-bold px-4 py-1 rounded-full whitespace-nowrap">⭐ Paling Populer</div>
-                            <div className="text-xs font-bold text-white/70 mb-4 tracking-wider uppercase">FAMILY</div>
+                            <div className="text-xs font-bold text-white/70 mb-4 tracking-wider uppercase">Family</div>
                             <div className="font-serif text-[40px] mb-1 text-white">Rp 49rb</div>
                             <div className="text-[13px] text-white/60 mb-7">per bulan</div>
                             <ul className="w-full list-none space-y-3 mb-8">
@@ -265,7 +265,7 @@ export const LandingPage = () => {
                         </div>
 
                         <div className="bg-white rounded-[24px] p-9 border border-black/5 flex flex-col items-center">
-                            <div className="text-xs font-bold opacity-70 mb-4 tracking-wider uppercase">PREMIUM</div>
+                            <div className="text-xs font-bold opacity-70 mb-4 tracking-wider uppercase">Premium</div>
                             <div className="font-serif text-[40px] mb-1">Rp 79rb</div>
                             <div className="text-[13px] text-dagang-gray mb-7">per bulan</div>
                             <ul className="w-full list-none space-y-3 mb-8">
@@ -284,7 +284,7 @@ export const LandingPage = () => {
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-dagang-green/40 blur-[100px] rounded-full" />
                 <div className="relative z-10">
                     <h2 className="font-serif text-[54px] mb-4">Mulai Perjalanan Finansial Keluarga Anda</h2>
-                    <p className="text-white/60 text-lg mb-10 max-w-[600px] mx-auto">Gratis 7 hari. Setup 3 menit. Tidak perlu kartu kredit.</p>
+                    <p className="text-white/60 text-lg mb-10 max-w-[600px] mx-auto">Gratis 10 hari. Setup 3 menit. Tidak perlu kartu kredit.</p>
                     <a
                         href={token ? (user?.role === 'super_admin' ? "/admin" : (user?.familyName ? `/${encodeURIComponent(user.familyName)}/dashboard` : "/")) : "/register"}
                         className="inline-block bg-dagang-accent text-white px-11 py-4.5 rounded-full text-base font-bold shadow-[0_8px_32px_rgba(245,158,11,0.4)] hover:-translate-y-px hover:shadow-[0_16px_48px_rgba(245,158,11,0.5)] transition-all"

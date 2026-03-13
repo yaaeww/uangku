@@ -17,6 +17,13 @@ type Config struct {
 	DBSSLMode     string
 	JWTSecret     string
 	JWTExpiration string
+	SMTPHost      string
+	SMTPPort      string
+	SMTPUser      string
+	SMTPPass      string
+	SMTPFrom      string
+	WAToken       string
+	WAUrl         string
 }
 
 var AppConfig *Config
@@ -28,7 +35,7 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
-		Port:          getEnv("PORT", "8080"),
+		Port:          getEnv("PORT", "3000"),
 		DBHost:        getEnv("DB_HOST", "localhost"),
 		DBPort:        getEnv("DB_PORT", "5432"),
 		DBUser:        getEnv("DB_USER", "postgres"),
@@ -37,6 +44,13 @@ func LoadConfig() {
 		DBSSLMode:     getEnv("DB_SSLMODE", "disable"),
 		JWTSecret:     getEnv("JWT_SECRET", "secret"),
 		JWTExpiration: getEnv("JWT_EXPIRATION", "24h"),
+		SMTPHost:      getEnv("SMTP_HOST", "smtp.gmail.com"),
+		SMTPPort:      getEnv("SMTP_PORT", "587"),
+		SMTPUser:      getEnv("SMTP_USER", ""),
+		SMTPPass:      getEnv("SMTP_PASS", ""),
+		SMTPFrom:      getEnv("SMTP_FROM", ""),
+		WAToken:       getEnv("WHATSAPP_API_KEY", ""),
+		WAUrl:         getEnv("WHATSAPP_URL", "https://api.fonnte.com/send"),
 	}
 }
 

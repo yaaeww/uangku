@@ -155,3 +155,20 @@ func (ctrl *FinanceController) DeleteTransaction(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Transaction deleted successfully"})
 }
+
+func (ctrl *FinanceController) GetBehaviorSummary(c *gin.Context) {
+	familyIDStr := c.GetString("family_id")
+	familyID, err := uuid.Parse(familyIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid family ID"})
+		return
+	}
+
+	summary, err := ctrl.service.GetBehaviorSummary(familyID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, summary)
+}

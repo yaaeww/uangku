@@ -8,7 +8,7 @@ import (
 )
 
 type Saving struct {
-	ID             uuid.UUID `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"id"`
+	ID             uuid.UUID `gorm:"type:uuid;primary_key" json:"id"`
 	FamilyID       uuid.UUID `gorm:"type:uuid;not null;index" json:"family_id"`
 	Name           string    `gorm:"not null" json:"name"`
 	Category       string    `gorm:"type:varchar(255);default:'savings'" json:"category"` // needs, wants, savings, emergency
