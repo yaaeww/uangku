@@ -77,33 +77,51 @@ func (s *BudgetService) SeedDefaultBudget(familyID uuid.UUID) error {
 		switch cat.Name {
 		case "Kebutuhan":
 			items = []models.Saving{
-				{Name: "Makan", Emoji: "🍲", TargetAmount: 1000000, DueDate: 1},
+				{Name: "Makan Sehari-hari", Emoji: "🍲", TargetAmount: 3000000, DueDate: 0},
+				{Name: "Belanja Dapur", Emoji: "🛒", TargetAmount: 1500000, DueDate: 0},
 				{Name: "Tempat Tinggal", Emoji: "🏠", TargetAmount: 2500000, DueDate: 1},
-				{Name: "Listrik", Emoji: "⚡", TargetAmount: 500000, DueDate: 10},
-				{Name: "Air", Emoji: "💧", TargetAmount: 150000, DueDate: 10},
-				{Name: "Internet", Emoji: "🌐", TargetAmount: 400000, DueDate: 5},
-				{Name: "Transportasi", Emoji: "🚐", TargetAmount: 800000, DueDate: 0},
-				{Name: "Kesehatan", Emoji: "🏥", TargetAmount: 300000, DueDate: 0},
-				{Name: "Pendidikan", Emoji: "🎓", TargetAmount: 1000000, DueDate: 0},
-				{Name: "Sedekah", Emoji: "🙌", TargetAmount: 200000, DueDate: 0},
-				{Name: "Kebutuhan Lain", Emoji: "📦", TargetAmount: 500000, DueDate: 0},
+				{Name: "Listrik & Air", Emoji: "⚡", TargetAmount: 850000, DueDate: 10},
+				{Name: "Internet & Pulsa", Emoji: "📱", TargetAmount: 500000, DueDate: 5},
+				{Name: "Transportasi", Emoji: "🚐", TargetAmount: 1200000, DueDate: 0},
+				{Name: "Bensin / Tol", Emoji: "⛽", TargetAmount: 800000, DueDate: 0},
+				{Name: "Kesehatan / Obat", Emoji: "🏥", TargetAmount: 500000, DueDate: 0},
+				{Name: "Pendidikan Anak", Emoji: "🎓", TargetAmount: 2000000, DueDate: 15},
+				{Name: "Perlengkapan Mandi & Cuci", Emoji: "🧼", TargetAmount: 400000, DueDate: 0},
+				{Name: "Cicilan / Pinjaman", Emoji: "💳", TargetAmount: 1000000, DueDate: 25},
+				{Name: "Kebutuhan Anak/Bayi", Emoji: "🍼", TargetAmount: 1500000, DueDate: 0},
+				{Name: "Asuransi Kesehatan", Emoji: "⚕️", TargetAmount: 500000, DueDate: 20},
+				{Name: "Sedekah / Zakat", Emoji: "🤲", TargetAmount: 500000, DueDate: 0},
 			}
 		case "Keinginan":
 			items = []models.Saving{
-				{Name: "Belanja Online", Emoji: "🛍️", TargetAmount: 1000000, DueDate: 25},
-				{Name: "Hiburan", Emoji: "🎬", TargetAmount: 500000, DueDate: 0},
-				{Name: "Hangout", Emoji: "☕", TargetAmount: 700000, DueDate: 0},
-				{Name: "Jajan", Emoji: "🍿", TargetAmount: 400000, DueDate: 0},
-				{Name: "Hobi", Emoji: "🎨", TargetAmount: 300000, DueDate: 0},
-				{Name: "Gaya Hidup", Emoji: "👔", TargetAmount: 600000, DueDate: 0},
+				{Name: "Belanja Online (Checkout)", Emoji: "🛍️", TargetAmount: 1000000, DueDate: 0},
+				{Name: "Hiburan & Streaming", Emoji: "🎬", TargetAmount: 300000, DueDate: 0},
+				{Name: "Makan di Luar / Cafe", Emoji: "🍽️", TargetAmount: 1000000, DueDate: 0},
+				{Name: "Jajan / Ngopi", Emoji: "☕", TargetAmount: 500000, DueDate: 0},
+				{Name: "Hobi / Mainan", Emoji: "🎨", TargetAmount: 500000, DueDate: 0},
+				{Name: "Gaya Hidup / Pakaian", Emoji: "👕", TargetAmount: 800000, DueDate: 0},
+				{Name: "Skincare / Perawatan Diri", Emoji: "✨", TargetAmount: 700000, DueDate: 0},
+				{Name: "Liburan / Staycation", Emoji: "✈️", TargetAmount: 2000000, DueDate: 0},
+				{Name: "Gadget / Elektronik Baru", Emoji: "📱", TargetAmount: 1000000, DueDate: 0},
+				{Name: "Hadiah / Kado", Emoji: "🎁", TargetAmount: 300000, DueDate: 0},
 			}
 		case "Tabungan":
 			items = []models.Saving{
 				{Name: "Investasi Saham", Emoji: "📈", TargetAmount: 1000000, DueDate: 0},
+				{Name: "Reksa Dana / Obligasi", Emoji: "🏦", TargetAmount: 1000000, DueDate: 0},
+				{Name: "Tabungan Emas", Emoji: "🪙", TargetAmount: 500000, DueDate: 0},
+				{Name: "Tabungan Rumah / KPR", Emoji: "🏡", TargetAmount: 2000000, DueDate: 0},
+				{Name: "Tabungan Anak", Emoji: "👨‍👩‍👧", TargetAmount: 1000000, DueDate: 0},
+				{Name: "Tabungan Pensiun", Emoji: "👴", TargetAmount: 500000, DueDate: 0},
+				{Name: "Deposito", Emoji: "💹", TargetAmount: 1000000, DueDate: 0},
 			}
 		case "Dana Darurat":
 			items = []models.Saving{
-				{Name: "Dana Darurat Utama", Emoji: "🛡️", TargetAmount: 1000000, DueDate: 0},
+				{Name: "Dana Darurat Utama", Emoji: "🛡️", TargetAmount: 5000000, DueDate: 0},
+				{Name: "Dana Darurat Medis", Emoji: "🏥", TargetAmount: 2000000, DueDate: 0},
+				{Name: "Dana Darurat Kendaraan", Emoji: "🚗", TargetAmount: 1000000, DueDate: 0},
+				{Name: "Dana Darurat PHK", Emoji: "💼", TargetAmount: 3000000, DueDate: 0},
+				{Name: "Dana Darurat Rumah", Emoji: "🏠", TargetAmount: 1500000, DueDate: 0},
 			}
 		}
 

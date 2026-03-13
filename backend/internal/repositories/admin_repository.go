@@ -30,6 +30,9 @@ type AdminRepository interface {
 	// Settings Methods
 	GetSettings() ([]models.SystemSetting, error)
 	UpdateSetting(key, value string) error
+
+	// Payment Transaction Methods
+	GetPaymentTransactions() ([]models.PaymentTransaction, error)
 }
 
 type adminRepository struct{}
@@ -190,4 +193,10 @@ func (r *adminRepository) UpdateSetting(key, value string) error {
 	}
 	setting.Value = value
 	return config.DB.Save(&setting).Error
+}
+
+func (r *adminRepository) GetPaymentTransactions() ([]models.PaymentTransaction, error) {
+	var txs []models.PaymentTransaction
+	err := config.DB.Preload("Family").Order("created_at desc").Find(&txs).Error
+	return txs, err
 }

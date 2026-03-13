@@ -21,7 +21,7 @@ func ConnectDatabase() {
 
 	log.Printf("Connecting to database %s on %s:%s...", AppConfig.DBName, AppConfig.DBHost, AppConfig.DBPort)
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Error),
 	})
 
 	if err != nil {
@@ -48,6 +48,8 @@ func ConnectDatabase() {
 		&models.FamilyApplication{},
 		&models.FamilyInvitation{},
 		&models.Wallet{},
+		&models.Transaction{},
+		&models.BudgetCategory{},
 		&models.Saving{},
 		&models.Debt{},
 		&models.DebtPayment{},
@@ -55,6 +57,10 @@ func ConnectDatabase() {
 		&models.SystemSetting{},
 		&models.SubscriptionPlan{},
 		&models.PaymentTransaction{},
+		&models.FamilyChallenge{},
+		&models.BlogCategory{},
+		&models.BlogPost{},
+		&models.SitemapConfig{},
 	)
 	if err != nil {
 		log.Fatal("Failed to run migrations:", err)
@@ -64,6 +70,8 @@ func ConnectDatabase() {
 	seedDefaultSettings()
 	// Seed subscription plans
 	seedSubscriptionPlans()
+	// Seed Blog Categories
+	seedBlogCategories()
 
 	// Retroactively seed missing budgets for all families
 	seedMissingBudgets()
@@ -80,8 +88,8 @@ func ConnectDatabase() {
 }
 
 func applyFinancialConstraints() {
-	// Wallets
-	DB.Exec(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'wallets_balance_non_negative') THEN ALTER TABLE wallets ADD CONSTRAINT wallets_balance_non_negative CHECK (balance >= 0); END IF; END $$;`)
+	// Wallets - REMOVED strict balance >= 0 to allow over-budget and reverts
+	DB.Exec(`ALTER TABLE wallets DROP CONSTRAINT IF EXISTS wallets_balance_non_negative;`)
 	DB.Exec(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'wallets_name_not_empty') THEN ALTER TABLE wallets ADD CONSTRAINT wallets_name_not_empty CHECK (name <> ''); END IF; END $$;`)
 
 	// Savings
@@ -89,7 +97,8 @@ func applyFinancialConstraints() {
 	DB.Exec(`ALTER TABLE savings ADD COLUMN IF NOT EXISTS emoji VARCHAR(50);`)
 	DB.Exec(`ALTER TABLE savings ADD COLUMN IF NOT EXISTS due_date INTEGER DEFAULT 0;`)
 	DB.Exec(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'savings_target_positive') THEN ALTER TABLE savings ADD CONSTRAINT savings_target_positive CHECK (target_amount > 0); END IF; END $$;`)
-	DB.Exec(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'savings_balance_non_negative') THEN ALTER TABLE savings ADD CONSTRAINT savings_balance_non_negative CHECK (current_balance >= 0); END IF; END $$;`)
+	// REMOVED strict balance >= 0 to allow over-budget states
+	DB.Exec(`ALTER TABLE savings DROP CONSTRAINT IF EXISTS savings_balance_non_negative;`)
 
 	// Debts
 	DB.Exec(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'debts_total_positive') THEN ALTER TABLE debts ADD CONSTRAINT debts_total_positive CHECK (total_amount > 0); END IF; END $$;`)
@@ -268,20 +277,33 @@ func seedSubscriptionPlans() {
 	}
 }
 
+func seedBlogCategories() {
+	log.Println("Seeding default blog categories...")
+	categories := []models.BlogCategory{
+		{Name: "Tips Keuangan", Slug: "tips-keuangan", Description: "Tips dan trik mengelola keuangan keluarga"},
+		{Name: "Investasi", Slug: "investasi", Description: "Panduan investasi cerdas untuk masa depan"},
+		{Name: "Gaya Hidup", Slug: "gaya-hidup", Description: "Keseimbangan antara gaya hidup dan finansial"},
+		{Name: "Berita", Slug: "berita", Description: "Berita terbaru seputar ekonomi dan finansial"},
+	}
+
+	for _, cat := range categories {
+		if err := DB.Where("slug = ?", cat.Slug).FirstOrCreate(&cat).Error; err != nil {
+			log.Printf("Warning: failed to seed blog category %s: %v\n", cat.Name, err)
+		}
+	}
+}
+
 func seedMissingBudgets() {
-	log.Println("Checking for families with missing budget categories...")
 	var families []models.Family
-	if err := DB.Find(&families).Error; err != nil {
+	// Optimized: Only fetch families that DON'T have any budget categories yet
+	err := DB.Where("id NOT IN (SELECT DISTINCT family_id FROM budget_categories)").Find(&families).Error
+	if err != nil {
 		log.Printf("[ERROR] Failed to fetch families for budget seeding: %v", err)
 		return
 	}
 
 	for _, family := range families {
-		var count int64
-		DB.Model(&models.BudgetCategory{}).Where("family_id = ?", family.ID).Count(&count)
-
-		if count == 0 {
-			log.Printf("[INFO] Seeding default budget for family: %s (%s)", family.Name, family.ID)
+		log.Printf("[INFO] Seeding default budget for family: %s (%s)", family.Name, family.ID)
 			
 			// Define default categories
 			categories := []models.BudgetCategory{
@@ -340,6 +362,5 @@ func seedMissingBudgets() {
 					}
 				}
 			}
-		}
 	}
 }

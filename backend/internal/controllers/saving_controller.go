@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"log"
 )
 
 type SavingController struct {
@@ -42,6 +43,7 @@ func (ctrl *SavingController) CreateSaving(c *gin.Context) {
 
 	saving.FamilyID = familyID
 	if err := ctrl.service.Create(&saving); err != nil {
+		log.Printf("[ERROR] Failed to create saving: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -54,13 +56,14 @@ func (ctrl *SavingController) UpdateSaving(c *gin.Context) {
 	familyID, _ := uuid.Parse(familyIDStr)
 
 	var req struct {
-		ID             uuid.UUID `json:"id" binding:"required"`
-		Name           string    `json:"name"`
-		TargetAmount   float64   `json:"target_amount"`
-		CurrentBalance float64   `json:"current_balance"`
-		Category       string    `json:"category"`
-		Emoji          string    `json:"emoji"`
-		DueDate        int       `json:"due_date"`
+		ID               uuid.UUID  `json:"id" binding:"required"`
+		Name             string     `json:"name"`
+		TargetAmount     float64    `json:"target_amount"`
+		CurrentBalance   float64    `json:"current_balance"`
+		Category         string     `json:"category"`
+		BudgetCategoryID *uuid.UUID `json:"budget_category_id"`
+		Emoji            string     `json:"emoji"`
+		DueDate          int        `json:"due_date"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -79,6 +82,7 @@ func (ctrl *SavingController) UpdateSaving(c *gin.Context) {
 	existing.TargetAmount = req.TargetAmount
 	existing.CurrentBalance = req.CurrentBalance
 	existing.Category = req.Category
+	existing.BudgetCategoryID = req.BudgetCategoryID
 	existing.Emoji = req.Emoji
 	existing.DueDate = req.DueDate
 

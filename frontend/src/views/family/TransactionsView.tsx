@@ -13,7 +13,6 @@ import {
     Trash2,
     Check,
     Pencil,
-    Clock,
     Camera,
     Sparkles
 } from 'lucide-react';
@@ -38,6 +37,9 @@ interface TransactionsViewProps {
     handleUpdateTransaction: (id: string, tx: any) => void;
     savings: any[];
     familyMembers?: any[];
+    categories?: string[];
+    incomeCategories?: any[];
+    budgetCategories?: any[];
 }
 
 /* --- Constants & Helpers --- */
@@ -55,19 +57,48 @@ const incomeCategories = [
 
 /* --- Subcomponents --- */
 
-const FilterDropdown = ({ label, value, options, onChange }: { label: string, value: string, options: any[], onChange: (v: string) => void }) => (
-    <div className="relative group">
-        <select
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="appearance-none pl-6 pr-12 py-3.5 bg-dagang-cream/30 text-[12px] font-bold text-dagang-gray/60 hover:text-dagang-dark rounded-2xl outline-none transition-all cursor-pointer border border-transparent group-hover:border-black/5"
-        >
-            <option value="all">{label}</option>
-            {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-dagang-gray/30 pointer-events-none" />
-    </div>
-);
+const FilterDropdown = ({ label, value, options, onChange, icon: Icon }: { label: string, value: string, options: any[], onChange: (v: string) => void, icon?: any }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectedOption = options.find(o => o.value === value);
+
+    return (
+        <div className="relative">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className={`flex items-center gap-3 px-6 py-3.5 bg-white border border-black/5 rounded-2xl text-[12px] font-bold transition-all shadow-sm hover:bg-dagang-cream/50 ${isOpen ? 'ring-2 ring-dagang-green/20' : ''}`}
+            >
+                {Icon && <Icon className="w-4 h-4 text-dagang-gray/40" />}
+                <span className={value === 'all' ? 'text-dagang-gray/60' : 'text-dagang-dark'}>
+                    {selectedOption ? selectedOption.label : label}
+                </span>
+                <ChevronDown className={`w-4 h-4 text-dagang-gray/30 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-[150]" onClick={() => setIsOpen(false)} />
+                    <div className="absolute top-full left-0 md:right-0 md:left-auto mt-3 min-w-[240px] bg-white rounded-[24px] shadow-2xl shadow-black/10 border border-black/5 z-[151] py-3 overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[400px] overflow-y-auto custom-scrollbar">
+                        <div
+                            onClick={() => { onChange('all'); setIsOpen(false); }}
+                            className={`px-6 py-3.5 text-[12px] font-bold cursor-pointer transition-all mx-2 rounded-xl mb-1 ${value === 'all' ? 'bg-dagang-green text-white shadow-lg shadow-dagang-green/20' : 'hover:bg-dagang-cream/50 text-dagang-gray/60'}`}
+                        >
+                            {label}
+                        </div>
+                        {options.map(o => (
+                            <div
+                                key={o.value}
+                                onClick={() => { onChange(o.value); setIsOpen(false); }}
+                                className={`px-6 py-3.5 text-[12px] font-bold cursor-pointer transition-all mx-2 rounded-xl mb-1 ${value === o.value ? 'bg-dagang-green text-white shadow-lg shadow-dagang-green/20' : 'hover:bg-dagang-cream/50 text-dagang-dark'}`}
+                            >
+                                {o.label}
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
 
 const TransactionTab = ({ active, onClick, icon: Icon, label, color }: { active: boolean, onClick: () => void, icon: any, label: string, color: string }) => (
     <button
@@ -81,30 +112,21 @@ const TransactionTab = ({ active, onClick, icon: Icon, label, color }: { active:
     </button>
 );
 
-const CategorySelector = ({ value, savingId, onChange, savings, type }: any) => {
+const CategorySelector = ({ value, savingId, onChange, savings, type, incomeCategories, budgetCategories }: any) => {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
 
-    const groups = ['needs', 'wants', 'savings', 'emergency'];
-    const labels: any = {
-        needs: 'KEBUTUHAN',
-        wants: 'KEINGINAN',
-        savings: 'TABUNGAN',
-        emergency: 'DANA DARURAT'
-    };
+    const groups = (budgetCategories || []).map((c: any) => c.id);
+    const labels: any = (budgetCategories || []).reduce((acc: any, c: any) => ({ ...acc, [c.id]: c.name }), {});
+    const groupColors: any = (budgetCategories || []).reduce((acc: any, c: any) => ({ ...acc, [c.id]: c.color }), {});
+    const groupBgColors: any = (budgetCategories || []).reduce((acc: any, c: any) => ({ ...acc, [c.id]: c.bgColor }), {});
 
-    const colors: any = {
-        needs: 'bg-blue-500/10 text-blue-500',
-        wants: 'bg-amber-500/10 text-amber-500',
-        savings: 'bg-dagang-green/10 text-dagang-green',
-        emergency: 'bg-red-500/10 text-red-500'
-    };
-
-    const filteredSavings = savings.filter((s: any) =>
+    const filteredSavings = (savings || []).filter((s: any) =>
         s.name.toLowerCase().includes(search.toLowerCase())
     );
 
-    const selectedItem = savingId ? savings.find((s: any) => s.id === savingId) : null;
+
+    const selectedItem = savingId ? (savings || []).find((s: any) => s.id === savingId) : null;
     const isIncome = type === 'income';
     const displayText = selectedItem ? `${selectedItem.emoji} ${selectedItem.name}` : (value || (isIncome ? 'Pilih sumber pemasukan...' : 'Pilih kategori...'));
 
@@ -144,7 +166,7 @@ const CategorySelector = ({ value, savingId, onChange, savings, type }: any) => 
                                     <div className="px-6 py-2 text-[10px] font-black tracking-widest bg-emerald-50 text-emerald-600">
                                         SUMBER PEMASUKAN
                                     </div>
-                                    {incomeCategories.filter(cat => cat.name.toLowerCase().includes(search.toLowerCase())).map((cat: any) => (
+                                    {(incomeCategories || []).filter((cat: any) => cat.name.toLowerCase().includes(search.toLowerCase())).map((cat: any) => (
                                         <div
                                             key={cat.name}
                                             onClick={() => {
@@ -161,33 +183,42 @@ const CategorySelector = ({ value, savingId, onChange, savings, type }: any) => 
                                         </div>
                                     ))}
                                 </div>
-                            ) : groups.map(group => {
-                                const groupItems = filteredSavings.filter((s: any) => s.category === group);
-                                if (groupItems.length === 0) return null;
-                                return (
-                                    <div key={group} className="mb-2">
-                                        <div className={`px-6 py-2 text-[10px] font-black tracking-widest ${colors[group]}`}>
-                                            {labels[group]}
-                                        </div>
-                                        {groupItems.map((item: any) => (
-                                            <div
-                                                key={item.id}
-                                                onClick={() => {
-                                                    onChange(item.name, item.id);
-                                                    setIsOpen(false);
-                                                }}
-                                                className="px-6 py-3 flex items-center justify-between hover:bg-dagang-cream/30 cursor-pointer transition-colors group"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-lg">{item.emoji || '💰'}</span>
-                                                    <span className="text-sm font-bold text-dagang-dark">{item.name}</span>
+                            ) : (
+                                <>
+                                    {/* Budget Goals */}
+                                    {groups.map((groupId: string) => {
+                                        const groupItems = filteredSavings.filter((s: any) => s.budgetCategoryId === groupId);
+                                        if (groupItems.length === 0) return null;
+                                        
+                                        const colorClass = groupColors[groupId] || 'text-dagang-gray';
+                                        const bgColorClass = groupBgColors[groupId] || 'bg-dagang-cream/50';
+
+                                        return (
+                                            <div key={groupId} className="mb-2">
+                                                <div className={`px-6 py-2 text-[10px] font-black tracking-widest ${bgColorClass.replace('bg-', 'bg-').replace('/50', '/20')} ${colorClass}`}>
+                                                    BUDGET: {labels[groupId].toUpperCase()}
                                                 </div>
-                                                {savingId === item.id && <Check className="w-4 h-4 text-dagang-green" />}
+                                                {groupItems.map((item: any) => (
+                                                    <div
+                                                        key={item.id}
+                                                        onClick={() => {
+                                                            onChange(item.name, item.id);
+                                                            setIsOpen(false);
+                                                        }}
+                                                        className="px-6 py-3 flex items-center justify-between hover:bg-dagang-cream/30 cursor-pointer transition-colors group"
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-lg">{item.emoji || '💰'}</span>
+                                                            <span className="text-sm font-bold text-dagang-dark">{item.name}</span>
+                                                        </div>
+                                                        {savingId === item.id && <Check className="w-4 h-4 text-dagang-green" />}
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
-                                );
-                            })}
+                                        );
+                                    })}
+                                </>
+                            )}
                         </div>
                     </div>
                 </>
@@ -209,14 +240,22 @@ const SingleTransactionModal = ({
     isEditing,
     editingTxId,
     savings,
-    onOpenCalculator
+    onOpenCalculator,
+    incomeCategories,
+    budgetCategories
 }: any) => {
     if (!isOpen) return null;
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
+
         if (isEditing && editingTxId) {
-            handleUpdateTransaction(editingTxId, newTx);
-            onClose();
+            try {
+                await handleUpdateTransaction(editingTxId, newTx);
+                onClose();
+            } catch (err: any) {
+                console.error("[ERROR] handleUpdateTransaction failed", err);
+                alert("Gagal menyimpan perubahan: " + err.message);
+            }
         } else {
             handleCreateTransaction();
         }
@@ -225,58 +264,58 @@ const SingleTransactionModal = ({
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 mobile:p-4">
             <div className="absolute inset-0 bg-dagang-dark/40 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative bg-white w-full max-w-[560px] max-h-[95vh] mobile:max-h-[90vh] overflow-y-auto rounded-[24px] mobile:rounded-[40px] shadow-2xl animate-in zoom-in-95 duration-300 custom-scrollbar">
-                <div className="p-5 mobile:p-8 space-y-5 mobile:space-y-8">
+            <div className="relative bg-white w-full max-w-[500px] max-h-[92vh] overflow-y-auto rounded-[32px] shadow-2xl animate-in zoom-in-95 duration-300 custom-scrollbar">
+                <div className="p-5 space-y-5">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-h3 font-heading text-dagang-dark">Transaksi Baru</h3>
-                        <button onClick={onClose} className="p-3 bg-dagang-cream/50 rounded-2xl hover:bg-dagang-cream transition-all">
-                            <X className="w-6 h-6 text-dagang-gray" />
+                        <h3 className="text-xl font-black text-dagang-dark">{isEditing ? 'Ubah Transaksi' : 'Transaksi Baru'}</h3>
+                        <button onClick={onClose} className="p-2.5 bg-dagang-cream/50 rounded-xl hover:bg-dagang-cream transition-all">
+                            <X className="w-5 h-5 text-dagang-gray" />
                         </button>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 md:gap-4 p-2 bg-dagang-cream/30 rounded-3xl w-fit mx-auto">
+                    <div className="flex flex-wrap gap-2 p-1.5 bg-dagang-cream/30 rounded-2xl w-fit mx-auto">
                         <TransactionTab
                             active={activeTab === 'expense'}
                             onClick={() => { setActiveTab('expense'); setNewTx({ ...newTx, type: 'expense' }); }}
                             icon={TrendingDown}
-                            label="Pengeluaran"
+                            label="Keluar"
                             color="text-red-500"
                         />
                         <TransactionTab
                             active={activeTab === 'income'}
                             onClick={() => { setActiveTab('income'); setNewTx({ ...newTx, type: 'income' }); }}
                             icon={TrendingUp}
-                            label="Pemasukan"
+                            label="Masuk"
                             color="text-dagang-green"
                         />
                         <TransactionTab
                             active={activeTab === 'transfer'}
                             onClick={() => { setActiveTab('transfer'); setNewTx({ ...newTx, type: 'transfer' }); }}
                             icon={ArrowRightLeft}
-                            label="Transfer"
+                            label="Pindah"
                             color="text-blue-500"
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 mobile:grid-cols-2 gap-4 mobile:gap-6">
+                    <div className="grid grid-cols-1 mobile:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <label className="text-label font-bold text-dagang-gray/40 uppercase tracking-[0.2em]">Tanggal</label>
+                            <label className="text-[10px] font-black text-dagang-gray/40 uppercase tracking-widest">Tanggal</label>
                             <div className="relative">
-                                <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-dagang-gray/30" />
+                                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dagang-gray/30" />
                                 <input
                                     type="date"
                                     value={newTx.date}
                                     onChange={(e) => setNewTx({ ...newTx, date: e.target.value })}
-                                    className="w-full pl-14 pr-5 py-4 bg-dagang-cream/30 border-none rounded-2xl outline-none font-bold"
+                                    className="w-full pl-11 pr-4 py-3 bg-dagang-cream/30 border-none rounded-xl outline-none font-bold text-sm"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-label font-bold text-dagang-gray/40 uppercase tracking-[0.2em]">Jumlah</label>
+                            <label className="text-[10px] font-black text-dagang-gray/40 uppercase tracking-widest">Jumlah</label>
                             <div className="flex items-center gap-3">
                                 <div className="flex-1 relative">
-                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 font-bold text-dagang-dark/20 text-sm">Rp</div>
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-dagang-dark/20 text-xs text-dagang-green">Rp</div>
                                     <input
                                         type="number"
                                         min="0"
@@ -286,45 +325,45 @@ const SingleTransactionModal = ({
                                             setNewTx({ ...newTx, amount: isNaN(val) ? 0 : val });
                                         }}
                                         placeholder="0"
-                                        className="w-full pl-14 pr-14 py-4 bg-dagang-cream/30 border-none rounded-2xl outline-none font-bold text-body-xl"
+                                        className="w-full pl-11 pr-11 py-3 bg-dagang-cream/30 border-none rounded-xl outline-none font-black text-lg text-dagang-green"
                                     />
                                     <button 
                                         onClick={onOpenCalculator}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white text-dagang-green rounded-xl shadow-sm hover:scale-110 transition-all active:scale-90"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-white text-dagang-green rounded-lg shadow-sm hover:scale-110 transition-all active:scale-90"
                                     >
-                                        <Calculator className="w-5 h-5" />
+                                        <Calculator className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-dagang-gray/40 uppercase tracking-[0.2em]">
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-dagang-gray/40 uppercase tracking-widest">
                                 {activeTab === 'expense' || activeTab === 'transfer' ? 'Dari Dompet' : 'Ke Dompet'}
                             </label>
                             <select
                                 value={newTx.walletId}
                                 onChange={(e) => setNewTx({ ...newTx, walletId: e.target.value })}
-                                className="w-full px-6 py-4 bg-dagang-cream/30 border-none rounded-2xl outline-none font-bold appearance-none"
+                                className="w-full px-4 py-3 bg-dagang-cream/30 border-none rounded-xl outline-none font-bold text-sm appearance-none"
                             >
                                 <option value="">Pilih Dompet...</option>
                                 {wallets.map((w: any) => <option key={w.id} value={w.id}>{w.name} (Rp {w.balance.toLocaleString()})</option>)}
                             </select>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-dagang-gray/40 uppercase tracking-[0.2em]">
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-dagang-gray/40 uppercase tracking-widest">
                                 {activeTab === 'transfer' ? 'Ke Dompet' : 'Kategori'}
                             </label>
                             {activeTab === 'transfer' ? (
                                 <select
                                     value={newTx.toWalletId}
                                     onChange={(e) => setNewTx({ ...newTx, toWalletId: e.target.value })}
-                                    className="w-full px-6 py-4 bg-dagang-cream/30 border-none rounded-2xl outline-none font-bold appearance-none"
+                                    className="w-full px-4 py-3 bg-dagang-cream/30 border-none rounded-xl outline-none font-bold text-sm appearance-none"
                                 >
                                     <option value="">Select...</option>
                                     {wallets.filter((w: any) => w.id !== newTx.walletId).map((w: any) => (
-                                        <option key={w.id} value={w.id}>{w.name} (Rp {w.balance.toLocaleString()})</option>
+                                        <option key={w.id} value={w.id}>{w.name}</option>
                                     ))}
                                 </select>
                             ) : (
@@ -333,26 +372,28 @@ const SingleTransactionModal = ({
                                     savingId={newTx.savingId}
                                     savings={savings}
                                     type={newTx.type}
+                                    incomeCategories={incomeCategories}
+                                    budgetCategories={budgetCategories}
                                     onChange={(cat: string, sId: string) => setNewTx({ ...newTx, category: cat, savingId: sId })}
                                 />
                             )}
                         </div>
 
-                        <div className="md:col-span-2 space-y-2">
-                            <label className="text-[10px] font-black text-dagang-gray/40 uppercase tracking-[0.2em]">Catatan</label>
+                        <div className="mobile:col-span-2 space-y-1.5">
+                            <label className="text-[10px] font-black text-dagang-gray/40 uppercase tracking-widest">Catatan</label>
                             <input
                                 type="text"
                                 value={newTx.description}
                                 onChange={(e) => setNewTx({ ...newTx, description: e.target.value })}
                                 placeholder="cth. Kopi Kenangan"
-                                className="w-full px-6 py-4 bg-dagang-cream/30 border-none rounded-2xl outline-none font-bold"
+                                className="w-full px-4 py-3 bg-dagang-cream/30 border-none rounded-xl outline-none font-bold text-sm"
                             />
                         </div>
                     </div>
 
                     <button
                         onClick={handleSubmit}
-                        className="w-full py-5 bg-dagang-green text-white rounded-[24px] font-black uppercase tracking-widest hover:bg-dagang-green-light transition-all shadow-xl shadow-dagang-green/20"
+                        className="w-full py-4 bg-dagang-green text-white rounded-2xl font-black uppercase tracking-widest hover:bg-dagang-green-light transition-all shadow-lg shadow-dagang-green/10 text-xs"
                     >
                         {isEditing ? 'Simpan Perubahan' : `Tambah ${activeTab === 'expense' ? 'Pengeluaran' : activeTab === 'income' ? 'Pemasukan' : 'Transfer'}`}
                     </button>
@@ -362,7 +403,7 @@ const SingleTransactionModal = ({
     );
 };
 
-const BulkTransactionModal = ({ isOpen, onClose, wallets, savings, handleBulkCreateTransactions }: any) => {
+const BulkTransactionModal = ({ isOpen, onClose, wallets, savings, handleBulkCreateTransactions, budgetCategories }: any) => {
     const [rows, setRows] = useState<any[]>([
         { date: new Date().toISOString().split('T')[0], amount: 0, type: 'expense', walletId: wallets?.[0]?.id || '', category: '', savingId: '', description: '' },
     ]);
@@ -397,143 +438,149 @@ const BulkTransactionModal = ({ isOpen, onClose, wallets, savings, handleBulkCre
     };
 
     return (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-2 mobile:p-4">
             <div className="absolute inset-0 bg-dagang-dark/60 backdrop-blur-md" onClick={onClose} />
-            <div className="relative bg-[#F9FAFB] w-full max-w-[1000px] max-h-[95vh] overflow-y-auto rounded-[32px] mobile:rounded-[48px] shadow-2xl animate-in fade-in zoom-in-95 duration-500 custom-scrollbar">
-                <div className="p-6 mobile:p-10">
-                    <div className="flex items-center justify-between mb-10">
+            <div className="relative bg-[#F9FAFB] w-full max-w-[1000px] max-h-[92vh] overflow-y-auto rounded-[32px] mobile:rounded-[48px] shadow-2xl animate-in fade-in zoom-in-95 duration-500 custom-scrollbar">
+                <div className="p-4 mobile:p-10">
+                    <div className="flex items-center justify-between mb-6 mobile:mb-10">
                         <div>
-                            <h3 className="text-[28px] font-black text-dagang-dark tracking-tight">Input Transaksi Massal</h3>
-                            <p className="text-dagang-gray/50 text-sm mt-1">Tambah banyak transaksi sekaligus. Otomatis ikut baris sebelumnya.</p>
+                            <h3 className="text-xl mobile:text-[28px] font-black text-dagang-dark tracking-tight">Input Transaksi Massal</h3>
+                            <p className="text-dagang-gray/50 text-[10px] mobile:text-sm mt-1">Gunakan scroll/geser ke samping untuk melihat semua kolom.</p>
                         </div>
-                        <button onClick={onClose} className="p-3 bg-white border border-black/5 rounded-2xl hover:bg-dagang-cream transition-all shadow-sm">
-                            <X className="X w-6 h-6 text-dagang-gray" />
+                        <button onClick={onClose} className="p-2.5 bg-white border border-black/5 rounded-xl hover:bg-dagang-cream transition-all shadow-sm">
+                            <X className="w-5 h-5 text-dagang-gray" />
                         </button>
                     </div>
 
-                    <div className="bg-white rounded-[32px] border border-black/5 overflow-hidden shadow-sm mb-10">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="text-[10px] font-black text-dagang-gray/40 uppercase tracking-[0.2em] bg-dagang-cream/10">
-                                    <th className="w-16 px-4 py-5" />
-                                    <th className="px-4 py-5 text-left">Tanggal</th>
-                                    <th className="px-4 py-5 text-left">Jumlah</th>
-                                    <th className="px-4 py-5 text-left">Tipe</th>
-                                    <th className="px-4 py-5 text-left">Dompet</th>
-                                    <th className="px-4 py-5 text-left">Kategori / To</th>
-                                    <th className="px-4 py-5 text-left">Catatan</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-black/5">
-                                {rows.map((row, idx) => (
-                                    <tr key={idx} className="group hover:bg-dagang-cream/10 transition-colors">
-                                        <td className="px-4 py-4 text-center">
-                                            <button
-                                                onClick={() => removeRow(idx)}
-                                                className="p-2.5 text-red-500/30 hover:text-red-500 transition-colors bg-red-500/5 hover:bg-red-500/10 rounded-xl"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </td>
-                                        <td className="px-4 py-4">
-                                            <input
-                                                type="date"
-                                                value={row.date}
-                                                onChange={(e) => updateRow(idx, 'date', e.target.value)}
-                                                className="w-full bg-transparent border-none p-0 text-[13px] font-bold outline-none cursor-pointer"
-                                            />
-                                        </td>
-                                        <td className="px-4 py-4">
-                                            <input
-                                                type="number"
-                                                value={row.amount || ''}
-                                                onChange={(e) => updateRow(idx, 'amount', parseFloat(e.target.value))}
-                                                placeholder="0"
-                                                className="w-full bg-transparent border-none p-0 text-[13px] font-black outline-none placeholder:text-dagang-gray/20"
-                                            />
-                                        </td>
-                                        <td className="px-4 py-4">
-                                            <select
-                                                value={row.type}
-                                                onChange={(e) => updateRow(idx, 'type', e.target.value)}
-                                                className="w-full bg-transparent border-none p-0 text-[13px] font-bold outline-none cursor-pointer"
-                                            >
-                                                <option value="expense">Pengeluaran</option>
-                                                <option value="income">Pemasukan</option>
-                                                <option value="transfer">Transfer</option>
-                                            </select>
-                                        </td>
-                                        <td className="px-4 py-4">
-                                            <select
-                                                value={row.walletId}
-                                                onChange={(e) => updateRow(idx, 'walletId', e.target.value)}
-                                                className="w-full bg-transparent border-none p-0 text-[13px] font-bold outline-none cursor-pointer"
-                                            >
-                                                <option value="">Pilih...</option>
-                                                {wallets.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                                            </select>
-                                        </td>
-                                        <td className="px-4 py-4">
-                                            {row.type === 'transfer' ? (
-                                                <select
-                                                    value={row.toWalletId}
-                                                    onChange={(e) => updateRow(idx, 'toWalletId', e.target.value)}
-                                                    className="w-full bg-transparent border-none p-0 text-[13px] font-bold outline-none cursor-pointer"
+                    <div className="bg-white rounded-[24px] mobile:rounded-[32px] border border-black/5 overflow-hidden shadow-sm mb-6 mobile:mb-10">
+                        <div className="overflow-x-auto custom-scrollbar">
+                            <table className="w-full min-w-[800px]">
+                                <thead>
+                                    <tr className="text-[10px] font-black text-dagang-gray/40 uppercase tracking-[0.2em] bg-dagang-cream/10">
+                                        <th className="w-14 px-4 py-4" />
+                                        <th className="px-4 py-4 text-left">Tanggal</th>
+                                        <th className="px-4 py-4 text-left">Jumlah</th>
+                                        <th className="px-4 py-4 text-left">Tipe</th>
+                                        <th className="px-4 py-4 text-left">Dompet</th>
+                                        <th className="px-4 py-4 text-left">Kategori / Ke</th>
+                                        <th className="px-4 py-4 text-left">Catatan</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-black/5">
+                                    {rows.map((row, idx) => (
+                                        <tr key={idx} className="group hover:bg-dagang-cream/10 transition-colors">
+                                            <td className="px-4 py-3 text-center">
+                                                <button
+                                                    onClick={() => removeRow(idx)}
+                                                    className="p-2 text-red-500/30 hover:text-red-500 transition-colors bg-red-500/5 hover:bg-red-500/10 rounded-lg"
                                                 >
-                                                    <option value="">Select...</option>
-                                                    {wallets.filter((w: any) => w.id !== row.walletId).map((w: any) => (
-                                                        <option key={w.id} value={w.id}>{w.name}</option>
-                                                    ))}
-                                                </select>
-                                            ) : (
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <input
+                                                    type="date"
+                                                    value={row.date}
+                                                    onChange={(e) => updateRow(idx, 'date', e.target.value)}
+                                                    className="w-full bg-transparent border-none p-0 text-xs font-bold outline-none cursor-pointer"
+                                                />
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <input
+                                                    type="number"
+                                                    value={row.amount || ''}
+                                                    onChange={(e) => updateRow(idx, 'amount', parseFloat(e.target.value))}
+                                                    placeholder="0"
+                                                    className="w-full bg-transparent border-none p-0 text-xs font-black outline-none placeholder:text-dagang-gray/20 text-dagang-green"
+                                                />
+                                            </td>
+                                            <td className="px-4 py-3">
                                                 <select
-                                                    value={row.savingId || row.category}
-                                                    onChange={(e) => {
-                                                        const isRowIncome = row.type === 'income';
-                                                        if (isRowIncome) {
-                                                            const cat = incomeCategories.find(c => c.name === e.target.value);
-                                                            updateRow(idx, 'category', cat?.name || '');
-                                                            updateRow(idx, 'savingId', '');
-                                                        } else {
-                                                            const s = savings.find((s: any) => s.id === e.target.value);
-                                                            updateRow(idx, 'category', s?.name || '');
-                                                            updateRow(idx, 'savingId', s?.id || '');
-                                                        }
-                                                    }}
-                                                    className="w-full bg-transparent border-none p-0 text-[13px] font-bold outline-none cursor-pointer"
+                                                    value={row.type}
+                                                    onChange={(e) => updateRow(idx, 'type', e.target.value)}
+                                                    className="w-full bg-transparent border-none p-0 text-xs font-bold outline-none cursor-pointer"
+                                                >
+                                                    <option value="expense">Keluar</option>
+                                                    <option value="income">Masuk</option>
+                                                    <option value="transfer">Pindah</option>
+                                                </select>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <select
+                                                    value={row.walletId}
+                                                    onChange={(e) => updateRow(idx, 'walletId', e.target.value)}
+                                                    className="w-full bg-transparent border-none p-0 text-xs font-bold outline-none cursor-pointer"
                                                 >
                                                     <option value="">Pilih...</option>
-                                                    {row.type === 'income' ? (
-                                                        incomeCategories.map((c: any) => (
-                                                            <option key={c.name} value={c.name}>{c.emoji} {c.name}</option>
-                                                        ))
-                                                    ) : (
-                                                        savings.map((s: any) => (
-                                                            <option key={s.id} value={s.id}>{s.emoji} {s.name}</option>
-                                                        ))
-                                                    )}
+                                                    {wallets.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
                                                 </select>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-4">
-                                            <input
-                                                type="text"
-                                                value={row.description}
-                                                onChange={(e) => updateRow(idx, 'description', e.target.value)}
-                                                placeholder="cth. Kopi Kenangan"
-                                                className="w-full bg-transparent border-none p-0 text-[13px] font-bold outline-none placeholder:text-dagang-gray/20"
-                                            />
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {row.type === 'transfer' ? (
+                                                    <select
+                                                        value={row.toWalletId}
+                                                        onChange={(e) => updateRow(idx, 'toWalletId', e.target.value)}
+                                                        className="w-full bg-transparent border-none p-0 text-xs font-bold outline-none cursor-pointer"
+                                                    >
+                                                        <option value="">Pilih...</option>
+                                                        {wallets.filter((w: any) => w.id !== row.walletId).map((w: any) => (
+                                                            <option key={w.id} value={w.id}>{w.name}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <select
+                                                        value={row.savingId || row.category}
+                                                        onChange={(e) => {
+                                                            const isRowIncome = row.type === 'income';
+                                                            if (isRowIncome) {
+                                                                const cat = incomeCategories.find(c => c.name === e.target.value);
+                                                                updateRow(idx, 'category', cat?.name || '');
+                                                                updateRow(idx, 'savingId', '');
+                                                            } else {
+                                                                const s = savings.find((s: any) => s.id === e.target.value);
+                                                                updateRow(idx, 'category', s?.name || '');
+                                                                updateRow(idx, 'savingId', s?.id || '');
+                                                            }
+                                                        }}
+                                                        className="w-full bg-transparent border-none p-0 text-xs font-bold outline-none cursor-pointer"
+                                                    >
+                                                        <option value="">Pilih...</option>
+                                                        {row.type === 'income' ? (
+                                                            incomeCategories.map((c: any) => (
+                                                                <option key={c.name} value={c.name}>{c.emoji} {c.name}</option>
+                                                            ))
+                                                        ) : (
+                                                            budgetCategories.map((cat: any) => (
+                                                                <optgroup key={cat.id} label={cat.name.toUpperCase()}>
+                                                                    {(savings || []).filter((s: any) => s.budgetCategoryId === cat.id).map((s: any) => (
+                                                                        <option key={s.id} value={s.id}>{s.emoji} {s.name}</option>
+                                                                    ))}
+                                                                </optgroup>
+                                                            ))
+                                                        )}
+                                                    </select>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <input
+                                                    type="text"
+                                                    value={row.description}
+                                                    onChange={(e) => updateRow(idx, 'description', e.target.value)}
+                                                    placeholder="Catatan..."
+                                                    className="w-full bg-transparent border-none p-0 text-xs font-bold outline-none placeholder:text-dagang-gray/20"
+                                                />
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col mobile:flex-row items-center gap-4 mobile:justify-between">
                         <button
                             onClick={addRow}
-                            className="px-8 py-4 bg-white border border-black/5 rounded-2xl text-[14px] font-bold text-dagang-dark hover:bg-dagang-cream/50 transition-all flex items-center gap-3 shadow-sm active:scale-95"
+                            className="w-full mobile:w-auto px-8 py-3.5 bg-white border border-black/5 rounded-2xl text-[13px] font-bold text-dagang-dark hover:bg-dagang-cream/50 transition-all flex items-center justify-center gap-3 shadow-sm active:scale-95"
                         >
                             <Plus className="w-5 h-5 text-dagang-green" /> Tambah Baris
                         </button>
@@ -541,12 +588,12 @@ const BulkTransactionModal = ({ isOpen, onClose, wallets, savings, handleBulkCre
                             onClick={() => {
                                 const invalid = rows.some(r => !r.walletId || r.amount <= 0 || (r.type === 'transfer' && !r.toWalletId));
                                 if (invalid) {
-                                    alert('Pastikan semua baris sudah memilih dompet, mengisi jumlah > 0, dan memilih dompet tujuan untuk transfer.');
+                                    alert('Pastikan semua baris sudah mengisi data dengan benar.');
                                     return;
                                 }
                                 handleBulkCreateTransactions(rows);
                             }}
-                            className="px-10 py-4 bg-dagang-green text-white rounded-2xl text-[14px] font-black uppercase tracking-widest hover:bg-dagang-green-light transition-all shadow-xl shadow-dagang-green/20 flex items-center gap-3 active:scale-95"
+                            className="w-full mobile:w-auto px-10 py-3.5 bg-dagang-green text-white rounded-2xl text-[13px] font-black uppercase tracking-widest hover:bg-dagang-green-light transition-all shadow-xl shadow-dagang-green/20 flex items-center justify-center gap-3 active:scale-95"
                         >
                             <Check className="w-5 h-5" /> Simpan Semua
                         </button>
@@ -641,11 +688,11 @@ const TransactionItem = ({
                             </div>
                         </div>
                         <div className="flex items-center justify-between text-[11px] font-bold py-3 border-b border-black/[0.03]">
-                            <span className="text-dagang-gray opacity-40 uppercase tracking-widest">WAKTU</span>
+                            <span className="text-dagang-gray opacity-40 uppercase tracking-widest">TANGGAL</span>
                             <div className="flex items-center gap-2">
-                                <Clock className="w-3 h-3 text-dagang-gray opacity-20" />
+                                <Calendar className="w-3 h-3 text-dagang-gray opacity-20" />
                                 <span className="text-dagang-dark">
-                                    {new Date(tx.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                    {new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                 </span>
                             </div>
                         </div>
@@ -659,7 +706,11 @@ const TransactionItem = ({
                             <Pencil className="w-4 h-4" /> UBAH
                         </button>
                         <button
-                            onClick={() => onDelete(tx.id)}
+                            onClick={() => {
+                                if (window.confirm('Yakin kamu akan menghapus transaksi ini? Dana akan dikembalikan ke dompet dan budget.')) {
+                                    onDelete(tx.id);
+                                }
+                            }}
                             className="flex-1 flex items-center justify-center gap-3 py-4 bg-red-50/50 border border-red-100 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] text-red-500 hover:bg-red-100 transition-all active:scale-95"
                         >
                             <Trash2 className="w-4 h-4" /> HAPUS
@@ -687,12 +738,35 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
     handleDeleteTransaction,
     handleUpdateTransaction,
     savings = [],
-    familyMembers = []
+    familyMembers = [],
+    budgetCategories = []
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState<string>('all');
     const [filterWallet, setFilterWallet] = useState<string>('all');
+    const [filterCategory, setFilterCategory] = useState<string>('all');
     const [expandedTxId, setExpandedTxId] = useState<string | null>(null);
+
+    const categoryOptions = useMemo(() => {
+        const budgetOpts = budgetCategories.map(bc => ({ label: bc.name, value: bc.id }));
+        const incomeOpts = incomeCategories.map(ic => ({ label: ic.name, value: ic.name }));
+
+        if (filterType === 'income') return incomeOpts;
+        if (filterType === 'expense' || filterType === 'transfer') return budgetOpts;
+        
+        // For 'all', combine and add prefixes to avoid confusion
+        return [
+            ...budgetCategories.map(bc => ({ label: `Budget: ${bc.name}`, value: bc.id })),
+            ...incomeCategories.map(ic => ({ label: `Masuk: ${ic.name}`, value: ic.name }))
+        ];
+    }, [filterType, budgetCategories]);
+
+    useEffect(() => {
+        if (filterCategory === 'all') return;
+        const isValid = categoryOptions.some(opt => opt.value === filterCategory);
+        if (!isValid) setFilterCategory('all');
+    }, [filterType, categoryOptions, filterCategory]);
+
     const [isEditing, setIsEditing] = useState(false);
     const [editingTxId, setEditingTxId] = useState<string | null>(null);
     const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
@@ -705,9 +779,21 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                 tx.category?.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesType = filterType === 'all' || tx.type === filterType;
             const matchesWallet = filterWallet === 'all' || tx.walletId === filterWallet;
-            return matchesSearch && matchesType && matchesWallet;
+            
+            let matchesCategory = true;
+            if (filterCategory !== 'all') {
+                if (tx.type === 'income') {
+                    matchesCategory = tx.category === filterCategory;
+                } else {
+                    // expense, saving, or transfer linked to a saving goal
+                    const saving = savings.find(s => s.id === tx.savingId);
+                    matchesCategory = saving?.budgetCategoryId === filterCategory;
+                }
+            }
+
+            return matchesSearch && matchesType && matchesWallet && matchesCategory;
         });
-    }, [transactions, searchQuery, filterType, filterWallet]);
+    }, [transactions, searchQuery, filterType, filterWallet, filterCategory, savings]);
 
     // Grouping by Date
     const groupedTransactions = useMemo(() => {
@@ -746,7 +832,24 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                         Scan Struk AI
                     </button>
                     <button
-                        onClick={() => setIsSingleModalOpen(true)}
+                        onClick={() => {
+                            setIsEditing(false);
+                            setEditingTxId(null);
+                            // Ensure FamilyDashboard gets fresh state if needed via NEW tx initialization logic
+                            setNewTx({
+                                description: '',
+                                walletId: wallets[0]?.id || '',
+                                toWalletId: '',
+                                amount: 0,
+                                fee: 0,
+                                date: new Date().toISOString().split('T')[0],
+                                category: '',
+                                type: 'expense',
+                                savingId: ''
+                            });
+                            setActiveTab('expense');
+                            setIsSingleModalOpen(true);
+                        }}
                         className="px-6 py-3.5 bg-dagang-green text-white rounded-2xl text-[13px] font-bold hover:bg-dagang-green-light transition-all flex items-center gap-3 shadow-xl shadow-dagang-green/20"
                     >
                         <Plus className="w-5 h-5" /> Transaksi Baru
@@ -784,10 +887,12 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                         onChange={setFilterWallet}
                         options={wallets.map(w => ({ label: w.name, value: w.id }))}
                     />
-                    {/* Placeholder for Subcategory filter if needed later */}
-                    <div className="px-5 py-3.5 bg-dagang-cream/30 text-[12px] font-bold text-dagang-gray/60 rounded-2xl cursor-not-allowed flex items-center gap-3">
-                        <Target className="w-4 h-4 opacity-40" /> Semua Subkategori <ChevronDown className="w-4 h-4 opacity-40" />
-                    </div>
+                    <FilterDropdown
+                        label="Semua Kategori"
+                        value={filterCategory}
+                        onChange={setFilterCategory}
+                        options={categoryOptions}
+                    />
                 </div>
             </div>
 
@@ -861,6 +966,8 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                 editingTxId={editingTxId}
                 savings={savings}
                 onOpenCalculator={() => setIsCalculatorOpen(true)}
+                incomeCategories={incomeCategories}
+                budgetCategories={budgetCategories}
             />
 
             <CalculatorComp
@@ -878,6 +985,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                 onClose={() => setIsBulkModalOpen(false)}
                 wallets={wallets}
                 savings={savings}
+                budgetCategories={budgetCategories}
                 handleBulkCreateTransactions={handleBulkCreateTransactions}
             />
 

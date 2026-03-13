@@ -30,6 +30,7 @@ export const BudgetController = {
                 id: s.id,
                 familyId: s.family_id,
                 name: s.name,
+                budgetCategoryId: c.id,
                 targetAmount: s.target_amount,
                 currentBalance: s.current_balance,
                 category: s.category,

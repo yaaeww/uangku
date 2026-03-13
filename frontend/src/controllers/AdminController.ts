@@ -79,5 +79,10 @@ export const AdminController = {
     toggleUserBlock: async (id: string) => {
         const response = await api.post(`/admin/users/${id}/toggle-block`);
         return response.data;
+    },
+
+    getTransactions: async () => {
+        const response = await api.get('/admin/transactions');
+        return response.data;
     }
 };

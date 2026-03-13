@@ -30,6 +30,32 @@ export const CoachView: React.FC = () => {
         fetchBehavior();
     }, []);
 
+    const handleJoinChallenge = async (ch: any) => {
+        try {
+            await FinanceController.joinChallenge(ch);
+            // Refresh data
+            const data = await FinanceController.getBehaviorSummary();
+            setBehavior(data);
+        } catch (error) {
+            console.error("Failed to join challenge", error);
+        }
+    };
+
+    const getChallengeIcon = (type: string) => {
+        switch (type) {
+            case 'no_spend_day': return <ArrowRight className="w-5 h-5" />;
+            case 'scanner_ninja': return <Zap className="w-5 h-5" />;
+            case 'keluarga_kompak': return <Brain className="w-5 h-5" />;
+            default: return <ArrowRight className="w-5 h-5" />;
+        }
+    };
+
+    const getTimeRemaining = (endDate: string) => {
+        const remaining = new Date(endDate).getTime() - new Date().getTime();
+        const days = Math.ceil(remaining / (1000 * 60 * 60 * 24));
+        return days > 0 ? `${days} Hari Tersisa` : 'Berakhir Hari Ini';
+    };
+
     if (loading) return (
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
             <div className="w-12 h-12 border-4 border-dagang-green/20 border-t-dagang-green rounded-full animate-spin" />
@@ -136,18 +162,59 @@ export const CoachView: React.FC = () => {
                 </div>
             </div>
 
-            {/* Behavioral Challenges & Metrics */}
+            {/* Behavioral Challenges & Active Status */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Active or Suggested Challenge */}
                 <div className="bg-gradient-to-br from-dagang-dark to-black p-8 rounded-[32px] text-white shadow-xl shadow-dagang-dark/10 relative overflow-hidden">
                     <div className="relative z-10">
-                        <div className="text-[11px] font-black text-white/30 tracking-[0.2em] uppercase mb-1">Challenge Minggu Ini</div>
-                        <h4 className="text-xl font-serif mb-4">{behavior?.challenge?.title || 'No-Spend Day'}</h4>
-                        <p className="text-sm text-white/60 mb-8 leading-relaxed">
-                            {behavior?.challenge?.description || 'Tantang diri sendiri untuk mengontrol pengeluaran harian kamu.'}
-                        </p>
-                        <button className="flex items-center gap-2 text-[13px] font-bold text-dagang-accent hover:gap-3 transition-all">
-                            Ikuti Tantangan <ArrowRight className="w-4 h-4" />
-                        </button>
+                        {behavior?.active_challenges?.length > 0 ? (
+                            <>
+                                <div className="text-[11px] font-black text-dagang-accent tracking-[0.2em] uppercase mb-1 flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-dagang-accent rounded-full animate-pulse" />
+                                    Tantangan Aktif
+                                </div>
+                                <h4 className="text-xl font-serif mb-2 flex items-center gap-2">
+                                    {getChallengeIcon(behavior.active_challenges[0].type)}
+                                    {behavior.active_challenges[0].title}
+                                </h4>
+                                <p className="text-sm text-white/60 mb-6 leading-relaxed">
+                                    {behavior.active_challenges[0].description}
+                                </p>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-white/40">
+                                        <span>Progress</span>
+                                        <span>{getTimeRemaining(behavior.active_challenges[0].end_date)}</span>
+                                    </div>
+                                    <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-dagang-accent transition-all duration-1000" 
+                                            style={{ width: `${behavior.active_challenges[0].points}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        ) : behavior?.challenge ? (
+                            <>
+                                <div className="text-[11px] font-black text-white/30 tracking-[0.2em] uppercase mb-1 flex items-center gap-2">
+                                    {getChallengeIcon(behavior.challenge.type)}
+                                    Challenge Minggu Ini
+                                </div>
+                                <h4 className="text-xl font-serif mb-4">{behavior.challenge.title}</h4>
+                                <p className="text-sm text-white/60 mb-8 leading-relaxed">
+                                    {behavior.challenge.description}
+                                </p>
+                                <button 
+                                    onClick={() => handleJoinChallenge(behavior.challenge)}
+                                    className="flex items-center gap-2 text-[13px] font-bold text-dagang-accent hover:gap-3 transition-all"
+                                >
+                                    Ikuti Tantangan <ArrowRight className="w-4 h-4" />
+                                </button>
+                            </>
+                        ) : (
+                            <div className="py-8 text-center text-white/30 text-sm italic">
+                                Belum ada tantangan baru.
+                            </div>
+                        )}
                     </div>
                     {/* Abstract background element */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-dagang-accent/10 rounded-bl-[100px] -mr-8 -mt-8 blur-2xl" />
@@ -162,7 +229,7 @@ export const CoachView: React.FC = () => {
                         </div>
                     </div>
                     <div className="bg-white p-6 rounded-[28px] border border-black/5 shadow-sm">
-                        <div className="text-[10px] font-black text-dagang-gray/50 uppercase tracking-widest mb-4">Inflation</div>
+                        <div className="text-[10px] font-black text-dagang-gray/50 uppercase tracking-widest mb-4">Lifestyle Inflation</div>
                         <div className="text-2xl font-serif text-dagang-dark">{(behavior?.lifestyle_inflation || 0).toFixed(1)}%</div>
                         <div className={`text-[11px] font-bold mt-2 flex items-center gap-1 ${behavior?.lifestyle_inflation > 10 ? 'text-red-500' : 'text-dagang-green'}`}>
                             {behavior?.lifestyle_inflation > 10 ? <AlertTriangle className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />} 

@@ -26,7 +26,6 @@ func NewMailService() MailService {
 func (s *mailService) SendOTP(email, otp string) error {
 	// If SMTP configuration is missing, fallback to log
 	if config.AppConfig.SMTPUser == "" || config.AppConfig.SMTPPass == "" {
-		log.Printf("[MOCK] Email OTP to %s: %s", email, otp)
 		return nil
 	}
 
@@ -38,7 +37,6 @@ func (s *mailService) SendOTP(email, otp string) error {
 
 func (s *mailService) SendWhatsAppOTP(phone, otp string) error {
 	if config.AppConfig.WAToken == "" {
-		log.Printf("[MOCK] WhatsApp OTP to %s: %s", phone, otp)
 		return nil
 	}
 
@@ -56,13 +54,11 @@ func (s *mailService) SendWhatsAppOTP(phone, otp string) error {
 	}
 	defer res.Body.Close()
 
-	log.Printf("WhatsApp OTP sent to %s via Fonnte", phone)
 	return nil
 }
 
 func (s *mailService) SendWhatsApp(phone, message string) error {
 	if config.AppConfig.WAToken == "" {
-		log.Printf("[MOCK] WhatsApp to %s: %s", phone, message)
 		return nil
 	}
 
@@ -78,7 +74,6 @@ func (s *mailService) SendWhatsApp(phone, message string) error {
 	}
 	defer res.Body.Close()
 
-	log.Printf("WhatsApp message sent to %s via Fonnte", phone)
 	return nil
 }
 
@@ -87,7 +82,6 @@ func (s *mailService) SendResetToken(email, token string) error {
 	body := fmt.Sprintf("Klik link berikut untuk reset password: http://localhost:5173/reset-password?token=%s", token)
 
 	if config.AppConfig.SMTPUser == "" {
-		log.Printf("[MOCK] Reset Email to %s: %s", email, token)
 		return nil
 	}
 
@@ -99,7 +93,6 @@ func (s *mailService) SendInvitation(email, familyName, inviterName, role string
 	body := fmt.Sprintf("Halo! %s mengundang Anda untuk bergabung ke keluarga '%s' sebagai %s.\nSilakan daftar di Uangku menggunakan email ini untuk langsung bergabung.\nLink: http://localhost:5173/register", inviterName, familyName, role)
 
 	if config.AppConfig.SMTPUser == "" {
-		log.Printf("[MOCK] Invitation to %s: %s", email, familyName)
 		return nil
 	}
 
@@ -122,6 +115,5 @@ func (s *mailService) sendActualEmail(to, subject, body string) error {
 		return err
 	}
 
-	log.Printf("Actual Email sent to %s", to)
 	return nil
 }

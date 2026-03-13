@@ -17,6 +17,7 @@ type Family struct {
 	Status             string     `gorm:"default:'trial'" json:"status"`            // trial, active, expired
 	TrialEndsAt        time.Time  `json:"trial_ends_at"`
 	SubscriptionEndsAt time.Time  `json:"subscription_ends_at"`
+	MonthlyBudget      float64    `gorm:"type:decimal(12,2);default:0" json:"monthly_budget"`
 	CreatedAt          time.Time  `json:"created_at"`
 	Members            []FamilyMember `gorm:"foreignKey:FamilyID" json:"members"`
 }
@@ -25,7 +26,7 @@ type FamilyMember struct {
 	ID       uuid.UUID `gorm:"type:uuid;primary_key" json:"id"`
 	FamilyID uuid.UUID `gorm:"type:uuid;not null;index:idx_family_user,unique" json:"family_id"`
 	UserID   uuid.UUID `gorm:"type:uuid;not null;index:idx_family_user,unique" json:"user_id"`
-	Role     string    `gorm:"not null" json:"role"` // treasurer, member, viewer
+	Role     string    `gorm:"not null" json:"role"` // head_of_family (owner), treasurer, member, viewer
 	JoinedAt time.Time `json:"joined_at"`
 	User     User      `gorm:"foreignKey:UserID" json:"user"`
 	Family   Family    `gorm:"foreignKey:FamilyID" json:"family"`

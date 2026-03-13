@@ -19,22 +19,10 @@ import {
 } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 import { FinanceController } from '../../controllers/FinanceController';
-import axios from 'axios';
-
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api/v1',
-});
-
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
+import api, { getStorageUrl } from '../../services/api';
 
 export const MembersView: React.FC = () => {
-    const { user, refreshDashboard } = useOutletContext<any>();
+    const { user, refreshDashboard, familyRole } = useOutletContext<any>();
     const [members, setMembers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -231,6 +219,12 @@ export const MembersView: React.FC = () => {
 
     const getRoleBadge = (role: string) => {
         switch (role) {
+            case 'head_of_family':
+                return (
+                    <span className="flex items-center gap-1.5 px-3 py-1 bg-dagang-dark text-dagang-accent text-[10px] font-black uppercase tracking-widest rounded-full border border-dagang-accent/20 ring-2 ring-dagang-accent/10">
+                        <Home className="w-3 h-3" /> Kepala Keluarga
+                    </span>
+                );
             case 'treasurer':
                 return (
                     <span className="flex items-center gap-1.5 px-3 py-1 bg-dagang-green/10 text-dagang-green text-[10px] font-black uppercase tracking-widest rounded-full border border-dagang-green/20">
@@ -281,15 +275,13 @@ export const MembersView: React.FC = () => {
                         Undang Anggota
                     </button>
                     {(memberCount + invitationCount >= (familyStatus === 'trial' ? trialMaxMembers : maxMembers)) && (
-                        <div className="flex flex-col">
+                        <div className="flex flex-col items-end gap-1.5">
                             <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest px-2">
                                 {familyStatus === 'trial' ? `Trial: Slot Terbatas (Max ${trialMaxMembers})` : 'Slot Penuh: Upgrade paket Anda'}
                             </p>
-                            {familyStatus === 'trial' && (
-                                <p className="text-[9px] text-dagang-gray font-medium px-2 italic">
-                                    Buka fitur undang dengan berlangganan
-                                </p>
-                            )}
+                            <a href="/pricing" className="text-[10px] font-bold text-white bg-dagang-accent px-4 py-1.5 rounded-full hover:bg-amber-600 transition-colors shadow-sm inline-flex items-center gap-1.5">
+                                🚀 Upgrade Akun
+                            </a>
                         </div>
                     )}
                 </div>
@@ -301,7 +293,7 @@ export const MembersView: React.FC = () => {
                     <div className="w-32 h-32 rounded-[32px] bg-dagang-gray/5 border-2 border-dashed border-black/10 flex items-center justify-center overflow-hidden">
                         {familyPhoto ? (
                             <img 
-                                src={familyPhoto.startsWith('blob:') ? familyPhoto : `http://localhost:3001${familyPhoto}`} 
+                                src={familyPhoto.startsWith('blob:') ? familyPhoto : getStorageUrl(familyPhoto)} 
                                 className="w-full h-full object-cover" 
                                 alt="Family Profile"
                             />
@@ -310,14 +302,16 @@ export const MembersView: React.FC = () => {
                         )}
                     </div>
                     <div className="absolute -bottom-2 -right-2 flex flex-col gap-2">
-                        <button 
-                            onClick={() => fileInputRef.current?.click()}
-                            className="w-10 h-10 bg-dagang-dark text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-black transition-all"
-                            title="Ganti Foto"
-                        >
-                            <Camera className="w-5 h-5" />
-                        </button>
-                        {familyPhoto && (
+                        {familyRole === 'head_of_family' && (
+                            <button 
+                                onClick={() => fileInputRef.current?.click()}
+                                className="w-10 h-10 bg-dagang-dark text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-black transition-all"
+                                title="Ganti Foto"
+                            >
+                                <Camera className="w-5 h-5" />
+                            </button>
+                        )}
+                        {familyPhoto && familyRole === 'head_of_family' && (
                             <button 
                                 onClick={handleDeletePhoto}
                                 className="w-10 h-10 bg-red-500 text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-red-600 transition-all animate-in slide-in-from-right-2"
@@ -342,23 +336,25 @@ export const MembersView: React.FC = () => {
                         <input 
                             type="text" 
                             value={familyName}
-                            onChange={(e) => setFamilyName(e.target.value)}
-                            className="w-full h-14 px-6 rounded-2xl bg-dagang-gray/5 border border-black/5 outline-none focus:ring-2 focus:ring-dagang-green/20 transition-all font-bold text-lg"
+                            disabled={familyRole !== 'head_of_family'}
+                            className={`w-full h-14 px-6 rounded-2xl bg-dagang-gray/5 border border-black/5 outline-none focus:ring-2 focus:ring-dagang-green/20 transition-all font-bold text-lg ${familyRole !== 'head_of_family' ? 'opacity-70 cursor-not-allowed' : ''}`}
                             placeholder="Contoh: Keluarga Stark"
                         />
                     </div>
-                    <button 
-                        onClick={handleUpdateFamily}
-                        disabled={isSavingFamily}
-                        className="flex items-center gap-2 px-8 py-3.5 bg-dagang-green text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-dagang-green-light transition-all shadow-lg shadow-dagang-green/10 disabled:opacity-50"
-                    >
-                        {isSavingFamily ? (
-                            <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                        ) : (
-                            <Save className="w-4 h-4" />
-                        )}
-                        Simpan Perubahan Profil
-                    </button>
+                    {familyRole === 'head_of_family' && (
+                        <button 
+                            onClick={handleUpdateFamily}
+                            disabled={isSavingFamily}
+                            className="flex items-center gap-2 px-8 py-3.5 bg-dagang-green text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-dagang-green-light transition-all shadow-lg shadow-dagang-green/10 disabled:opacity-50"
+                        >
+                            {isSavingFamily ? (
+                                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <Save className="w-4 h-4" />
+                            )}
+                            Simpan Perubahan Profil
+                        </button>
+                    )}
                 </div>
                 
                 <div className="hidden lg:block w-px h-24 bg-black/5" />
@@ -421,21 +417,26 @@ export const MembersView: React.FC = () => {
 
                                 {user?.id !== member.user_id && (
                                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <select 
-                                            className="text-[11px] font-black uppercase tracking-widest bg-dagang-gray/5 border-none rounded-lg px-2 py-1 outline-none cursor-pointer hover:bg-dagang-gray/10"
-                                            value={member.role}
-                                            onChange={(e) => handleUpdateRole(member.id, e.target.value)}
-                                        >
-                                            <option value="treasurer">Bendahara</option>
-                                            <option value="member">Anggota</option>
-                                            <option value="viewer">Pantau</option>
-                                        </select>
-                                        <button 
-                                            onClick={() => handleRemoveMember(member.id)}
-                                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        {familyRole === 'head_of_family' && (
+                                            <select 
+                                                className="text-[11px] font-black uppercase tracking-widest bg-dagang-gray/5 border-none rounded-lg px-2 py-1 outline-none cursor-pointer hover:bg-dagang-gray/10"
+                                                value={member.role}
+                                                onChange={(e) => handleUpdateRole(member.id, e.target.value)}
+                                            >
+                                                <option value="head_of_family">Kepala Keluarga</option>
+                                                <option value="treasurer">Bendahara</option>
+                                                <option value="member">Anggota</option>
+                                                <option value="viewer">Pantau</option>
+                                            </select>
+                                        )}
+                                        {familyRole === 'head_of_family' && (
+                                            <button 
+                                                onClick={() => handleRemoveMember(member.id)}
+                                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>

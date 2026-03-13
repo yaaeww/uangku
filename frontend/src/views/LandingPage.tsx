@@ -1,23 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    Globe,
-    LayoutDashboard,
-    Check,
-    LogOut
+    Check
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import axios from 'axios';
+import { PublicHeader } from '../components/common/PublicHeader';
+import { PublicFooter } from '../components/common/PublicFooter';
+import api from '../services/api';
 
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api/v1',
-});
+
 
 export const LandingPage = () => {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const token = useAuthStore(state => state.token);
     const user = useAuthStore(state => state.user);
-    const logout = useAuthStore(state => state.logout);
     const [plans, setPlans] = useState<any[]>([]);
     const [settings, setSettings] = useState<any>({});
     const [loading, setLoading] = useState(true);
@@ -40,10 +36,6 @@ export const LandingPage = () => {
         fetchData();
     }, []);
 
-    const toggleLanguage = () => {
-        const newLang = i18n.language === 'id' ? 'en' : 'id';
-        i18n.changeLanguage(newLang);
-    };
 
     const formatPrice = (price: number) => {
         if (price === 0) return "Gratis";
@@ -55,55 +47,7 @@ export const LandingPage = () => {
     return (
         <div className="bg-dagang-cream text-dagang-dark font-sans selection:bg-dagang-green-pale selection:text-dagang-green">
             {/* Navigation */}
-            <nav className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-6 py-5 md:px-[60px] bg-[#faf8f3]/92 backdrop-blur-md border-b border-dagang-green/10">
-                <div className="logo font-serif text-2xl text-dagang-green">
-                    Uang<span className="text-dagang-accent">ku</span>
-                </div>
-
-                <ul className="hidden lg:flex gap-9 list-none">
-                    <li><a href="#features" className="text-sm font-medium text-dagang-gray hover:text-dagang-green transition-colors">{t('nav.features')}</a></li>
-                    <li><a href="#how-it-works" className="text-sm font-medium text-dagang-gray hover:text-dagang-green transition-colors">{t('nav.howItWorks')}</a></li>
-                    <li><a href="#pricing" className="text-sm font-medium text-dagang-gray hover:text-dagang-green transition-colors">{t('nav.pricing')}</a></li>
-                    <li><a href="#" className="text-sm font-medium text-dagang-gray hover:text-dagang-green transition-colors">{t('nav.blog')}</a></li>
-                </ul>
-
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={toggleLanguage}
-                        className="p-2 rounded-full hover:bg-dagang-green-pale text-dagang-gray hover:text-dagang-green transition-all flex items-center gap-1"
-                        title="Toggle Language"
-                    >
-                        <Globe className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase">{i18n.language}</span>
-                    </button>
-                    {token ? (
-                        <div className="flex items-center gap-3">
-                            <a
-                                href={user?.role === 'super_admin' ? "/admin" : (user?.familyName ? `/${encodeURIComponent(user.familyName)}/dashboard` : "/")}
-                                className="px-6 py-2.5 bg-dagang-green text-white rounded-full text-sm font-semibold hover:bg-dagang-green-light transition-all flex items-center gap-2 shadow-sm"
-                            >
-                                <LayoutDashboard className="w-4 h-4" /> Dashboard
-                            </a>
-                            <button 
-                                onClick={() => logout()}
-                                className="p-2 hover:bg-red-50 rounded-full text-dagang-gray hover:text-red-500 transition-all"
-                                title="Logout"
-                            >
-                                <LogOut className="w-4 h-4" />
-                            </button>
-                        </div>
-                    ) : (
-                        <>
-                            <a href="/login" className="text-[13px] sm:text-sm font-semibold text-dagang-green border border-dagang-green/30 hover:bg-dagang-green-pale px-3 sm:px-5 py-2 sm:py-2.5 rounded-full transition-all whitespace-nowrap">
-                                Login
-                            </a>
-                            <a href="/register" className="px-4 sm:px-6 py-2 sm:py-2.5 bg-dagang-green text-white rounded-full text-[13px] sm:text-sm font-semibold hover:bg-dagang-green-light transition-all shadow-sm whitespace-nowrap">
-                                {t('nav.trial')}
-                            </a>
-                        </>
-                    )}
-                </div>
-            </nav>
+            <PublicHeader />
 
             {/* HERO */}
             <section className="min-h-screen flex items-center px-6 md:px-[60px] pt-[120px] pb-20 relative overflow-hidden">
@@ -128,7 +72,15 @@ export const LandingPage = () => {
 
                         <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mb-14">
                             <a
-                                href={token ? (user?.role === 'super_admin' ? "/admin" : (user?.familyName ? `/${encodeURIComponent(user.familyName)}/dashboard` : "/")) : "/register"}
+                                href={
+                                    token 
+                                        ? (user?.role === 'super_admin' 
+                                            ? "/admin" 
+                                            : user?.role === 'content_strategist'
+                                                ? "/writing-room"
+                                                : (user?.familyName ? `/${encodeURIComponent(user.familyName)}/dashboard` : "/")) 
+                                        : "/register"
+                                }
                                 className="btn-primary w-full sm:w-auto"
                             >
                                 {token ? 'Ke Dashboard' : t('hero.cta_trial', { days: trialDuration })}
@@ -352,7 +304,15 @@ export const LandingPage = () => {
                     <h2 className="font-serif text-[54px] mb-4">Mulai Perjalanan Finansial Keluarga Anda</h2>
                     <p className="text-white/60 text-lg mb-10 max-w-[600px] mx-auto">Gratis {trialDuration} hari. Setup 3 menit. Tidak perlu kartu kredit.</p>
                     <a
-                        href={token ? (user?.role === 'super_admin' ? "/admin" : (user?.familyName ? `/${encodeURIComponent(user.familyName)}/dashboard` : "/")) : "/register"}
+                        href={
+                            token 
+                                ? (user?.role === 'super_admin' 
+                                    ? "/admin" 
+                                    : user?.role === 'content_strategist'
+                                        ? "/writing-room"
+                                        : (user?.familyName ? `/${encodeURIComponent(user.familyName)}/dashboard` : "/")) 
+                                : "/register"
+                        }
                         className="inline-block bg-dagang-accent text-white px-11 py-4.5 rounded-full text-base font-bold shadow-[0_8px_32px_rgba(245,158,11,0.4)] hover:-translate-y-px hover:shadow-[0_16px_48px_rgba(245,158,11,0.5)] transition-all"
                     >
                         {token ? '🚀 Masuk ke Dashboard' : '🚀 Mulai Trial Gratis Sekarang'}
@@ -361,9 +321,7 @@ export const LandingPage = () => {
                 </div>
             </section>
 
-            <footer className="px-[60px] pb-10 text-center text-[13px] text-dagang-gray">
-                © 2026 Uangku · Dibuat dengan ❤️ untuk keluarga Indonesia · Privacy · Terms · Contact
-            </footer>
+            <PublicFooter />
         </div>
     );
 };

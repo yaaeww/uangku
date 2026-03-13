@@ -6,7 +6,7 @@ export interface User {
     fullName: string;
     phoneNumber?: string;
     familyName: string;
-    role: 'super_admin' | 'family_admin' | 'family_member';
+    role: 'super_admin' | 'family_admin' | 'family_member' | 'content_strategist';
     familyStatus?: 'active' | 'trial' | 'expired';
     trialEndsAt?: string;
 }
@@ -40,6 +40,7 @@ export interface Saving {
     id: string;
     familyId: string;
     name: string;
+    budgetCategoryId?: string;
     targetAmount: number;
     currentBalance: number;
     createdAt: string;

@@ -39,6 +39,8 @@ export const LoginPage = () => {
 
             if (user.role === 'super_admin') {
                 navigate('/admin');
+            } else if (user.role === 'content_strategist') {
+                navigate('/writing-room');
             } else {
                 navigate(`/${encodeURIComponent(family_name)}/dashboard`);
             }

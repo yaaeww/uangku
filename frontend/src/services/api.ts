@@ -13,7 +13,9 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        return response;
+    },
     (error) => {
         if (error.response?.status === 401) {
             localStorage.removeItem('token');
@@ -26,5 +28,13 @@ api.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
+export const getStorageUrl = (path: string) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+    const baseURL = apiUrl.replace('/api/v1', '');
+    return `${baseURL}${path}`;
+};
 
 export default api;

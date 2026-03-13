@@ -32,6 +32,8 @@ const CATEGORIES = [
     'Bensin', 'Parkir + Sampah', 'BPJS', 'Iuran RT', 'Pengeluaran Tabungan', 'Lainnya'
 ];
 
+import { getStorageUrl } from '../services/api';
+
 export const FamilyDashboard = () => {
     const { familyName: urlFamilyName } = useParams();
     const navigate = useNavigate();
@@ -51,19 +53,23 @@ export const FamilyDashboard = () => {
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
+    const [familyMembers, setFamilyMembers] = useState<any[]>([]);
 
-    // New Transaction State
-    const [newTx, setNewTx] = useState({
+    // Initial state for resetting
+    const initialTxState = {
         description: '',
         walletId: '',
         toWalletId: '',
         amount: 0,
         fee: 0,
         date: new Date().toISOString().split('T')[0],
-        category: CATEGORIES[0],
+        category: '',
         type: 'income' as 'income' | 'expense' | 'transfer',
         savingId: ''
-    });
+    };
+
+    // New Transaction State
+    const [newTx, setNewTx] = useState(initialTxState);
 
     useEffect(() => {
         if (!user) return;
@@ -83,50 +89,124 @@ export const FamilyDashboard = () => {
         }
     }, [user, urlFamilyName, navigate]);
 
+    const fetchTransactions = async () => {
+        const now = new Date();
+        const data = await FinanceController.getMonthlyTransactions(now.getMonth() + 1, now.getFullYear());
+        setTransactions(data);
+        return data;
+    };
+
+    const fetchSummary = async () => {
+        const now = new Date();
+        const data = await FinanceController.getDashboardSummary(now.getMonth() + 1, now.getFullYear());
+        setSummary(data);
+        
+        // Sync family name and status to user store if changed
+        if (user && data.family) {
+            const needsSync = user.familyName !== data.family.name || 
+                             user.familyStatus !== data.family.status ||
+                             user.trialEndsAt !== data.family.trial_ends_at;
+            
+            if (needsSync) {
+                setUser({ 
+                    ...user, 
+                    familyName: data.family.name,
+                    familyStatus: data.family.status,
+                    trialEndsAt: data.family.trial_ends_at
+                });
+            }
+        }
+        return data;
+    };
+
+    const fetchWallets = async () => {
+        const data = await FinanceController.getWallets();
+        setWallets(data);
+        if (data.length > 0 && !newTx.walletId) {
+            setNewTx(prev => ({ ...prev, walletId: data[0].id }));
+        }
+        return data;
+    };
+
+    const fetchSavings = async () => {
+        const data = await FinanceController.getSavings();
+        setSavings(data);
+        return data;
+    };
+
+    const fetchBudgetCategories = async () => {
+        const data = await BudgetController.getCategories();
+        setBudgetCategories(data);
+        return data;
+    };
+
+    const fetchMembers = async () => {
+        const data = await FinanceController.getMembers();
+        setFamilyMembers(data || []);
+        return data;
+    };
+
+    const fetchNotifications = async () => {
+        const data = await NotificationController.getNotifications();
+        setUnreadCount((data || []).filter((n: any) => !n.is_read).length);
+        return data;
+    };
+
     const fetchData = async () => {
         setLoading(true);
         try {
-            const now = new Date();
-            const [txData, summaryData, walletData, savingData, debtData, notifData, budgetData] = await Promise.all([
-                FinanceController.getMonthlyTransactions(now.getMonth() + 1, now.getFullYear()),
-                FinanceController.getDashboardSummary(now.getMonth() + 1, now.getFullYear()),
-                FinanceController.getWallets(),
-                FinanceController.getSavings(),
-                FinanceController.getDebts(),
-                NotificationController.getNotifications(),
-                BudgetController.getCategories()
+            await Promise.all([
+                fetchTransactions(),
+                fetchSummary(),
+                fetchWallets(),
+                fetchSavings(),
+                FinanceController.getDebts().then(setDebts),
+                fetchNotifications(),
+                fetchBudgetCategories(),
+                fetchMembers()
             ]);
-            setTransactions(txData);
-            setSummary(summaryData);
-            setWallets(walletData);
-            setSavings(savingData);
-            setDebts(debtData);
-            setBudgetCategories(budgetData);
-            setUnreadCount((notifData || []).filter((n: any) => !n.is_read).length);
-
-            // Sync family name and status to user store if changed
-            if (user && summaryData.family) {
-                const needsSync = user.familyName !== summaryData.family.name || 
-                                 user.familyStatus !== summaryData.family.status ||
-                                 user.trialEndsAt !== summaryData.family.trial_ends_at;
-                
-                if (needsSync) {
-                    setUser({ 
-                        ...user, 
-                        familyName: summaryData.family.name,
-                        familyStatus: summaryData.family.status,
-                        trialEndsAt: summaryData.family.trial_ends_at
-                    });
-                }
-            }
-
-            if (walletData.length > 0 && !newTx.walletId) {
-                setNewTx(prev => ({ ...prev, walletId: walletData[0].id }));
-            }
         } catch (error) {
             console.error("Failed to fetch dashboard data", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const refreshDashboard = async (target?: 'transactions' | 'wallets' | 'savings' | 'budget' | 'members' | 'summary' | 'notifs' | 'debts') => {
+        try {
+            if (!target) {
+                await fetchData();
+                return;
+            }
+
+            switch (target) {
+                case 'transactions':
+                    await Promise.all([fetchTransactions(), fetchSummary(), fetchWallets()]);
+                    break;
+                case 'wallets':
+                    await fetchWallets();
+                    break;
+                case 'savings':
+                    await Promise.all([fetchSavings(), fetchSummary()]);
+                    break;
+                case 'budget':
+                    await fetchBudgetCategories();
+                    break;
+                case 'members':
+                    await fetchMembers();
+                    break;
+                case 'summary':
+                    await fetchSummary();
+                    break;
+                case 'notifs':
+                    await fetchNotifications();
+                    break;
+                case 'debts':
+                    await Promise.all([FinanceController.getDebts().then(setDebts), fetchSummary()]);
+                    break;
+            }
+        } catch (error) {
+            console.error(`Failed to refresh ${target || 'dashboard'}`, error);
         }
     };
 
@@ -135,8 +215,9 @@ export const FamilyDashboard = () => {
     }, []);
 
     const handleCreateTransaction = async () => {
+        
         if (!newTx.walletId || !newTx.amount || !newTx.description) {
-            alert('Lengkapi data transaksi');
+            alert(`Lengkapi data transaksi:\n${!newTx.walletId ? '- Pilih Dompet\n' : ''}${!newTx.amount ? '- Isi Jumlah\n' : ''}${!newTx.description ? '- Isi Catatan/Deskripsi' : ''}`);
             return;
         }
 
@@ -154,35 +235,46 @@ export const FamilyDashboard = () => {
         }
 
         try {
+            // If date is today, use current time. If past, use date from picker.
+            const now = new Date();
+            const selectedDate = new Date(newTx.date);
+            const isToday = now.toDateString() === selectedDate.toDateString();
+            
+            const finalDate = isToday ? now.toISOString() : selectedDate.toISOString();
+
             await FinanceController.createTransaction({
                 ...newTx,
                 amount: Math.max(0, newTx.amount),
                 fee: Math.max(0, newTx.fee || 0),
-                date: new Date(newTx.date).toISOString()
+                date: finalDate
             });
-            fetchData();
+            refreshDashboard('transactions');
             setNewTx({
-                ...newTx,
-                amount: 0,
-                fee: 0,
-                description: '',
-                date: new Date().toISOString().split('T')[0],
+                ...initialTxState,
+                walletId: wallets[0]?.id || ''
             });
             setIsSingleModalOpen(false);
         } catch (error: any) {
-            alert(error.response?.data?.error || 'Gagal membuat transaksi');
+            console.error("[ERROR] Failed to create transaction:", error);
+            const errorMsg = error.response?.data?.error || error.message || 'Gagal membuat transaksi';
+            alert(`Gagal: ${errorMsg}\n\nPastikan koneksi internet stabil dan tunnel Cloudflare aktif.`);
         }
     };
 
     const handleBulkCreateTransactions = async (txs: any[]) => {
         try {
-            const formattedTxs = txs.map(tx => ({
-                ...tx,
-                amount: Math.max(0, tx.amount),
-                date: new Date(tx.date).toISOString()
-            }));
+            const now = new Date();
+            const formattedTxs = txs.map(tx => {
+                const selectedDate = new Date(tx.date);
+                const isToday = now.toDateString() === selectedDate.toDateString();
+                return {
+                    ...tx,
+                    amount: Math.max(0, tx.amount),
+                    date: isToday ? now.toISOString() : selectedDate.toISOString()
+                };
+            });
             await FinanceController.createBulkTransactions(formattedTxs);
-            fetchData();
+            refreshDashboard('transactions');
             setIsBulkModalOpen(false);
         } catch (error: any) {
             console.error("Bulk Transaction Error:", error);
@@ -192,22 +284,48 @@ export const FamilyDashboard = () => {
     };
 
     const handleUpdateTransaction = async (id: string, tx: any) => {
+
+        if (!tx.amount || tx.amount <= 0) {
+            alert('Jumlah transaksi harus lebih dari 0');
+            return;
+        }
+
         try {
-            await FinanceController.updateTransaction(id, {
+            const now = new Date();
+            let finalDate: string;
+            
+            try {
+                const selectedDate = new Date(tx.date);
+                if (isNaN(selectedDate.getTime())) {
+                    throw new Error("Invalid Date");
+                }
+                const isToday = now.toDateString() === selectedDate.toDateString();
+                finalDate = isToday ? now.toISOString() : selectedDate.toISOString();
+            } catch (dateErr) {
+                console.error("[ERROR] Date parsing failed:", dateErr);
+                finalDate = now.toISOString(); // fallback to now
+            }
+
+            const payload = {
                 ...tx,
-                date: new Date(tx.date).toISOString()
-            });
-            fetchData();
+                amount: Math.max(0, tx.amount),
+                fee: Math.max(0, tx.fee || 0),
+                date: finalDate
+            };
+            await FinanceController.updateTransaction(id, payload);
+            await fetchData();
+            // alert('Perubahan berhasil disimpan!');
         } catch (error: any) {
-            alert(error.response?.data?.error || 'Gagal memperbarui transaksi');
+            console.error("[ERROR] Failed to update transaction:", error);
+            const errorMsg = error.response?.data?.error || error.message || 'Gagal memperbarui transaksi';
+            alert(`Error: ${errorMsg}`);
         }
     };
 
     const handleDeleteTransaction = async (id: string) => {
-        if (!confirm('Hapus transaksi ini? Saldo dompet akan disesuaikan otomatis.')) return;
         try {
             await FinanceController.deleteTransaction(id);
-            fetchData();
+            refreshDashboard('transactions');
         } catch (error: any) {
             alert(error.response?.data?.error || 'Gagal menghapus transaksi');
         }
@@ -221,7 +339,7 @@ export const FamilyDashboard = () => {
                 account_number: accountNumber,
                 initialBalance: initialBalance
             });
-            fetchData();
+            refreshDashboard('wallets');
         } catch (error) {
             alert('Gagal membuat wallet');
         }
@@ -230,7 +348,7 @@ export const FamilyDashboard = () => {
     const handleUpdateWallet = async (wallet: any) => {
         try {
             await FinanceController.updateWallet(wallet);
-            fetchData();
+            refreshDashboard('wallets');
         } catch (error) {
             alert('Gagal memperbarui wallet');
         }
@@ -238,8 +356,17 @@ export const FamilyDashboard = () => {
 
     const handleUpdateSaving = async (saving: any) => {
         try {
-            await FinanceController.updateSaving(saving);
-            fetchData();
+            await FinanceController.updateSaving({
+                id: saving.id,
+                name: saving.name,
+                targetAmount: saving.targetAmount,
+                currentBalance: saving.currentBalance,
+                category: saving.category,
+                budgetCategoryId: saving.budgetCategoryId, // Ensure this is mapped
+                emoji: saving.emoji,
+                dueDate: saving.dueDate
+            });
+            refreshDashboard('savings');
         } catch (error) {
             alert('Gagal memperbarui tabungan');
         }
@@ -248,7 +375,7 @@ export const FamilyDashboard = () => {
     const handleDeleteSaving = async (id: string) => {
         try {
             await FinanceController.deleteSaving(id);
-            fetchData();
+            refreshDashboard('savings');
         } catch (error) {
             alert('Gagal menghapus tabungan');
         }
@@ -258,7 +385,7 @@ export const FamilyDashboard = () => {
         if (!window.confirm('Hapus dompet ini?')) return;
         try {
             await FinanceController.deleteWallet(id);
-            fetchData();
+            refreshDashboard('wallets');
         } catch (error) {
             alert('Gagal menghapus wallet');
         }
@@ -266,11 +393,12 @@ export const FamilyDashboard = () => {
 
     const handleCreateSaving = async (name: string, target: number, initial: number, sourceWalletId?: string, category: string = 'savings', emoji: string = '💰', dueDate: number = 0) => {
         try {
-            // 1. Create saving with 0 balance (or initial if no wallet selected, but we want to force wallet if initial > 0)
+            // 1. Create saving
             const saving = await FinanceController.createSaving({
                 name,
                 targetAmount: target,
                 category,
+                budgetCategoryId: category, // 'category' passed from BudgetView is the UUID
                 emoji,
                 dueDate,
                 currentBalance: sourceWalletId ? 0 : initial
@@ -287,16 +415,17 @@ export const FamilyDashboard = () => {
                     description: `Setoran awal budget: ${name}`
                 });
             }
-            fetchData();
-        } catch (error) {
-            alert('Gagal membuat budget');
+            refreshDashboard('savings');
+        } catch (error: any) {
+            console.error('[ERROR] Failed to create budget:', error);
+            alert('Gagal membuat budget: ' + (error.response?.data?.error || error.message));
         }
     };
 
     const handleCreateDebt = async (debt: any) => {
         try {
             await FinanceController.createDebt(debt);
-            fetchData();
+            refreshDashboard('debts');
         } catch (error) {
             alert('Gagal mencatat hutang');
         }
@@ -305,7 +434,7 @@ export const FamilyDashboard = () => {
     const handleRecordPayment = async (payment: any) => {
         try {
             await FinanceController.recordDebtPayment(payment);
-            fetchData();
+            refreshDashboard('debts');
         } catch (error) {
             alert('Gagal mencatat cicilan');
         }
@@ -315,7 +444,7 @@ export const FamilyDashboard = () => {
         if (!confirm('Hapus catatan hutang ini?')) return;
         try {
             await FinanceController.deleteDebt(id);
-            fetchData();
+            refreshDashboard('debts');
         } catch (error) {
             alert('Gagal menghapus hutang');
         }
@@ -331,7 +460,7 @@ export const FamilyDashboard = () => {
                 date: new Date().toISOString(),
                 description: 'Alokasi ke goal'
             });
-            fetchData();
+            refreshDashboard('savings');
         } catch (error) {
             alert('Gagal mengalokasikan ke tabungan');
         }
@@ -339,7 +468,8 @@ export const FamilyDashboard = () => {
 
     const location = useLocation();
     const currentPath = location.pathname.split('/').pop() || 'overview';
-
+    const currentUserFamilyMember = familyMembers.find(m => m.user_id === user?.id);
+    const currentUserFamilyRole = currentUserFamilyMember?.role || (user as any)?.familyRole || 'member';
 
     return (
         <div className="flex min-h-screen bg-dagang-cream/50 text-dagang-dark font-sans relative">
@@ -502,7 +632,7 @@ export const FamilyDashboard = () => {
                         >
                             {summary?.family?.photo_url ? (
                                 <img 
-                                    src={`http://localhost:3001${summary.family.photo_url}`} 
+                                    src={getStorageUrl(summary.family.photo_url)} 
                                     className="w-5 h-5 rounded-md object-cover" 
                                     alt="Family"
                                 />
@@ -530,7 +660,7 @@ export const FamilyDashboard = () => {
                                 <NotificationDropdown 
                                     onClose={() => setIsNotificationOpen(false)}
                                     unreadCount={unreadCount}
-                                    refreshDashboard={fetchData}
+                                    refreshDashboard={refreshDashboard}
                                 />
                             )}
                         </div>
@@ -567,12 +697,27 @@ export const FamilyDashboard = () => {
                     isBulkModalOpen,
                     setIsBulkModalOpen,
                     budgetCategories,
-                    handleCreateBudgetCategory: async (cat: any) => { await BudgetController.createCategory(cat); fetchData(); },
-                    handleUpdateBudgetCategory: async (id: string, cat: any) => { await BudgetController.updateCategory(id, cat); fetchData(); },
-                    handleDeleteBudgetCategory: async (id: string) => { if(confirm('Hapus kategori?')) { await BudgetController.deleteCategory(id); fetchData(); } },
+                    familyMembers,
+                    familyRole: currentUserFamilyRole,
+                    handleCreateBudgetCategory: async (cat: any) => { 
+                        try { await BudgetController.createCategory(cat); refreshDashboard('budget'); } 
+                        catch (err: any) { alert(err.response?.data?.error || 'Gagal membuat kategori'); }
+                    },
+                    handleUpdateBudgetCategory: async (id: string, cat: any) => { 
+                        try { await BudgetController.updateCategory(id, cat); refreshDashboard('budget'); } 
+                        catch (err: any) { alert(err.response?.data?.error || 'Gagal memperbarui kategori'); }
+                    },
+                    handleDeleteBudgetCategory: async (id: string) => { 
+                        try { 
+                            await BudgetController.deleteCategory(id); 
+                            await refreshDashboard('budget'); 
+                        } 
+                        catch (err: any) { 
+                            alert(err.response?.data?.error || 'Gagal menghapus kategori'); 
+                        }
+                    },
                     categories: CATEGORIES,
-                    familyMembers: summary?.family?.members || [],
-                    refreshDashboard: fetchData
+                    refreshDashboard: refreshDashboard
                 }} />
             </main>
 

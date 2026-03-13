@@ -3,6 +3,7 @@ package repositories
 import (
 	"keuangan-keluarga/internal/config"
 	"keuangan-keluarga/internal/models"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,15 +22,17 @@ type BehavioralChallenge struct {
 }
 
 type BehaviorSummary struct {
-	Score              int                 `json:"score"`
-	Insights           []BehavioralInsight `json:"insights"`
-	Challenge          BehavioralChallenge `json:"challenge"`
-	LifestyleInflation float64             `json:"lifestyle_inflation"`
-	SavingsRate        float64             `json:"savings_rate"`
+	Score              int                     `json:"score"`
+	Insights           []BehavioralInsight     `json:"insights"`
+	Challenge          *models.FamilyChallenge `json:"challenge"` // Suggested challenge
+	ActiveChallenges   []models.FamilyChallenge `json:"active_challenges"`
+	LifestyleInflation float64                 `json:"lifestyle_inflation"`
+	SavingsRate        float64                 `json:"savings_rate"`
 }
 
 type BehaviorRepository interface {
 	GetBehaviorSummary(familyID uuid.UUID) (*BehaviorSummary, error)
+	JoinChallenge(familyID uuid.UUID, challenge models.FamilyChallenge) error
 }
 
 type behaviorRepository struct{}
@@ -38,15 +41,72 @@ func NewBehaviorRepository() BehaviorRepository {
 	return &behaviorRepository{}
 }
 
+func (r *behaviorRepository) JoinChallenge(familyID uuid.UUID, challenge models.FamilyChallenge) error {
+	challenge.ID = uuid.New()
+	challenge.FamilyID = familyID
+	challenge.Status = "active"
+	now := time.Now()
+	challenge.StartDate = &now
+	
+	// Default 7 days duration
+	end := now.AddDate(0, 0, 7)
+	challenge.EndDate = &end
+	
+	return config.DB.Create(&challenge).Error
+}
+
 func (r *behaviorRepository) GetBehaviorSummary(familyID uuid.UUID) (*BehaviorSummary, error) {
 	summary := &BehaviorSummary{
-		Score:    75, // Base score
-		Insights: []BehavioralInsight{},
+		Score:            75, // Base score
+		Insights:         []BehavioralInsight{},
+		ActiveChallenges: []models.FamilyChallenge{},
 	}
 
 	now := time.Now()
 	thisMonthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	prevMonthStart := thisMonthStart.AddDate(0, -1, 0)
+
+	// --- 0. Fetch Active Challenges & Track Progress ---
+	var activeChallenges []models.FamilyChallenge
+	config.DB.Where("family_id = ? AND status = ?", familyID, "active").Find(&activeChallenges)
+	
+	for i := range activeChallenges {
+		ch := &activeChallenges[i]
+		// Auto-fail if expired (simplified: auto-complete)
+		if ch.EndDate != nil && ch.EndDate.Before(now) {
+			ch.Status = "completed"
+			config.DB.Save(ch)
+			continue
+		}
+
+		// Dynamic Progress Calculation
+		switch ch.Type {
+		case "no_spend_day":
+			duration := ch.EndDate.Sub(*ch.StartDate).Hours() / 24
+			elapsed := now.Sub(*ch.StartDate).Hours() / 24
+			if duration > 0 {
+				ch.Points = int((elapsed / duration) * 100)
+			}
+		case "scanner_ninja":
+			var scanCount int64
+			config.DB.Model(&models.Transaction{}).
+				Where("family_id = ? AND category = ? AND date >= ?", familyID, "AI_SCAN", ch.StartDate).
+				Count(&scanCount)
+			ch.Points = int(float64(scanCount) / 10.0 * 100)
+		case "keluarga_kompak":
+			var memberCount int64
+			config.DB.Model(&models.Transaction{}).
+				Select("DISTINCT user_id").
+				Where("family_id = ? AND date >= ?", familyID, ch.StartDate).
+				Count(&memberCount)
+			ch.Points = int(float64(memberCount) / 3.0 * 100)
+		}
+
+		if ch.Points > 100 {
+			ch.Points = 100
+		}
+		summary.ActiveChallenges = append(summary.ActiveChallenges, *ch)
+	}
 
 	// 1. Calculate Savings Rate
 	var totalIncome, totalSavings float64
@@ -121,31 +181,79 @@ func (r *behaviorRepository) GetBehaviorSummary(familyID uuid.UUID) (*BehaviorSu
 			})
 			summary.Score -= 15
 		}
+	} else if totalIncome > 0 {
+		summary.Insights = append(summary.Insights, BehavioralInsight{
+			Type:        "info",
+			Title:       "Bulan Pertama?",
+			Description: "Sistem belum punya data perbandingan dari bulan lalu.",
+			Action:      "Teruskan mencatat biar AI makin pintar!",
+		})
 	}
 
-	// 4. Dynamic Challenge (Based on highest spending day)
-	type DaySpend struct {
-		DOW   int
-		Total float64
+	// Default Insight for empty state
+	if len(summary.Insights) == 0 {
+		if totalIncome == 0 {
+			summary.Insights = append(summary.Insights, BehavioralInsight{
+				Type:        "info",
+				Title:       "Mulai Catat Transaksi",
+				Description: "AI Coach butuh data transaksi bulan ini buat kasih saran psikologi.",
+				Action:      "Scan struk belanjamu sekarang!",
+			})
+		} else {
+			summary.Insights = append(summary.Insights, BehavioralInsight{
+				Type:        "success",
+				Title:       "Keuangan Stabil",
+				Description: "Sejauh ini pola pengeluaranmu terlihat sangat terkendali.",
+				Action:      "Coba tantangan baru buat ningkatin tabungan.",
+			})
+		}
 	}
-	var highest DaySpend
-	config.DB.Model(&models.Transaction{}).
-		Select("CAST(EXTRACT(DOW FROM date) AS INTEGER) as dow, sum(amount) as total").
-		Where("family_id = ? AND date >= ? AND type = 'expense'", familyID, thisMonthStart).
-		Group("dow").
-		Order("total DESC").
-		Limit(1).
-		Scan(&highest)
 
-	daysMap := map[int]string{0: "Minggu", 1: "Senin", 2: "Selasa", 3: "Rabu", 4: "Kamis", 5: "Jumat", 6: "Sabtu"}
-	dayName := daysMap[highest.DOW]
-	if dayName == "" {
-		dayName = "Sabtu" // Fallback
+	// 4. Dynamic Challenge Suggestion (Only if no active challenge of same type)
+	findActive := func(t string) bool {
+		for _, ac := range activeChallenges { if ac.Type == t { return true } }
+		return false
 	}
 
-	summary.Challenge = BehavioralChallenge{
-		Title:       "No-Spend " + dayName,
-		Description: "Berdasarkan pola kamu, hari " + dayName + " adalah pengeluaran terbanyak. Coba tantang diri sendiri untuk tidak belanja di hari " + dayName + " ini.",
+	if !findActive("no_spend_day") {
+		type DaySpend struct {
+			DOW   int
+			Total float64
+		}
+		var highest DaySpend
+		config.DB.Table("transactions").
+			Select("CAST(EXTRACT(DOW FROM date) AS INTEGER) as dow, sum(amount) as total").
+			Where("family_id = ? AND date >= ? AND type = 'expense'", familyID, thisMonthStart).
+			Group("dow").
+			Order("total DESC").
+			Limit(1).
+			Scan(&highest)
+
+		daysMap := map[int]string{0: "Minggu", 1: "Senin", 2: "Selasa", 3: "Rabu", 4: "Kamis", 5: "Jumat", 6: "Sabtu"}
+		dayName := daysMap[highest.DOW]
+		if dayName == "" { dayName = "Sabtu" }
+
+		summary.Challenge = &models.FamilyChallenge{
+			Type:        "no_spend_day",
+			Title:       "No-Spend " + dayName,
+			Description: "Hari " + dayName + " adalah pengeluaran terbanyakmu. Sanggupkah bosku tidak jajan sama sekali di hari " + dayName + " depan?",
+			Points:      100,
+			Metadata:    fmt.Sprintf(`{"dow": %d}`, highest.DOW),
+		}
+	} else if !findActive("scanner_ninja") {
+		summary.Challenge = &models.FamilyChallenge{
+			Type:        "scanner_ninja",
+			Title:       "Scanner Ninja",
+			Description: "Gunakan AI Scanner untuk 5 transaksi beruntun agar pencatatan makin akurat dan cepat!",
+			Points:      150,
+		}
+	} else if !findActive("keluarga_kompak") {
+		summary.Challenge = &models.FamilyChallenge{
+			Type:        "keluarga_kompak",
+			Title:       "Keluarga Kompak",
+			Description: "Ajak anggota keluarga lain buat catat minimal 1 transaksi minggu ini.",
+			Points:      200,
+		}
 	}
 
 	// Clamp score

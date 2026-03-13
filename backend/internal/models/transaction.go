@@ -18,7 +18,7 @@ type Transaction struct {
 	Amount      float64    `gorm:"type:decimal(12,2);not null" json:"amount"`
 	Fee         float64    `gorm:"type:decimal(12,2);default:0" json:"fee"`
 	Category    string     `json:"category"`
-	Date        time.Time  `gorm:"type:date;not null;primary_key;index:idx_tx_family_date" json:"date"`
+	Date        time.Time  `gorm:"not null;primary_key;index:idx_tx_family_date" json:"date"`
 	Description string     `json:"description"`
 	CreatedAt   time.Time  `json:"created_at"`
 }

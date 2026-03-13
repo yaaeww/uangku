@@ -34,7 +34,9 @@ export const FinanceController = {
             expenseByCategory: s.expense_by_category,
             comparison: s.comparison,
             dailyActivity: s.daily_activity,
-            family: s.family
+            family: s.family,
+            memberCount: s.member_count,
+            invitationCount: s.invitation_count
         };
     },
 
@@ -156,6 +158,7 @@ export const FinanceController = {
             targetAmount: s.target_amount,
             currentBalance: s.current_balance,
             category: s.category,
+            budgetCategoryId: s.budget_category_id,
             emoji: s.emoji,
             dueDate: s.due_date,
             createdAt: s.created_at
@@ -168,6 +171,7 @@ export const FinanceController = {
             target_amount: saving.targetAmount,
             current_balance: saving.currentBalance,
             category: saving.category,
+            budget_category_id: saving.budgetCategoryId,
             emoji: saving.emoji,
             due_date: saving.dueDate
         };
@@ -182,6 +186,7 @@ export const FinanceController = {
             target_amount: saving.targetAmount,
             current_balance: saving.currentBalance,
             category: saving.category,
+            budget_category_id: saving.budgetCategoryId,
             emoji: saving.emoji,
             due_date: saving.dueDate
         };
@@ -257,6 +262,11 @@ export const FinanceController = {
         return response.data;
     },
 
+    joinChallenge: async (challenge: any): Promise<any> => {
+        const response = await api.post('/finance/behavior/challenges/join', challenge);
+        return response.data;
+    },
+
     getMembers: async (): Promise<any> => {
         const response = await api.get('/finance/members');
         return response.data;
@@ -274,6 +284,11 @@ export const FinanceController = {
 
     inviteMember: async (email: string, role: string): Promise<any> => {
         const response = await api.post('/finance/members/invite', { email, role });
+        return response.data;
+    },
+
+    updateFamilyBudget: async (amount: number): Promise<any> => {
+        const response = await api.put('/finance/budget', { amount });
         return response.data;
     }
 };

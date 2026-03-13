@@ -10,7 +10,7 @@ import (
 type User struct {
 	ID           uuid.UUID `gorm:"type:uuid;primary_key" json:"id"`
 	Email        string    `gorm:"uniqueIndex;not null" json:"email"`
-	PhoneNumber  string    `gorm:"uniqueIndex" json:"phone_number"` // Added for WhatsApp OTP
+	PhoneNumber  string    `gorm:"uniqueIndex:idx_users_phone,where:phone_number != ''" json:"phone_number"` // Added for WhatsApp OTP
 	PasswordHash string    `gorm:"not null" json:"-"`
 	FullName     string    `gorm:"not null" json:"full_name"`
 	Role         string    `gorm:"not null" json:"role"` // super_admin, family_admin, family_member

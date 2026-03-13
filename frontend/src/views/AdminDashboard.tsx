@@ -5,16 +5,16 @@ import {
     Edit3,
     Plus,
     Trash2,
-    CreditCard,
-    Users,
-    ChevronDown,
-    ChevronUp,
-    ChevronLeft,
-    ChevronRight,
-    Ban,
     UserCircle,
     XCircle,
-    LayoutDashboard
+    LayoutDashboard,
+    History,
+    Users2,
+    Package,
+    Users,
+    Ban,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
 import { AdminController } from '../controllers/AdminController';
 import { useAuthStore } from '../store/authStore';
@@ -23,9 +23,10 @@ import { PlanFormModal } from '../components/PlanFormModal';
 import { UserFormModal } from '../components/UserFormModal';
 import { SettingFormModal } from '../components/SettingFormModal';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { TablePagination } from '../components/common/TablePagination';
 
 interface AdminDashboardProps {
-    activeSection?: 'overview' | 'users' | 'families' | 'settings' | 'plans';
+    activeSection?: 'overview' | 'users' | 'families' | 'settings' | 'plans' | 'transactions';
 }
 
 export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashboardProps) => {
@@ -40,6 +41,7 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
     const [families, setFamilies] = useState<any[]>([]);
     const [settings, setSettings] = useState<any[]>([]);
     const [plans, setPlans] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -117,6 +119,7 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
         if (path.includes('/admin/families')) return 'families';
         if (path.includes('/admin/settings')) return 'settings';
         if (path.includes('/admin/plans')) return 'plans';
+        if (path.includes('/admin/transactions')) return 'transactions';
         return 'overview'; // Default to overview
     }, [location.pathname, propActiveSection]);
 
@@ -129,16 +132,18 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [statsData, familiesData, settingsData, plansData] = await Promise.all([
+            const [statsData, familiesData, settingsData, plansData, txsData] = await Promise.all([
                 AdminController.getStats(),
                 AdminController.getFamilies(),
                 AdminController.getSettings(),
-                AdminController.getPlans()
+                AdminController.getPlans(),
+                AdminController.getTransactions()
             ]);
             setStats(statsData);
             setFamilies(familiesData || []);
             setSettings(settingsData || []);
             setPlans(plansData || []);
+            setTransactions(txsData || []);
             setLoading(false);
             // Fetch users separately for the current page
             await fetchUsers(currentPage);
@@ -165,6 +170,10 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
     }, []);
 
     useEffect(() => {
+        setCurrentPage(1);
+    }, [activeTab]);
+
+    useEffect(() => {
         if (activeTab === 'users') {
             const timer = setTimeout(() => {
                 fetchUsers(currentPage);
@@ -172,6 +181,27 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
             return () => clearTimeout(timer);
         }
     }, [currentPage, activeTab, searchQuery, statusFilter]);
+
+    // Local pagination for other tabs
+    const paginatedFamilies = useMemo(() => {
+        const start = (currentPage - 1) * usersPerPage;
+        return families.slice(start, start + usersPerPage);
+    }, [families, currentPage, activeTab]);
+
+    const paginatedPlans = useMemo(() => {
+        const start = (currentPage - 1) * usersPerPage;
+        return plans.slice(start, start + usersPerPage);
+    }, [plans, currentPage, activeTab]);
+
+    const paginatedTransactions = useMemo(() => {
+        const start = (currentPage - 1) * usersPerPage;
+        return transactions.slice(start, start + usersPerPage);
+    }, [transactions, currentPage, activeTab]);
+
+    const paginatedSettings = useMemo(() => {
+        const start = (currentPage - 1) * usersPerPage;
+        return settings.slice(start, start + usersPerPage);
+    }, [settings, currentPage, activeTab]);
 
     const handleToggleBlock = async (id: string, currentlyBlocked: boolean) => {
         setConfirmModal({
@@ -287,7 +317,6 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
     };
 
     const handleDeleteFamily = async (id: string) => {
-        console.log("Attempting to delete family:", id);
         setConfirmModal({
             isOpen: true,
             title: 'Hapus Keluarga?',
@@ -317,21 +346,25 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
                 </div>
 
                 <nav className="flex-1 space-y-2">
-                    <Link to="/admin/overview" className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'overview' ? 'bg-dagang-accent text-dagang-dark font-bold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+                    <Link to="/admin" className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'overview' ? 'bg-dagang-accent text-dagang-dark font-bold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
                         <LayoutDashboard className="w-5 h-5" />
-                        Ringkasan Sistem
+                        Dashboard
                     </Link>
                     <Link to="/admin/users" className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'users' ? 'bg-dagang-accent text-dagang-dark font-bold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
                         <Users className="w-5 h-5" />
-                        Daftar User
+                        Daftar Pengguna
                     </Link>
                     <Link to="/admin/families" className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'families' ? 'bg-dagang-accent text-dagang-dark font-bold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
-                        <Shield className="w-5 h-5" />
+                        <Users2 className="w-5 h-5" />
                         Daftar Keluarga
                     </Link>
                     <Link to="/admin/plans" className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'plans' ? 'bg-dagang-accent text-dagang-dark font-bold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
-                        <CreditCard className="w-5 h-5" />
+                        <Package className="w-5 h-5" />
                         Paket & Harga
+                    </Link>
+                    <Link to="/admin/transactions" className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'transactions' ? 'bg-dagang-accent text-dagang-dark font-bold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+                        <History className="w-5 h-5" />
+                        Riwayat Transaksi
                     </Link>
                     <Link to="/admin/settings" className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'settings' ? 'bg-dagang-accent text-dagang-dark font-bold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
                         <Settings className="w-5 h-5" />
@@ -384,6 +417,7 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
                                  activeTab === 'users' ? 'Database Pengguna Sistem' : 
                                  activeTab === 'families' ? 'Database Keluarga' : 
                                  activeTab === 'plans' ? 'Manajemen Paket Berlangganan' :
+                                 activeTab === 'transactions' ? 'Riwayat Transaksi Tripay' :
                                  'Pengaturan Parameter Sistem'}
                             </h3>
                         </div>
@@ -491,13 +525,21 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
                         <table className="w-full text-left">
                             <thead className="bg-[#FBFCFD]">
                                 <tr className="text-[11px] font-bold text-dagang-gray/60 uppercase tracking-widest border-b border-black/5 text-center">
-                                    {activeTab === 'plans' ? (
+                                     {activeTab === 'plans' ? (
                                         <>
                                             <th className="px-8 py-5">Nama Paket</th>
                                             <th className="px-8 py-5">Harga</th>
                                             <th className="px-8 py-5">Slot Member</th>
                                             <th className="px-8 py-5">Durasi</th>
                                             <th className="px-8 py-5 text-right">Aksi</th>
+                                        </>
+                                    ) : activeTab === 'transactions' ? (
+                                        <>
+                                            <th className="px-8 py-5">Referensi</th>
+                                            <th className="px-8 py-5">Keluarga & Paket</th>
+                                            <th className="px-8 py-5">Nominal</th>
+                                            <th className="px-8 py-5">Status</th>
+                                            <th className="px-8 py-5 text-right">Tanggal</th>
                                         </>
                                     ) : (
                                         <>
@@ -558,7 +600,7 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
                                         </td>
                                     </tr>
                                 ))}
-                                {activeTab === 'families' && families?.map((fam) => (
+                                {activeTab === 'families' && paginatedFamilies?.map((fam) => (
                                     <Fragment key={fam.id}>
                                         <tr className="hover:bg-dagang-cream/5 transition-colors border-b border-black/5">
                                             <td className="px-8 py-6">
@@ -658,7 +700,7 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
                                         )}
                                     </Fragment>
                                 ))}
-                                {activeTab === 'settings' && settings?.map((s) => (
+                                {activeTab === 'settings' && paginatedSettings?.map((s) => (
                                     <tr key={s.key} className="hover:bg-dagang-cream/5 transition-colors">
                                         <td className="px-8 py-6 font-black text-dagang-dark uppercase tracking-tighter" colSpan={2}>
                                             {s.key === 'trial_duration_days' ? 'DURASI MASA TRIAL (HARI)' : 
@@ -672,7 +714,7 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
                                         </td>
                                     </tr>
                                 ))}
-                                {activeTab === 'plans' && plans?.map((p) => (
+                                 {activeTab === 'plans' && paginatedPlans?.map((p) => (
                                     <tr key={p.id} className="hover:bg-dagang-cream/5 transition-colors">
                                         <td className="px-8 py-6">
                                             <div className="font-bold text-dagang-dark">{p.name}</div>
@@ -691,43 +733,83 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
                                         </td>
                                     </tr>
                                 ))}
+                                {activeTab === 'transactions' && paginatedTransactions?.map((t) => (
+                                    <tr key={t.id} className="hover:bg-dagang-cream/5 transition-colors">
+                                        <td className="px-8 py-6">
+                                            <div className="font-black text-dagang-dark text-xs">{t.reference}</div>
+                                            <div className="text-[10px] text-dagang-gray opacity-50 font-mono mt-1">{t.merchant_ref}</div>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <div className="font-bold text-dagang-dark">{t.family?.name || 'Loading...'}</div>
+                                            <div className="flex gap-2 mt-1">
+                                                <span className="bg-dagang-accent/20 text-dagang-dark px-2 py-0.5 rounded text-[9px] font-bold uppercase">{t.plan_name}</span>
+                                                <span className="bg-dagang-dark text-white px-2 py-0.5 rounded text-[9px] font-bold uppercase">{t.payment_name || t.payment_method}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <div className="font-black text-dagang-dark">Rp {t.total_amount.toLocaleString()}</div>
+                                            <div className="text-[10px] text-dagang-gray">Fee: Rp {t.fee.toLocaleString()}</div>
+                                        </td>
+                                        <td className="px-8 py-6 text-center">
+                                            {t.status === 'PAID' ? (
+                                                <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase ring-1 ring-green-200">SUCCES</span>
+                                            ) : t.status === 'UNPAID' ? (
+                                                <span className="bg-amber-100 text-amber-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase ring-1 ring-amber-200">PENDING</span>
+                                            ) : (
+                                                <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase ring-1 ring-red-200">FAILED</span>
+                                            )}
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="text-[11px] font-bold text-dagang-dark">{new Date(t.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                                            <div className="text-[10px] text-dagang-gray opacity-50">{new Date(t.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
+                                        </td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                     </div>
                     )}
                 </div>
 
-                {activeTab === 'users' && totalUsers > usersPerPage && (
-                    <div className="mt-8 flex items-center justify-between bg-white px-8 py-5 rounded-[24px] border border-black/5 shadow-sm">
-                        <div className="text-xs font-bold text-dagang-gray uppercase tracking-widest">
-                            Menampilkan <span className="text-dagang-dark">{(currentPage - 1) * usersPerPage + 1} - {Math.min(currentPage * usersPerPage, totalUsers)}</span> Dari <span className="text-dagang-dark">{totalUsers}</span> User
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button 
-                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                disabled={currentPage === 1}
-                                className="p-2 bg-dagang-dark/5 text-dagang-dark rounded-xl hover:bg-dagang-accent disabled:opacity-30 transition-all"
-                            >
-                                <ChevronLeft className="w-5 h-5" />
-                            </button>
-                            {[...Array(Math.ceil(totalUsers / usersPerPage))].map((_, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => setCurrentPage(i + 1)}
-                                    className={`w-10 h-10 rounded-xl font-bold transition-all ${currentPage === i + 1 ? 'bg-dagang-dark text-white shadow-lg' : 'bg-dagang-dark/5 text-dagang-dark hover:bg-dagang-accent/20'}`}
-                                >
-                                    {i + 1}
-                                </button>
-                            ))}
-                            <button 
-                                onClick={() => setCurrentPage(p => Math.min(Math.ceil(totalUsers / usersPerPage), p + 1))}
-                                disabled={currentPage === Math.ceil(totalUsers / usersPerPage)}
-                                className="p-2 bg-dagang-dark/5 text-dagang-dark rounded-xl hover:bg-dagang-accent disabled:opacity-30 transition-all"
-                            >
-                                <ChevronRight className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
+                {activeTab === 'users' && (
+                    <TablePagination 
+                        currentPage={currentPage}
+                        totalItems={totalUsers}
+                        itemsPerPage={usersPerPage}
+                        onPageChange={setCurrentPage}
+                    />
+                )}
+                {activeTab === 'families' && (
+                    <TablePagination 
+                        currentPage={currentPage}
+                        totalItems={families.length}
+                        itemsPerPage={usersPerPage}
+                        onPageChange={setCurrentPage}
+                    />
+                )}
+                {activeTab === 'plans' && (
+                    <TablePagination 
+                        currentPage={currentPage}
+                        totalItems={plans.length}
+                        itemsPerPage={usersPerPage}
+                        onPageChange={setCurrentPage}
+                    />
+                )}
+                {activeTab === 'transactions' && (
+                    <TablePagination 
+                        currentPage={currentPage}
+                        totalItems={transactions.length}
+                        itemsPerPage={usersPerPage}
+                        onPageChange={setCurrentPage}
+                    />
+                )}
+                {activeTab === 'settings' && (
+                    <TablePagination 
+                        currentPage={currentPage}
+                        totalItems={settings.length}
+                        itemsPerPage={usersPerPage}
+                        onPageChange={setCurrentPage}
+                    />
                 )}
             </main>
             {/* Modals */}

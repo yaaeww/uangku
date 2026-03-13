@@ -3,6 +3,7 @@ package controllers
 import (
 	"keuangan-keluarga/internal/models"
 	"keuangan-keluarga/internal/services"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -120,16 +121,18 @@ func (ctrl *FinanceController) UpdateTransaction(c *gin.Context) {
 
 	var tx models.Transaction
 	if err := c.ShouldBindJSON(&tx); err != nil {
+		log.Printf("[ERROR] Binding JSON failed: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+
 	tx.FamilyID = familyID
-	// User ID stays from original context or is set here
 	userIDStr := c.GetString("user_id")
 	tx.UserID, _ = uuid.Parse(userIDStr)
 
 	if err := ctrl.service.UpdateTransaction(id, &tx); err != nil {
+		log.Printf("[ERROR] Service.UpdateTransaction failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -171,4 +174,50 @@ func (ctrl *FinanceController) GetBehaviorSummary(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, summary)
+}
+
+func (ctrl *FinanceController) JoinChallenge(c *gin.Context) {
+	familyIDStr := c.GetString("family_id")
+	familyID, err := uuid.Parse(familyIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid family ID"})
+		return
+	}
+
+	var challenge models.FamilyChallenge
+	if err := c.ShouldBindJSON(&challenge); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := ctrl.service.JoinChallenge(familyID, challenge); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Challenge joined successfully"})
+}
+
+func (ctrl *FinanceController) UpdateFamilyBudget(c *gin.Context) {
+	familyIDStr := c.GetString("family_id")
+	familyID, err := uuid.Parse(familyIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid family ID"})
+		return
+	}
+
+	var input struct {
+		Amount float64 `json:"amount"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	if err := ctrl.service.UpdateFamilyBudget(familyID, input.Amount); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Budget updated successfully"})
 }

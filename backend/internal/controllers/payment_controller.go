@@ -93,7 +93,6 @@ func (pc *PaymentController) CreatePayment(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[Payment] Payment created - Ref: %s, Family: %s, Plan: %s", payment.Reference, payment.FamilyID, plan.Name)
 	c.JSON(http.StatusOK, payment)
 }
 
@@ -127,7 +126,6 @@ func (pc *PaymentController) HandleCallback(c *gin.Context) {
 	callback.Reference = strings.TrimSpace(callback.Reference)
 	callback.MerchantRef = strings.TrimSpace(callback.MerchantRef)
 
-	log.Printf("[Callback] Received: ref=%s, merchant_ref=%s, status=%s", callback.Reference, callback.MerchantRef, callback.Status)
 
 	// 3. Find Transaction (search by reference, fallback to merchant_ref)
 	var payment models.PaymentTransaction
@@ -145,7 +143,6 @@ func (pc *PaymentController) HandleCallback(c *gin.Context) {
 
 	// 4. Update Transaction Status (idempotent check)
 	if payment.Status == "PAID" {
-		log.Printf("[Callback] Transaction %s already PAID, skipping", callback.Reference)
 		c.JSON(http.StatusOK, gin.H{"success": true})
 		return
 	}
@@ -163,7 +160,6 @@ func (pc *PaymentController) HandleCallback(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[Callback] Transaction %s updated to %s", callback.Reference, callback.Status)
 
 	// 5. If PAID, Activate Subscription
 	if callback.Status == "PAID" {
@@ -235,7 +231,6 @@ func (pc *PaymentController) activateSubscription(payment models.PaymentTransact
 		return
 	}
 
-	log.Printf("[Subscription] Family %s activated plan '%s' until %s", payment.FamilyID, plan.Name, newEnd.Format("2006-01-02"))
 
 	// 4. Record Notification for the first member we find (usually the one who created/pays)
 	var member models.FamilyMember

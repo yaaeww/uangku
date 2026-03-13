@@ -53,6 +53,9 @@ type AdminService interface {
 	UpdatePlan(plan *models.SubscriptionPlan) error
 	DeletePlan(id string) error
 	GetPlanByID(id string) (models.SubscriptionPlan, error)
+
+	// Payment Transaction Methods
+	GetPaymentTransactions() ([]models.PaymentTransaction, error)
 }
 
 type adminService struct {
@@ -384,4 +387,8 @@ func (s *adminService) GetPlanByID(id string) (models.SubscriptionPlan, error) {
 		return models.SubscriptionPlan{}, err
 	}
 	return *plan, nil
+}
+
+func (s *adminService) GetPaymentTransactions() ([]models.PaymentTransaction, error) {
+	return s.adminRepo.GetPaymentTransactions()
 }

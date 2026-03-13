@@ -44,6 +44,8 @@ interface DashboardOverviewProps {
     transactions: Transaction[];
     savings: any[];
     debts: any[];
+    budgetCategories?: any[];
+    familyMembers?: any[];
 }
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
@@ -51,7 +53,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     wallets,
     transactions,
     savings,
-    debts
+    debts,
+    budgetCategories = [],
+    familyMembers = []
 }) => {
     const totalWalletBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
     const totalSavingBalance = savings.reduce((sum, s) => sum + s.currentBalance, 0);
@@ -89,6 +93,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 summary={summary}
                 wallets={wallets}
                 transactions={transactions}
+                budgetCategories={budgetCategories}
+                familyMembers={familyMembers}
             />
 
             {/* Summary Stats */}
@@ -368,7 +374,7 @@ const StatCard = ({ title, value, trend, trendUp, color, icon: Icon }: any) => {
     );
 };
 
-const SetupChecklist = ({ summary, wallets, transactions }: any) => {
+const SetupChecklist = ({ summary, wallets, transactions, budgetCategories = [], familyMembers = [] }: any) => {
     const steps = [
         {
             id: 'profile',
@@ -398,7 +404,7 @@ const SetupChecklist = ({ summary, wallets, transactions }: any) => {
             id: 'budget',
             title: 'Buat Anggaran Pertama',
             desc: 'Atur limit pengeluaran bulanan agar gaji tidak numpang lewat.',
-            completed: !!summary?.expenseByCategory && Object.keys(summary.expenseByCategory).length > 0,
+            completed: budgetCategories.length > 0 || (summary?.family?.monthly_budget > 0),
             icon: PieChart,
             link: 'budget'
         },
@@ -406,7 +412,7 @@ const SetupChecklist = ({ summary, wallets, transactions }: any) => {
             id: 'invite',
             title: 'Ajak Anggota Keluarga',
             desc: 'Undang istri atau anak agar pencatatan jadi satu pintu.',
-            completed: summary?.family?.memberCount > 1,
+            completed: familyMembers.length > 1 || (summary?.memberCount > 1) || (summary?.invitationCount > 0),
             icon: UserPlus,
             link: 'family'
         }

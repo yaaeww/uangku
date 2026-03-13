@@ -21,6 +21,11 @@ import { MembersView } from './views/family/MembersView';
 import { DebtView } from './views/family/DebtView';
 import { NotificationsView } from './views/family/NotificationsView';
 import { SettingsView } from './views/family/SettingsView';
+import { WritingRoom } from './views/blog/WritingRoom';
+import { SeoAudit } from './views/blog/SeoAudit';
+import { WritingRoomLayout } from './views/blog/WritingRoomLayout';
+import { BlogList } from './views/blog/BlogList';
+import { BlogDetail } from './views/blog/BlogDetail';
 
 const DashboardOverviewWrapper = () => {
   const context = useOutletContext<any>();
@@ -69,7 +74,6 @@ const SettingsViewWrapper = () => {
 function App() {
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
-  console.log('App rendering, token:', token, 'user:', user);
 
   return (
     <Router>
@@ -82,6 +86,8 @@ function App() {
               token && user ? (
                 user.role === 'super_admin' ? (
                   <Navigate to="/admin" />
+                ) : user.role === 'content_strategist' ? (
+                  <Navigate to="/writing-room" />
                 ) : (
                   <Navigate to={`/${encodeURIComponent(user.familyName)}/dashboard`} />
                 )
@@ -96,6 +102,8 @@ function App() {
               token && user ? (
                 user.role === 'super_admin' ? (
                   <Navigate to="/admin" />
+                ) : user.role === 'content_strategist' ? (
+                  <Navigate to="/writing-room" />
                 ) : (
                   <Navigate to={`/${encodeURIComponent(user.familyName)}/dashboard`} />
                 )
@@ -133,7 +141,22 @@ function App() {
             <Route path="families" element={<AdminDashboard activeSection="families" />} />
             <Route path="settings" element={<AdminDashboard activeSection="settings" />} />
             <Route path="plans" element={<AdminDashboard activeSection="plans" />} />
+            <Route path="transactions" element={<AdminDashboard activeSection="transactions" />} />
           </Route>
+          <Route 
+            path="/writing-room" 
+            element={token && (user?.role === 'content_strategist' || user?.role === 'super_admin') ? <WritingRoomLayout /> : <Navigate to="/login" />}
+          >
+            <Route index element={<WritingRoom activeSection="dashboard" />} />
+            <Route path="articles" element={<WritingRoom activeSection="articles" />} />
+            <Route path="sitemap" element={<WritingRoom activeSection="sitemap" />} />
+            <Route path="audit" element={<SeoAudit />} />
+          </Route>
+
+          {/* Public Blog Routes */}
+          <Route path="/blog" element={<BlogList />} />
+          <Route path="/blog/:slug" element={<BlogDetail />} />
+
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>

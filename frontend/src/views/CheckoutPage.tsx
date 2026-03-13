@@ -9,7 +9,6 @@ import {
     ChevronRight,
     HelpCircle,
     Wallet,
-    Smartphone,
     Loader2,
     ExternalLink,
     Copy,

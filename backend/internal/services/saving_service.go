@@ -58,16 +58,22 @@ func (s *savingService) Delete(id uuid.UUID, familyID uuid.UUID) error {
 
 		// 3. Revert each transaction's impact on wallet balances
 		for _, t := range transactions {
-			if t.Type == "saving" {
-				// Revert wallet balance
-				var wallet models.Wallet
-				if err := tx.First(&wallet, "id = ?", t.WalletID).Error; err == nil {
+			var wallet models.Wallet
+			if err := tx.First(&wallet, "id = ?", t.WalletID).Error; err == nil {
+				switch t.Type {
+				case "saving", "expense":
+					// Both took money from wallet
 					wallet.Balance += t.Amount
-					if err := tx.Save(&wallet).Error; err != nil {
-						return err
-					}
+				case "income":
+					// Gave money to wallet
+					wallet.Balance -= t.Amount
+				}
+				
+				if err := tx.Save(&wallet).Error; err != nil {
+					return err
 				}
 			}
+			
 			// Delete the transaction
 			if err := tx.Delete(&t).Error; err != nil {
 				return err

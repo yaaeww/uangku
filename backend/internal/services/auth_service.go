@@ -175,7 +175,7 @@ func (s *authService) Register(email, phoneNumber, password, fullName, familyNam
 		member := &models.FamilyMember{
 			UserID:   user.ID,
 			FamilyID: family.ID,
-			Role:     "treasurer",
+			Role:     "head_of_family",
 		}
 		if err := tx.Create(member).Error; err != nil {
 			tx.Rollback()
@@ -242,8 +242,16 @@ func (s *authService) VerifyOTP(email, otp string) (*LoginResponse, error) {
 // Internal version of Login without password check for VerifyOTP
 func (s *authService) loginWithoutPassword(user *models.User) (*LoginResponse, error) {
 	// Fetch family info
-	familyID, _ := s.repo.FindFamilyByUserID(user.ID)
-	family, _ := s.repo.FindFamilyByID(familyID)
+	var familyName string
+	familyID, err := s.repo.FindFamilyByUserID(user.ID)
+	if err == nil && familyID != uuid.Nil {
+		family, errFam := s.repo.FindFamilyByID(familyID)
+		if errFam == nil && family != nil {
+			familyName = family.Name
+		}
+	} else {
+		familyID = uuid.Nil
+	}
 
 	// Set expiration (always remember after verify for best UX)
 	expiry := time.Hour * 24 * 30
@@ -264,7 +272,7 @@ func (s *authService) loginWithoutPassword(user *models.User) (*LoginResponse, e
 	return &LoginResponse{
 		Token:      tokenString,
 		User:       user,
-		FamilyName: family.Name,
+		FamilyName: familyName,
 	}, nil
 }
 
@@ -283,8 +291,16 @@ func (s *authService) Login(email, password string, rememberMe bool) (*LoginResp
 	}
 
 	// Fetch family info
-	familyID, _ := s.repo.FindFamilyByUserID(user.ID)
-	family, _ := s.repo.FindFamilyByID(familyID)
+	var familyName string
+	familyID, err := s.repo.FindFamilyByUserID(user.ID)
+	if err == nil && familyID != uuid.Nil {
+		family, errFam := s.repo.FindFamilyByID(familyID)
+		if errFam == nil && family != nil {
+			familyName = family.Name
+		}
+	} else {
+		familyID = uuid.Nil
+	}
 
 	// Set expiration
 	expiry := time.Hour * 24
@@ -308,7 +324,7 @@ func (s *authService) Login(email, password string, rememberMe bool) (*LoginResp
 	return &LoginResponse{
 		Token:      tokenString,
 		User:       user,
-		FamilyName: family.Name,
+		FamilyName: familyName,
 	}, nil
 }
 

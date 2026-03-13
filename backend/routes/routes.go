@@ -14,6 +14,14 @@ func SetupRoutes(router *gin.Engine) {
 	// Static files
 	router.Static("/uploads", "./uploads")
 
+	// Root route
+	router.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":  "running",
+			"message": "Uangku Backend API is live",
+		})
+	})
+
 	router.NoRoute(func(c *gin.Context) {
 		if c.Request.Method == "OPTIONS" {
 			c.Header("Access-Control-Allow-Origin", "http://localhost:5173")
@@ -29,8 +37,9 @@ func SetupRoutes(router *gin.Engine) {
 	v1 := router.Group("/api/v1")
 
 	// Dependencies
+	savingService := services.NewSavingService()
 	budgetService := services.NewBudgetService()
-	budgetController := controllers.NewBudgetController(budgetService)
+	budgetController := controllers.NewBudgetController(budgetService, savingService)
 
 	authRepo := repositories.NewAuthRepository()
 	mailService := services.NewMailService()
@@ -51,7 +60,6 @@ func SetupRoutes(router *gin.Engine) {
 	adminService := services.NewAdminService(adminRepo, memberRepo, mailService)
 	adminController := controllers.NewAdminController(adminService)
 
-	savingService := services.NewSavingService()
 	savingController := controllers.NewSavingController(savingService)
 
 	debtService := services.NewDebtService()
@@ -90,10 +98,35 @@ func SetupRoutes(router *gin.Engine) {
 	// Payment Status Polling (Public — used by frontend to check payment status)
 	v1.GET("/payment/status/:reference", paymentController.GetPaymentStatus)
 
+	// Sitemap (Public SEO)
+	sitemapController := controllers.NewSitemapController()
+	router.GET("/sitemap.xml", sitemapController.GenerateSitemap)
+	router.GET("/robots.txt", sitemapController.GetRobotsTxt)
+
+	// Blog Public
+	blogRepo := repositories.NewBlogRepository()
+	blogController := controllers.NewBlogController(blogRepo)
+	v1.GET("/blog", blogController.List)
+	v1.GET("/blog/categories", blogController.GetCategories)
+	v1.GET("/blog/:slug", blogController.Get)
+
 	// Protected Routes
 	protected := v1.Group("")
 	protected.Use(middlewares.AuthMiddleware())
 	{
+		// Blog Management (Restricted)
+		blog := protected.Group("/blog-mgmt")
+		{
+			blog.POST("/posts", blogController.Create)
+			blog.PUT("/posts", blogController.Update)
+			blog.DELETE("/posts/:id", blogController.Delete)
+			blog.GET("/categories", blogController.GetCategories)
+			blog.POST("/categories", blogController.CreateCategory)
+			blog.PUT("/categories", blogController.UpdateCategory)
+			blog.DELETE("/categories/:id", blogController.DeleteCategory)
+			blog.POST("/upload", blogController.UploadImage)
+		}
+
 		// Finance Routes
 		finance := protected.Group("/finance")
 		finance.Use(middlewares.TenantMiddleware())
@@ -106,6 +139,7 @@ func SetupRoutes(router *gin.Engine) {
 			finance.PUT("/transactions/:id", financeController.UpdateTransaction)
 			finance.DELETE("/transactions/:id", financeController.DeleteTransaction)
 			finance.GET("/behavior", financeController.GetBehaviorSummary)
+			finance.POST("/behavior/challenges/join", financeController.JoinChallenge)
 
 			// Wallet Routes
 			finance.GET("/wallets", walletController.List)
@@ -155,6 +189,7 @@ func SetupRoutes(router *gin.Engine) {
 				budget.POST("/categories", budgetController.CreateCategory)
 				budget.PUT("/categories/:id", budgetController.UpdateCategory)
 				budget.DELETE("/categories/:id", budgetController.DeleteCategory)
+				budget.PUT("", financeController.UpdateFamilyBudget)
 			}
 		}
 
@@ -181,6 +216,8 @@ func SetupRoutes(router *gin.Engine) {
 			admin.POST("/plans", adminController.CreatePlan)
 			admin.PUT("/plans", adminController.UpdatePlan)
 			admin.DELETE("/plans/:id", adminController.DeletePlan)
+
+			admin.GET("/transactions", adminController.GetPaymentTransactions)
 		}
 	}
 }

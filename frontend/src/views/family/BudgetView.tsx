@@ -12,26 +12,39 @@ import {
     Coffee,
     ShoppingCart,
     Coins,
-    ShieldCheck
+    ShieldCheck,
+    AlertCircle
 } from 'lucide-react';
+import { FinanceController } from '../../controllers/FinanceController';
 
 export const BudgetView = () => {
     const context = useOutletContext<any>() || {};
     const {
         wallets = [],
         budgetCategories = [],
+        summary = {},
         handleCreateBudgetCategory,
         handleUpdateBudgetCategory,
         handleDeleteBudgetCategory,
         handleCreateSaving,
         handleUpdateSaving,
         handleDeleteSaving,
-        handleAllocateToSaving
+        handleAllocateToSaving,
+        refreshDashboard
     } = context;
 
-    const [totalBudget, setTotalBudget] = useState<number>(10000000);
+    const initialBudget = summary?.family?.monthly_budget || 10000000;
+    const [totalBudget, setTotalBudget] = useState<number>(initialBudget);
     const [isEditingBudget, setIsEditingBudget] = useState(false);
-    const [tempBudget, setTempBudget] = useState<number>(10000000);
+    const [tempBudget, setTempBudget] = useState<number>(initialBudget);
+
+    // Sync state when summary updates (e.g. after refresh)
+    React.useEffect(() => {
+        if (summary?.family?.monthly_budget) {
+            setTotalBudget(summary.family.monthly_budget);
+            setTempBudget(summary.family.monthly_budget);
+        }
+    }, [summary?.family?.monthly_budget]);
 
     const [isEditingPercentages, setIsEditingPercentages] = useState(false);
     const [tempPercentages, setTempPercentages] = useState<any>({});
@@ -113,9 +126,31 @@ export const BudgetView = () => {
         }
     };
 
-const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDeleteSaving, setSelectedGoal, setIsAllocateOpen, totalBudget, openEditCategoryModal, handleDeleteCategory }: any) => {
+    const confirmDeleteCategory = async (id: string) => {
+        const cat = budgetCategories.find((c: any) => c.id === id);
+        const itemCount = cat?.items?.length || 0;
+        const message = itemCount > 0 
+            ? `Hapus kategori "${cat.name}"? Ada ${itemCount} item di dalamnya yang juga akan terhapus permanen.`
+            : `Hapus kategori "${cat.name}"?`;
+
+        if (window.confirm(message)) {
+            try {
+                await handleDeleteBudgetCategory(id);
+            } catch (err) {
+                console.error(`[ERROR] Delete failed for ID: ${id}`, err);
+            }
+        }
+    };
+
+    const confirmDeleteSaving = (id: string) => {
+        if (window.confirm('Yakin kamu akan menghapus item budget ini?')) {
+            handleDeleteSaving(id);
+        }
+    };
+
+const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDeleteSaving, setSelectedGoal, setIsAllocateOpen, totalBudget, openEditCategoryModal }: any) => {
     const [showInfo, setShowInfo] = useState(false);
-    const catSavings = cat.items || [];
+    const catSavings = [...(cat.items || [])].sort((a, b) => a.name.localeCompare(b.name));
     const allocationPercent = cat.percentage;
     const categoryBudget = (totalBudget * allocationPercent) / 100;
     const catTransactions = (context.transactions || []).filter((tx: any) =>
@@ -134,26 +169,18 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                           cat.icon === 'ShieldCheck' ? ShieldCheck : Wallet);
 
     return (
-        <div className="space-y-6 bg-white/50 backdrop-blur-sm p-8 rounded-[40px] border border-black/5 shadow-sm transition-all hover:shadow-xl hover:shadow-black/[0.02]">
-            <div className="flex items-center justify-between gap-6">
-                <div className="flex items-center gap-5">
-                    <div className={`p-4 ${cat.bg_color} ${cat.color} rounded-2xl shadow-sm relative group`}>
-                        <IconComponent className="w-6 h-6" />
-                        <div className="absolute -top-2 -right-2 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => openEditCategoryModal(cat)} className="p-1 bg-white border border-black/5 rounded-md shadow-sm hover:text-dagang-green">
-                                <Edit3 className="w-3 h-3" />
-                            </button>
-                            <button onClick={() => handleDeleteCategory(cat.id)} className="p-1 bg-white border border-black/5 rounded-md shadow-sm hover:text-red-500">
-                                <Trash2 className="w-3 h-3" />
-                            </button>
-                        </div>
+        <div className="space-y-6 bg-white/50 backdrop-blur-sm p-4 sm:p-8 rounded-[32px] sm:rounded-[40px] border border-black/5 shadow-sm transition-all hover:shadow-xl hover:shadow-black/[0.02]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                <div className="flex items-center gap-4 sm:gap-5">
+                    <div className={`p-3 sm:p-4 ${cat.bgColor} ${cat.color} rounded-2xl shadow-sm relative group shrink-0`}>
+                        <IconComponent className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <h3 className="font-serif text-2xl text-dagang-dark">
+                    <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
+                            <h3 className="font-serif text-xl sm:text-2xl text-dagang-dark truncate">
                                 {cat.name}
                             </h3>
-                            <span className={`text-[12px] px-3 py-1 rounded-full ${cat.bg_color} ${cat.color} font-black`}>
+                            <span className={`text-[10px] sm:text-[12px] px-2 sm:px-3 py-0.5 sm:py-1 rounded-full ${cat.bgColor} ${cat.color} font-black`}>
                                 {allocationPercent}%
                             </span>
                             <button
@@ -164,26 +191,52 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                             </button>
                         </div>
                         {showInfo ? (
-                            <div className="text-[12px] text-dagang-dark font-bold bg-dagang-cream/50 px-3 py-1.5 rounded-lg animate-in fade-in slide-in-from-left-2 duration-300 border border-black/5">
-                                {cat.description.replace(/\(\d+%\)/, `(${allocationPercent}%)`)}
+                            <div className="text-[11px] sm:text-[12px] text-dagang-dark font-bold bg-dagang-cream/50 px-3 py-1.5 rounded-lg animate-in fade-in slide-in-from-left-2 duration-300 border border-black/5">
+                                {cat.description}
                             </div>
                         ) : (
-                            <p className="text-[13px] text-dagang-gray/60 font-medium">Klik ikon "i" untuk penjelasan</p>
+                            <p className="text-[11px] sm:text-[13px] text-dagang-gray/60 font-medium truncate">Klik ikon "i" untuk penjelasan</p>
                         )}
                     </div>
                 </div>
 
-                <div className="flex items-center gap-8">
-                    <div className="text-right">
-                        <div className="text-[11px] font-black text-dagang-gray/30 uppercase tracking-widest mb-1">Total Alokasi Baris</div>
-                        <div className="text-xl font-serif text-dagang-dark">Rp {categoryBudget.toLocaleString()}</div>
+                <div className="flex flex-wrap items-center justify-between sm:justify-end gap-4 sm:gap-6">
+                    {totalTarget > categoryBudget && (
+                        <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-50 border border-red-100 rounded-xl text-red-600 animate-pulse">
+                            <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                            <div className="text-left">
+                                <div className="text-[8px] sm:text-[10px] font-black uppercase tracking-tighter">⚠️ Alokasi Lebih!</div>
+                                <div className="text-[10px] sm:text-[12px] font-bold">Rp {(totalTarget - categoryBudget).toLocaleString()}</div>
+                            </div>
+                        </div>
+                    )}
+                    <div className="text-right flex-1 sm:flex-none">
+                        <div className="text-[9px] sm:text-[11px] font-black text-dagang-gray/30 uppercase tracking-widest mb-0.5 sm:mb-1">Budget Baris</div>
+                        <div className="text-lg sm:text-xl font-serif text-dagang-dark font-bold">Rp {categoryBudget.toLocaleString()}</div>
                     </div>
-                    <button
-                        onClick={() => openCreateModal(cat.id)}
-                        className="w-12 h-12 bg-dagang-dark text-white rounded-2xl flex items-center justify-center hover:bg-dagang-dark/90 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/10"
-                    >
-                        <Plus className="w-6 h-6" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => openEditCategoryModal(cat)}
+                            className="w-9 h-9 sm:w-10 sm:h-10 bg-white border border-black/5 text-dagang-gray hover:text-dagang-green rounded-xl flex items-center justify-center hover:bg-dagang-green/5 transition-all shadow-sm"
+                            title="Edit Kategori"
+                        >
+                            <Edit3 className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+                        <button
+                            onClick={() => confirmDeleteCategory(cat.id)}
+                            className="w-9 h-9 sm:w-10 sm:h-10 bg-white border border-black/5 text-dagang-gray hover:text-red-500 rounded-xl flex items-center justify-center hover:bg-red-50 transition-all shadow-sm"
+                            title="Hapus Kategori"
+                        >
+                            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+                        <button
+                            onClick={() => openCreateModal(cat.id)}
+                            className="w-10 h-10 sm:w-12 sm:h-12 bg-dagang-dark text-white rounded-2xl flex items-center justify-center hover:bg-dagang-dark/90 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/10"
+                            title="Tambah Item"
+                        >
+                            <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -207,18 +260,24 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {catSavings.map((s: any) => {
-                    const sProgress = (s.currentBalance / s.targetAmount) * 100;
-                    return (
-                        <div key={s.id} className="bg-white border border-black/5 rounded-3xl p-5 hover:shadow-xl hover:shadow-black/[0.03] transition-all group relative overflow-hidden">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 bg-dagang-cream/50 rounded-xl flex items-center justify-center text-xl shadow-inner group-hover:scale-110 transition-transform">
+                    const sSpent = (context.transactions || [])
+                        .filter((tx: any) => tx.type === 'expense' && tx.savingId === s.id)
+                        .reduce((acc: number, tx: any) => acc + tx.amount, 0);
+                    
+                    const sProgress = s.targetAmount > 0 ? (s.currentBalance / s.targetAmount) * 100 : 0;
+                    const sSpentProgress = s.targetAmount > 0 ? (sSpent / s.targetAmount) * 100 : 0;
+
+                return (
+                        <div key={s.id} className="bg-white border border-black/5 rounded-3xl p-4 sm:p-5 hover:shadow-xl hover:shadow-black/[0.03] transition-all group relative overflow-hidden">
+                            <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-dagang-cream/50 rounded-xl flex items-center justify-center text-lg sm:text-xl shadow-inner group-hover:scale-110 transition-transform">
                                     {s.emoji || '💰'}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-bold text-[14px] text-dagang-dark truncate">{s.name}</h4>
-                                    <div className="text-[10px] text-dagang-gray/40 font-black uppercase tracking-wider flex items-center gap-1">
+                                    <h4 className="font-bold text-[13px] sm:text-[14px] text-dagang-dark truncate">{s.name}</h4>
+                                    <div className="text-[9px] sm:text-[10px] text-dagang-gray/40 font-black uppercase tracking-wider flex items-center gap-1">
                                         <Info className="w-2.5 h-2.5" /> Tgl {s.dueDate || '-'}
                                     </div>
                                 </div>
@@ -232,13 +291,18 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                                 </div>
                             </div>
                             <div className="flex justify-between items-end mb-3">
-                                <div className="text-right flex-1">
-                                    <div className="text-[9px] font-black text-dagang-gray/30 uppercase tracking-widest">Alokasi</div>
-                                    <div className="text-[13px] font-serif font-bold">Rp {s.targetAmount.toLocaleString()}</div>
+                                <div className="text-left flex-1 min-w-0">
+                                    <div className="text-[8px] sm:text-[9px] font-black text-dagang-gray/30 uppercase tracking-widest truncate">Saldo (Limit)</div>
+                                    <div className="text-[12px] sm:text-[13px] font-serif font-bold truncate">Rp {s.targetAmount.toLocaleString()}</div>
+                                </div>
+                                <div className="text-right flex-1 min-w-0">
+                                    <div className="text-[8px] sm:text-[9px] font-black text-red-400/50 uppercase tracking-widest truncate">Terpakai</div>
+                                    <div className="text-[11px] font-serif font-bold text-red-500 truncate">Rp {sSpent.toLocaleString()}</div>
                                 </div>
                             </div>
-                            <div className="h-1.5 bg-black/5 rounded-full overflow-hidden mb-4">
-                                <div className={`h-full ${cat.color.replace('text', 'bg')} transition-all duration-1000`} style={{ width: `${Math.min(sProgress, 100)}%` }} />
+                            <div className="h-2 bg-black/5 rounded-full overflow-hidden mb-4 relative">
+                                <div className={`h-full ${cat.color.replace('text', 'bg')} opacity-20 absolute inset-0 transition-all duration-1000`} style={{ width: `${Math.min(sProgress, 100)}%` }} />
+                                <div className={`h-full bg-red-500 transition-all duration-1000 absolute inset-0`} style={{ width: `${Math.min(sSpentProgress, 100)}%` }} />
                             </div>
                             <button
                                 onClick={() => {
@@ -280,11 +344,11 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
 
                         {!isEditingBudget ? (
                             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                                <div>
-                                    <div className="text-[10px] font-black text-dagang-accent uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                                <div className="text-center md:text-left">
+                                    <div className="text-[10px] font-black text-dagang-accent uppercase tracking-[0.2em] mb-2 flex items-center justify-center md:justify-start gap-2">
                                         <TrendingUp className="w-3 h-3" /> PENDAPATAN BULANAN
                                     </div>
-                                    <div className="text-4xl md:text-5xl font-serif text-white tracking-tighter">
+                                    <div className="text-3xl sm:text-4xl md:text-5xl font-serif text-white tracking-tighter">
                                         Rp {totalBudget.toLocaleString()}
                                     </div>
                                 </div>
@@ -328,9 +392,15 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                                     </div>
                                     <div className="flex gap-2">
                                         <button
-                                            onClick={() => {
-                                                setTotalBudget(tempBudget);
-                                                setIsEditingBudget(false);
+                                            onClick={async () => {
+                                                try {
+                                                    await FinanceController.updateFamilyBudget(tempBudget);
+                                                    setTotalBudget(tempBudget);
+                                                    setIsEditingBudget(false);
+                                                    refreshDashboard();
+                                                } catch (err: any) {
+                                                    alert('Gagal menyimpan budget: ' + (err.response?.data?.error || err.message));
+                                                }
                                             }}
                                             className="px-10 py-5 bg-dagang-accent text-dagang-dark rounded-[24px] font-black text-[14px] hover:scale-[1.02] active:scale-[0.98] transition-all"
                                         >
@@ -399,7 +469,7 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                         context={context} 
                         openCreateModal={openCreateModal} 
                         openEditModal={openEditModal} 
-                        handleDeleteSaving={handleDeleteSaving} 
+                        handleDeleteSaving={confirmDeleteSaving} 
                         setSelectedGoal={setSelectedGoal} 
                         setIsAllocateOpen={setIsAllocateOpen} 
                         totalBudget={totalBudget} 
@@ -410,10 +480,9 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                             setCatDesc(c.description);
                             setCatIcon(c.icon);
                             setCatColor(c.color);
-                            setCatBg(c.bg_color);
+                            setCatBg(c.bgColor);
                             setIsCategoryModalOpen(true);
                         }}
-                        handleDeleteCategory={handleDeleteBudgetCategory}
                     />
                 ))}
             </div>

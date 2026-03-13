@@ -21,9 +21,19 @@ func NewFamilyController() *FamilyController {
 
 func (ctrl *FamilyController) UpdateFamily(c *gin.Context) {
 	familyIDStr := c.GetString("family_id")
+	userIDStr := c.GetString("user_id")
 	familyID, err := uuid.Parse(familyIDStr)
+	userID, _ := uuid.Parse(userIDStr)
+
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Konteks keluarga tidak valid atau tidak ditemukan"})
+		return
+	}
+
+	// Check if requester is head_of_family
+	var requester models.FamilyMember
+	if err := config.DB.First(&requester, "family_id = ? AND user_id = ?", familyID, userID).Error; err != nil || requester.Role != "head_of_family" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Hanya Kepala Keluarga yang dapat memperbarui data keluarga"})
 		return
 	}
 

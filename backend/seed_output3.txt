@@ -1,0 +1,279 @@
+﻿go : 2026/03/14 
+00:09:10 Connecting to 
+database 
+keuangan_keluarga on 
+127.0.0.1:5432...
+At line:1 char:1
++ go run 
+cmd/seed/main.go > 
+seed_output2.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (2026/03/14 00   
+ :0...7.0.0.1:5432.    
+..:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+2026/03/14 00:09:10 
+Database connection 
+established
+2026/03/14 00:09:10 
+Running AutoMigrate 
+for core models...
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:36
+[0m[33m[0.505ms] [34;1m[rows:0][0m CREATE EXTENSION IF NOT EXISTS "uuid-ossp"
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:39
+[0m[33m[0.000ms] [34;1m[rows:0][0m CREATE EXTENSION IF NOT EXISTS "pgcrypto"
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[6.885ms] [34;1m[rows:1][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'budget_categories' AND table_type = 'BASE TABLE'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.902ms] [34;1m[rows:1][0m SELECT CURRENT_DATABASE()
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[13.605ms] [34;1m[rows:-][0m SELECT c.column_name, c.is_nullable = 'YES', c.udt_name, c.character_maximum_length, c.numeric_precision, c.numeric_precision_radix, c.numeric_scale, c.datetime_precision, 8 * typlen, c.column_default, pd.description, c.identity_increment FROM information_schema.columns AS c JOIN pg_type AS pgt ON c.udt_name = pgt.typname LEFT JOIN pg_catalog.pg_description as pd ON pd.objsubid = c.ordinal_position AND pd.objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = c.table_name AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = c.table_schema)) where table_catalog = 'keuangan_keluarga' AND table_schema = CURRENT_SCHEMA() AND table_name = 'budget_categories'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[2.051ms] [34;1m[rows:-][0m SELECT * FROM "budget_categories" LIMIT 5
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[11.559ms] [34;1m[rows:-][0m SELECT constraint_name FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'keuangan_keluarga' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'budget_categories' AND constraint_type = 'UNIQUE'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[8.765ms] [34;1m[rows:-][0m SELECT c.column_name, constraint_name, constraint_type FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'keuangan_keluarga' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'budget_categories'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.507ms] [34;1m[rows:-][0m SELECT a.attname as column_name, format_type(a.atttypid, a.atttypmod) AS data_type
+		FROM pg_attribute a JOIN pg_class b ON a.attrelid = b.oid AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA())
+		WHERE a.attnum > 0 -- hide internal columns
+		AND NOT a.attisdropped -- hide deleted columns
+		AND b.relname = 'budget_categories'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[2.300ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'budget_categories' AND column_name = 'id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'budget_categories' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.632ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'budget_categories' AND column_name = 'family_id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'budget_categories' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[3.208ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'budget_categories' AND column_name = 'name') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'budget_categories' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[1.756ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'budget_categories' AND column_name = 'percentage') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'budget_categories' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[1.648ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'budget_categories' AND column_name = 'description') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'budget_categories' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[1.593ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'budget_categories' AND column_name = 'icon') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'budget_categories' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'budget_categories' AND column_name = 'color') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'budget_categories' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.948ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'budget_categories' AND column_name = 'bg_color') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'budget_categories' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'budget_categories' AND column_name = 'order') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'budget_categories' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.694ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'budget_categories' AND column_name = 'created_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'budget_categories' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.518ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'budget_categories' AND column_name = 'updated_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'budget_categories' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[4.115ms] [34;1m[rows:1][0m SELECT count(*) FROM pg_indexes WHERE tablename = 'budget_categories' AND indexname = 'idx_budget_categories_family_id' AND schemaname = CURRENT_SCHEMA()
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.546ms] [34;1m[rows:1][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND table_type = 'BASE TABLE'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT CURRENT_DATABASE()
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[4.028ms] [34;1m[rows:-][0m SELECT c.column_name, c.is_nullable = 'YES', c.udt_name, c.character_maximum_length, c.numeric_precision, c.numeric_precision_radix, c.numeric_scale, c.datetime_precision, 8 * typlen, c.column_default, pd.description, c.identity_increment FROM information_schema.columns AS c JOIN pg_type AS pgt ON c.udt_name = pgt.typname LEFT JOIN pg_catalog.pg_description as pd ON pd.objsubid = c.ordinal_position AND pd.objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = c.table_name AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = c.table_schema)) where table_catalog = 'keuangan_keluarga' AND table_schema = CURRENT_SCHEMA() AND table_name = 'users'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[2.156ms] [34;1m[rows:-][0m SELECT * FROM "users" LIMIT 5
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[5.082ms] [34;1m[rows:-][0m SELECT constraint_name FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'keuangan_keluarga' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'users' AND constraint_type = 'UNIQUE'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[5.380ms] [34;1m[rows:-][0m SELECT c.column_name, constraint_name, constraint_type FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'keuangan_keluarga' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'users'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:-][0m SELECT a.attname as column_name, format_type(a.atttypid, a.atttypmod) AS data_type
+		FROM pg_attribute a JOIN pg_class b ON a.attrelid = b.oid AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA())
+		WHERE a.attnum > 0 -- hide internal columns
+		AND NOT a.attisdropped -- hide deleted columns
+		AND b.relname = 'users'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.517ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'email') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'phone_number') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.773ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'password_hash') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'full_name') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.686ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'role') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'is_verified') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.710ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'verify_otp') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'otp_expires_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.853ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'reset_token') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'reset_expires') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.770ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'is_blocked') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'users' AND column_name = 'created_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'users' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.725ms] [34;1m[rows:1][0m SELECT count(*) FROM pg_indexes WHERE tablename = 'users' AND indexname = 'idx_users_email' AND schemaname = CURRENT_SCHEMA()
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT count(*) FROM pg_indexes WHERE tablename = 'users' AND indexname = 'idx_users_phone' AND schemaname = CURRENT_SCHEMA()
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT count(*) FROM pg_indexes WHERE tablename = 'users' AND indexname = 'idx_users_reset_token' AND schemaname = CURRENT_SCHEMA()
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[2.982ms] [34;1m[rows:1][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'families' AND table_type = 'BASE TABLE'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT CURRENT_DATABASE()
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[5.575ms] [34;1m[rows:-][0m SELECT c.column_name, c.is_nullable = 'YES', c.udt_name, c.character_maximum_length, c.numeric_precision, c.numeric_precision_radix, c.numeric_scale, c.datetime_precision, 8 * typlen, c.column_default, pd.description, c.identity_increment FROM information_schema.columns AS c JOIN pg_type AS pgt ON c.udt_name = pgt.typname LEFT JOIN pg_catalog.pg_description as pd ON pd.objsubid = c.ordinal_position AND pd.objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = c.table_name AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = c.table_schema)) where table_catalog = 'keuangan_keluarga' AND table_schema = CURRENT_SCHEMA() AND table_name = 'families'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.519ms] [34;1m[rows:-][0m SELECT * FROM "families" LIMIT 5
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[5.067ms] [34;1m[rows:-][0m SELECT constraint_name FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'keuangan_keluarga' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'families' AND constraint_type = 'UNIQUE'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[6.345ms] [34;1m[rows:-][0m SELECT c.column_name, constraint_name, constraint_type FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'keuangan_keluarga' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'families'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[1.039ms] [34;1m[rows:-][0m SELECT a.attname as column_name, format_type(a.atttypid, a.atttypmod) AS data_type
+		FROM pg_attribute a JOIN pg_class b ON a.attrelid = b.oid AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA())
+		WHERE a.attnum > 0 -- hide internal columns
+		AND NOT a.attisdropped -- hide deleted columns
+		AND b.relname = 'families'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.617ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'families' AND column_name = 'id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'families' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.638ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'families' AND column_name = 'name') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'families' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'families' AND column_name = 'photo_url') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'families' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.520ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'families' AND column_name = 'application_id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'families' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.511ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'families' AND column_name = 'subscription_plan') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'families' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.571ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'families' AND column_name = 'status') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'families' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'families' AND column_name = 'trial_ends_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'families' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'families' AND column_name = 'subscription_ends_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'families' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.874ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'families' AND column_name = 'created_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'families' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.507ms] [34;1m[rows:1][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'family_members' AND table_type = 'BASE TABLE'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT CURRENT_DATABASE()
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[5.702ms] [34;1m[rows:-][0m SELECT c.column_name, c.is_nullable = 'YES', c.udt_name, c.character_maximum_length, c.numeric_precision, c.numeric_precision_radix, c.numeric_scale, c.datetime_precision, 8 * typlen, c.column_default, pd.description, c.identity_increment FROM information_schema.columns AS c JOIN pg_type AS pgt ON c.udt_name = pgt.typname LEFT JOIN pg_catalog.pg_description as pd ON pd.objsubid = c.ordinal_position AND pd.objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = c.table_name AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = c.table_schema)) where table_catalog = 'keuangan_keluarga' AND table_schema = CURRENT_SCHEMA() AND table_name = 'family_members'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[1.828ms] [34;1m[rows:-][0m SELECT * FROM "family_members" LIMIT 5
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[6.655ms] [34;1m[rows:-][0m SELECT constraint_name FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'keuangan_keluarga' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'family_members' AND constraint_type = 'UNIQUE'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[5.556ms] [34;1m[rows:-][0m SELECT c.column_name, constraint_name, constraint_type FROM information_schema.table_constraints tc JOIN information_schema.constraint_column_usage AS ccu USING (constraint_schema, constraint_catalog, table_name, constraint_name) JOIN information_schema.columns AS c ON c.table_schema = tc.constraint_schema AND tc.table_name = c.table_name AND ccu.column_name = c.column_name WHERE constraint_type IN ('PRIMARY KEY', 'UNIQUE') AND c.table_catalog = 'keuangan_keluarga' AND c.table_schema = CURRENT_SCHEMA() AND c.table_name = 'family_members'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:-][0m SELECT a.attname as column_name, format_type(a.atttypid, a.atttypmod) AS data_type
+		FROM pg_attribute a JOIN pg_class b ON a.attrelid = b.oid AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA())
+		WHERE a.attnum > 0 -- hide internal columns
+		AND NOT a.attisdropped -- hide deleted columns
+		AND b.relname = 'family_members'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'family_members' AND column_name = 'id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'family_members' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.510ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'family_members' AND column_name = 'family_id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'family_members' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'family_members' AND column_name = 'user_id') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'family_members' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.505ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'family_members' AND column_name = 'role') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'family_members' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT description FROM pg_catalog.pg_description WHERE objsubid = (SELECT ordinal_position FROM information_schema.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'family_members' AND column_name = 'joined_at') AND objoid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'family_members' AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = CURRENT_SCHEMA()))
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[1.149ms] [34;1m[rows:1][0m SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'family_members' AND constraint_name = 'fk_families_members'
+
+2026/03/14 00:09:10 [32mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43
+[0m[33m[0.512ms] [34;1m[rows:1][0m SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE table_schema = CURRENT_SCHEMA() AND table_name = 'family_members' AND constraint_name = 'fk_users_family_member'
+
+2026/03/14 00:09:10 [31;1mC:/laragon/www/keuanganKeluarga/backend/internal/config/database.go:43 [35;1mERROR: insert or update on table "family_members" violates foreign key constraint "fk_users_family_member" (SQLSTATE 23503)
+[0m[33m[2.670ms] [34;1m[rows:0][0m ALTER TABLE "family_members" ADD CONSTRAINT "fk_users_family_member" FOREIGN KEY ("user_id") REFERENCES "users"("id")
+2026/03/14 00:09:10 
+Failed to run 
+migrations:ERROR: 
+insert or update on 
+table "family_members" 
+violates foreign key 
+constraint "fk_users_fa
+mily_member" (SQLSTATE 
+23503)
+exit status 1

@@ -34,7 +34,7 @@ type FinanceRepository interface {
 	GetMonthlyTransactions(familyID uuid.UUID, month int, year int) ([]models.Transaction, error)
 	GetDashboardSummary(familyID uuid.UUID, month int, year int) (*DashboardSummary, error)
 	GetByID(id uuid.UUID) (*models.Transaction, error)
-	Delete(id uuid.UUID, familyID uuid.UUID) error
+	Delete(id uuid.UUID, familyID uuid.UUID, date time.Time) error
 }
 
 type financeRepository struct{}
@@ -57,7 +57,6 @@ func (r *financeRepository) GetMonthlyTransactions(familyID uuid.UUID, month int
 
 	err := config.DB.Where("family_id = ? AND date >= ? AND date < ?", familyID, startDate, endDate).
 		Order("date DESC").
-		Limit(10). // Only show recent for dashboard
 		Find(&transactions).Error
 
 	return transactions, err
@@ -186,6 +185,6 @@ func (r *financeRepository) GetByID(id uuid.UUID) (*models.Transaction, error) {
 	return &tx, err
 }
 
-func (r *financeRepository) Delete(id uuid.UUID, familyID uuid.UUID) error {
-	return config.DB.Delete(&models.Transaction{}, "id = ? AND family_id = ?", id, familyID).Error
+func (r *financeRepository) Delete(id uuid.UUID, familyID uuid.UUID, date time.Time) error {
+	return config.DB.Delete(&models.Transaction{}, "id = ? AND family_id = ? AND date = ?", id, familyID, date).Error
 }

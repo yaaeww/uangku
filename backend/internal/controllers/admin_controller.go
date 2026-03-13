@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"keuangan-keluarga/internal/config"
 	"keuangan-keluarga/internal/models"
 	"keuangan-keluarga/internal/services"
 	"net/http"
@@ -144,7 +145,16 @@ func (c *AdminController) GetMembers(ctx *gin.Context) {
 
 func (c *AdminController) UpdateMemberRole(ctx *gin.Context) {
 	familyIDStr := ctx.GetString("family_id")
+	userIDStr := ctx.GetString("user_id")
 	familyID, _ := uuid.Parse(familyIDStr)
+	userID, _ := uuid.Parse(userIDStr)
+
+	// Check if requester is head_of_family
+	var requester models.FamilyMember
+	if err := config.DB.First(&requester, "family_id = ? AND user_id = ?", familyID, userID).Error; err != nil || requester.Role != "head_of_family" {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "Hanya Kepala Keluarga yang dapat mengubah profil atau mengelola anggota"})
+		return
+	}
 
 	memberIDStr := ctx.Param("id")
 	memberID, err := uuid.Parse(memberIDStr)
@@ -170,7 +180,16 @@ func (c *AdminController) UpdateMemberRole(ctx *gin.Context) {
 
 func (c *AdminController) RemoveMember(ctx *gin.Context) {
 	familyIDStr := ctx.GetString("family_id")
+	userIDStr := ctx.GetString("user_id")
 	familyID, _ := uuid.Parse(familyIDStr)
+	userID, _ := uuid.Parse(userIDStr)
+
+	// Check if requester is head_of_family
+	var requester models.FamilyMember
+	if err := config.DB.First(&requester, "family_id = ? AND user_id = ?", familyID, userID).Error; err != nil || requester.Role != "head_of_family" {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "Hanya Kepala Keluarga yang dapat menghapus anggota"})
+		return
+	}
 
 	memberIDStr := ctx.Param("id")
 	memberID, err := uuid.Parse(memberIDStr)
@@ -312,4 +331,13 @@ func (c *AdminController) GetPublicPlans(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, plans)
+}
+
+func (c *AdminController) GetPaymentTransactions(ctx *gin.Context) {
+	txs, err := c.service.GetPaymentTransactions()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, txs)
 }
