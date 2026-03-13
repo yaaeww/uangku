@@ -54,11 +54,22 @@ func main() {
 		Role:     "admin",
 	})
 
-	// 4. Seed Transactions (Monthly Partitioning Test)
+	// 4. Create Sample Wallet
+	wallet := models.Wallet{
+		FamilyID:   family.ID,
+		Name:       "Main Savings",
+		WalletType: "savings",
+		Balance:    0, // Will be updated by transactions or initial seed
+	}
+	db.Create(&wallet)
+	fmt.Println("Main Savings wallet created.")
+
+	// 5. Seed Transactions (Monthly Partitioning Test)
 	transactions := []models.Transaction{
 		{
 			FamilyID:    family.ID,
 			UserID:      familyAdmin.ID,
+			WalletID:    wallet.ID,
 			Type:        "income",
 			Amount:      10000,
 			Date:        time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
@@ -67,6 +78,7 @@ func main() {
 		{
 			FamilyID:    family.ID,
 			UserID:      familyAdmin.ID,
+			WalletID:    wallet.ID,
 			Type:        "expense",
 			Amount:      2500,
 			Date:        time.Date(2026, 2, 20, 0, 0, 0, 0, time.UTC),
@@ -75,6 +87,7 @@ func main() {
 		{
 			FamilyID:    family.ID,
 			UserID:      familyAdmin.ID,
+			WalletID:    wallet.ID,
 			Type:        "expense",
 			Amount:      1200,
 			Date:        time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC),
@@ -84,7 +97,14 @@ func main() {
 
 	for _, tx := range transactions {
 		db.Create(&tx)
+		// Manually update wallet balance for seed (or use service if desired)
+		if tx.Type == "income" {
+			wallet.Balance += tx.Amount
+		} else if tx.Type == "expense" {
+			wallet.Balance -= tx.Amount
+		}
 	}
+	db.Save(&wallet)
 
 	fmt.Printf("Seeded 1 family and %d transactions across different months.\n", len(transactions))
 }

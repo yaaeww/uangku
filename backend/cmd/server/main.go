@@ -24,6 +24,7 @@ func main() {
 	// 3. Initialize Router
 	log.Println("Initializing router...")
 	router := gin.Default()
+	router.SetTrustedProxies(nil) // Silence trusted proxies warning
 
 	// 4. Setup Routes
 	log.Println("Setting up routes...")

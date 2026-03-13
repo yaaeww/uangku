@@ -1,6 +1,8 @@
 package services
 
 import (
+	"fmt"
+	"keuangan-keluarga/internal/config"
 	"keuangan-keluarga/internal/models"
 	"keuangan-keluarga/internal/repositories"
 
@@ -24,6 +26,30 @@ func NewWalletService(repo repositories.WalletRepository) WalletService {
 }
 
 func (s *walletService) CreateWallet(familyID uuid.UUID, name string, walletType string, accountNumber string, initialBalance float64) error {
+	// --- LIMIT CHECK BEGIN ---
+	var family models.Family
+	if err := config.DB.First(&family, "id = ?", familyID).Error; err != nil {
+		return err
+	}
+
+	var currentCount int64
+	config.DB.Model(&models.Wallet{}).Where("family_id = ?", familyID).Count(&currentCount)
+
+	maxWallets := 2 // Default for Trial
+	switch family.SubscriptionPlan {
+	case "Standard":
+		maxWallets = 3
+	case "Family":
+		maxWallets = 10
+	case "Premium":
+		maxWallets = 99
+	}
+
+	if int(currentCount) >= maxWallets {
+		return fmt.Errorf("limit dompet tercapai. Paket '%s' hanya memperbolehkan maksimal %d dompet. Silakan upgrade paket Anda.", family.SubscriptionPlan, maxWallets)
+	}
+	// --- LIMIT CHECK END ---
+
 	wallet := &models.Wallet{
 		FamilyID:      familyID,
 		Name:          name,

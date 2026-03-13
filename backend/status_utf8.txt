@@ -1,0 +1,15 @@
+﻿--- Latest Payment Transaction ---
+ID: 6ece2976-007e-4071-b406-2231756d97e6
+Reference: DEV-T49021345506CTN7J
+Status: UNPAID
+FamilyID: a6c6d92d-0117-48ee-8437-2d7f56fa9c27
+Amount: 104250.00
+PaidAt: <nil>
+
+--- Family Subscription Status ---
+ID: a6c6d92d-0117-48ee-8437-2d7f56fa9c27
+Name: The Stark Family
+Plan: Premium
+Status: active
+EndsAt: 2026-04-12 14:55:07.404267 +0700 +07
+

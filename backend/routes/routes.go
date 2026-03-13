@@ -11,9 +11,20 @@ import (
 
 func SetupRoutes(router *gin.Engine) {
 	router.Use(middlewares.CORSMiddleware())
-
 	// Static files
 	router.Static("/uploads", "./uploads")
+
+	router.NoRoute(func(c *gin.Context) {
+		if c.Request.Method == "OPTIONS" {
+			c.Header("Access-Control-Allow-Origin", "http://localhost:5173")
+			c.Header("Access-Control-Allow-Credentials", "true")
+			c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+			c.Header("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+			c.AbortWithStatus(204)
+			return
+		}
+		c.AbortWithStatusJSON(404, gin.H{"error": "Route not found"})
+	})
 
 	v1 := router.Group("/api/v1")
 
@@ -67,8 +78,11 @@ func SetupRoutes(router *gin.Engine) {
 	v1.GET("/public/plans", adminController.GetPublicPlans)
 	v1.GET("/public/plans/:id", adminController.GetPlanByID)
 
-	// TriPay Callback (Public)
+	// TriPay Callback (Public — called by TriPay server directly)
 	v1.POST("/payment/callback", paymentController.HandleCallback)
+
+	// Payment Status Polling (Public — used by frontend to check payment status)
+	v1.GET("/payment/status/:reference", paymentController.GetPaymentStatus)
 
 	// Protected Routes
 	protected := v1.Group("")

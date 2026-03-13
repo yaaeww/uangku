@@ -60,14 +60,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Trial Alert Banner */}
             {summary?.family?.status === 'trial' && (
-                <div className="bg-gradient-to-r from-dagang-green/10 to-transparent border-l-4 border-dagang-green rounded-r-xl p-6 flex items-center justify-between gap-4 shadow-sm">
+                <div className="bg-gradient-to-r from-dagang-green/10 to-transparent border-l-4 border-dagang-green rounded-r-xl p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-dagang-green rounded-2xl flex items-center justify-center text-white shadow-lg shadow-dagang-green/20">
+                        <div className="w-12 h-12 bg-dagang-green rounded-2xl flex items-center justify-center text-white shadow-lg shadow-dagang-green/20 shrink-0">
                             <AlertCircle className="w-6 h-6" />
                         </div>
                         <div>
-                            <div className="text-[16px] font-bold text-dagang-dark">Trial Gratis sedang aktif</div>
-                            <p className="text-[14px] text-dagang-gray">
+                            <div className="text-[14px] sm:text-[16px] font-bold text-dagang-dark">Trial Gratis sedang aktif</div>
+                            <p className="text-[12px] sm:text-[14px] text-dagang-gray">
                                 {(() => {
                                     const trialEnds = new Date(summary.family.trial_ends_at);
                                     const diff = trialEnds.getTime() - new Date().getTime();
@@ -78,7 +78,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                             </p>
                         </div>
                     </div>
-                    <a href="/pricing" className="px-6 py-3 bg-dagang-green text-white rounded-full text-[14px] font-bold hover:bg-dagang-green-light transition-all whitespace-nowrap shadow-lg shadow-dagang-green/10 flex items-center gap-2 group">
+                    <a href="/pricing" className="w-full sm:w-auto px-6 py-3 bg-dagang-green text-white rounded-full text-[14px] font-bold hover:bg-dagang-green-light transition-all whitespace-nowrap shadow-lg shadow-dagang-green/10 flex items-center justify-center sm:justify-start gap-2 group">
                         Pilih Paket <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </a>
                 </div>
@@ -353,17 +353,17 @@ const StatCard = ({ title, value, trend, trendUp, color, icon: Icon }: any) => {
     };
 
     return (
-        <div className="bg-white rounded-[32px] p-8 border border-black/5 shadow-sm group hover:-translate-y-1 transition-all duration-300">
-            <div className="flex items-center justify-between mb-6">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colors[color]} shadow-sm group-hover:scale-110 transition-transform`}>
-                    <Icon className="w-7 h-7" />
+        <div className="bg-white rounded-[24px] sm:rounded-[32px] p-6 sm:p-8 border border-black/5 shadow-sm group hover:-translate-y-1 transition-all duration-300">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center ${colors[color]} shadow-sm group-hover:scale-110 transition-transform`}>
+                    <Icon className="w-6 h-6 sm:w-7 sm:h-7" />
                 </div>
-                <div className={`text-[11px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider ${trendUp ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                <div className={`text-[10px] sm:text-[11px] font-black px-2 sm:px-2.5 py-1 rounded-lg uppercase tracking-wider ${trendUp ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {trendUp ? '↑' : '↓'} {trend}
                 </div>
             </div>
-            <div className="text-[12px] font-black text-dagang-gray/50 tracking-[0.1em] uppercase mb-2">{title}</div>
-            <div className="text-[30px] font-serif text-dagang-dark leading-none">{value}</div>
+            <div className="text-[11px] sm:text-[12px] font-black text-dagang-gray/50 tracking-[0.1em] uppercase mb-2">{title}</div>
+            <div className="text-[24px] sm:text-[30px] font-serif text-dagang-dark leading-none break-words">{value}</div>
         </div>
     );
 };

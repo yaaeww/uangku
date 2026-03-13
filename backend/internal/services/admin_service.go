@@ -196,6 +196,32 @@ func (s *adminService) InviteMember(email string, role string, familyID uuid.UUI
 		return uuid.Nil, errors.New("undangan untuk email ini sudah dikirim sebelumnya")
 	}
 
+	// --- LIMIT CHECK BEGIN ---
+	var family models.Family
+	if err := config.DB.First(&family, "id = ?", familyID).Error; err != nil {
+		return uuid.Nil, errors.New("keluarga tidak ditemukan")
+	}
+
+	// 1. Get current member count
+	var memberCount int64
+	config.DB.Model(&models.FamilyMember{}).Where("family_id = ?", familyID).Count(&memberCount)
+
+	// 2. Get active invitation count
+	var invCount int64
+	config.DB.Model(&models.FamilyInvitation{}).Where("family_id = ?", familyID).Count(&invCount)
+
+	// 3. Determine MaxMembers from Plan
+	maxMembers := 5 // Default for trial/standard
+	var plan models.SubscriptionPlan
+	if err := config.DB.Where("name = ?", family.SubscriptionPlan).First(&plan).Error; err == nil {
+		maxMembers = plan.MaxMembers
+	}
+
+	if int(memberCount+invCount) >= maxMembers {
+		return uuid.Nil, fmt.Errorf("limit tercapai. Paket '%s' hanya memperbolehkan maksimal %d anggota. Silakan upgrade paket Anda.", family.SubscriptionPlan, maxMembers)
+	}
+	// --- LIMIT CHECK END ---
+
 	invitation := &models.FamilyInvitation{
 		Email:     email,
 		Role:      role,
@@ -206,9 +232,7 @@ func (s *adminService) InviteMember(email string, role string, familyID uuid.UUI
 		return uuid.Nil, errors.New("gagal membuat data undangan di database")
 	}
 
-	var family models.Family
 	var inviter models.User
-	config.DB.First(&family, "id = ?", familyID)
 	config.DB.First(&inviter, "id = ?", invitedBy)
 
 	roleDisplay := "Anggota"
