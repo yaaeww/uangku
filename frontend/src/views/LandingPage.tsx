@@ -1,28 +1,63 @@
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Globe,
     LayoutDashboard,
+    Check,
     LogOut
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import axios from 'axios';
+
+const api = axios.create({
+    baseURL: 'http://localhost:3001/api/v1',
+});
 
 export const LandingPage = () => {
     const { t, i18n } = useTranslation();
     const token = useAuthStore(state => state.token);
     const user = useAuthStore(state => state.user);
     const logout = useAuthStore(state => state.logout);
+    const [plans, setPlans] = useState<any[]>([]);
+    const [settings, setSettings] = useState<any>({});
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [plansRes, settingsRes] = await Promise.all([
+                    api.get('/public/plans'),
+                    api.get('/public/settings')
+                ]);
+                setPlans(plansRes.data);
+                setSettings(settingsRes.data);
+            } catch (error) {
+                console.error("Failed to fetch landing data", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
 
     const toggleLanguage = () => {
         const newLang = i18n.language === 'id' ? 'en' : 'id';
         i18n.changeLanguage(newLang);
     };
 
+    const formatPrice = (price: number) => {
+        if (price === 0) return "Gratis";
+        return `Rp ${(price / 1000).toFixed(0)}rb`;
+    };
+
+    const trialDuration = settings.trial_duration || "10";
+
     return (
         <div className="bg-dagang-cream text-dagang-dark font-sans selection:bg-dagang-green-pale selection:text-dagang-green">
             {/* Navigation */}
             <nav className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-6 py-5 md:px-[60px] bg-[#faf8f3]/92 backdrop-blur-md border-b border-dagang-green/10">
                 <div className="logo font-serif text-2xl text-dagang-green">
-                    Dagang<span className="text-dagang-accent">Finance</span>
+                    Uang<span className="text-dagang-accent">ku</span>
                 </div>
 
                 <ul className="hidden lg:flex gap-9 list-none">
@@ -84,10 +119,10 @@ export const LandingPage = () => {
                 <div className="max-w-[1280px] mx-auto w-full flex flex-col lg:flex-row items-center justify-between gap-12">
                     <div className="max-w-[620px] z-10 text-center lg:text-left">
                         <div className="inline-flex items-center gap-2 bg-dagang-green-pale text-dagang-green px-4 py-1.5 rounded-full text-sm font-semibold mb-7 border border-dagang-green/15 before:content-['✦'] before:text-[10px]">
-                            {t('hero.badge')}
+                            {t('hero.badge', { days: trialDuration })}
                         </div>
-                        <h1 className="font-serif text-[52px] md:text-[68px] leading-[1.05] text-dagang-dark mb-6" dangerouslySetInnerHTML={{ __html: t('hero.title') }} />
-                        <p className="text-[17px] text-dagang-gray leading-relaxed mb-11 max-w-[480px] mx-auto lg:mx-0">
+                        <h1 className="font-heading text-h1 mobile:text-display-l desktop:text-display-xl leading-[1.05] text-dagang-dark mb-6" dangerouslySetInnerHTML={{ __html: t('hero.title') }} />
+                        <p className="text-body-l text-dagang-gray leading-relaxed mb-11 max-w-[480px] mx-auto lg:mx-0">
                             {t('hero.subtitle')}
                         </p>
 
@@ -96,7 +131,7 @@ export const LandingPage = () => {
                                 href={token ? (user?.role === 'super_admin' ? "/admin" : (user?.familyName ? `/${encodeURIComponent(user.familyName)}/dashboard` : "/")) : "/register"}
                                 className="btn-primary w-full sm:w-auto"
                             >
-                                {token ? 'Ke Dashboard' : t('hero.cta_trial')}
+                                {token ? 'Ke Dashboard' : t('hero.cta_trial', { days: trialDuration })}
                                 {!token && <span className="opacity-70 text-xs font-normal">— {t('hero.cta_trial_sub')}</span>}
                             </a>
                             <button className="btn-secondary w-full sm:w-auto">
@@ -120,7 +155,7 @@ export const LandingPage = () => {
                         <div className="bg-white rounded-[24px] shadow-[0_32px_80px_rgba(0,0,0,0.12),0_4px_16px_rgba(0,0,0,0.06)] p-7 overflow-hidden">
                             <div className="flex justify-between items-center mb-5">
                                 <div className="text-[13px] font-semibold text-dagang-dark">🏠 Keluarga Budi</div>
-                                <div className="bg-dagang-accent text-white text-[11px] font-bold px-2.5 py-1 rounded-full">Trial: 5 hari</div>
+                                <div className="bg-dagang-accent text-white text-[11px] font-bold px-2.5 py-1 rounded-full">Trial: {trialDuration} hari</div>
                             </div>
 
                             <div className="bg-gradient-to-br from-dagang-green to-dagang-green-light rounded-[16px] p-5 mb-4 text-white">
@@ -246,46 +281,66 @@ export const LandingPage = () => {
                     <div className="text-center mb-14">
                         <div className="text-xs font-bold text-dagang-green tracking-[0.08em] uppercase mb-3">Harga Terjangkau</div>
                         <h2 className="font-serif text-5xl mb-4">Pilih Paket Keluarga Anda</h2>
-                        <p className="text-dagang-gray text-lg">Mulai gratis 10 hari, lanjutkan dengan paket yang sesuai kebutuhan keluarga.</p>
+                        <p className="text-dagang-gray text-lg">Mulai gratis {trialDuration} hari, lanjutkan dengan paket yang sesuai kebutuhan keluarga.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-[900px] mx-auto">
-                        <div className="bg-white rounded-[24px] p-9 border border-black/5 flex flex-col items-center">
-                            <div className="text-xs font-bold opacity-70 mb-4 tracking-wider uppercase">Basic</div>
-                            <div className="font-serif text-[40px] mb-1">Rp 29rb</div>
-                            <div className="text-[13px] text-dagang-gray mb-7">per bulan</div>
-                            <ul className="w-full list-none space-y-3 mb-8">
-                                {['Hingga 3 anggota', 'Catat transaksi tak terbatas', 'Budget dasar', 'Laporan bulanan', 'Support email'].map((item, i) => (
-                                    <li key={i} className="text-sm flex items-center gap-2 before:content-['✓'] before:font-bold before:text-dagang-green">{item}</li>
-                                ))}
-                            </ul>
-                            <a href="/register" className="w-full py-3.5 rounded-full border-[1.5px] border-black/15 text-sm font-semibold hover:border-dagang-green hover:text-dagang-green transition-all text-center">Pilih Basic</a>
-                        </div>
-
-                        <div className="bg-dagang-green rounded-[24px] p-9 text-white relative flex flex-col items-center shadow-xl shadow-dagang-green/20 scale-[1.04]">
-                            <div className="absolute top-[-12px] left-1/2 -translate-x-1/2 bg-dagang-accent text-white text-[11px] font-bold px-4 py-1 rounded-full whitespace-nowrap">⭐ Paling Populer</div>
-                            <div className="text-xs font-bold text-white/70 mb-4 tracking-wider uppercase">Family</div>
-                            <div className="font-serif text-[40px] mb-1 text-white">Rp 49rb</div>
-                            <div className="text-[13px] text-white/60 mb-7">per bulan</div>
-                            <ul className="w-full list-none space-y-3 mb-8">
-                                {['Hingga 6 anggota', 'Semua fitur Basic', 'Tabungan tujuan', 'Pelacak utang & piutang', 'Notifikasi otomatis'].map((item, i) => (
-                                    <li key={i} className="text-sm flex items-center gap-2 before:content-['✓'] before:font-bold before:text-dagang-accent">{item}</li>
-                                ))}
-                            </ul>
-                            <a href="/register" className="w-full py-3.5 bg-white text-dagang-green rounded-full text-sm font-bold hover:bg-white/90 transition-all text-center">Pilih Family</a>
-                        </div>
-
-                        <div className="bg-white rounded-[24px] p-9 border border-black/5 flex flex-col items-center">
-                            <div className="text-xs font-bold opacity-70 mb-4 tracking-wider uppercase">Premium</div>
-                            <div className="font-serif text-[40px] mb-1">Rp 79rb</div>
-                            <div className="text-[13px] text-dagang-gray mb-7">per bulan</div>
-                            <ul className="w-full list-none space-y-3 mb-8">
-                                {['Anggota tak terbatas', 'Semua fitur Family', 'Analitik lanjutan', 'Referral & rewards', 'Priority support'].map((item, i) => (
-                                    <li key={i} className="text-sm flex items-center gap-2 before:content-['✓'] before:font-bold before:text-dagang-green">{item}</li>
-                                ))}
-                            </ul>
-                            <a href="/register" className="w-full py-3.5 rounded-full border-[1.5px] border-black/15 text-sm font-semibold hover:border-dagang-green hover:text-dagang-green transition-all text-center">Pilih Premium</a>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-[1100px] mx-auto items-stretch">
+                        {loading ? (
+                            <div className="col-span-full flex justify-center py-20">
+                                <div className="w-12 h-12 border-4 border-dagang-green/20 border-t-dagang-green rounded-full animate-spin" />
+                            </div>
+                        ) : plans.length > 0 ? (
+                            plans.map((plan) => {
+                                const features = plan.features ? plan.features.split(';').map((f: string) => f.trim()) : [];
+                                const isPopular = plan.name.toLowerCase().includes('family') || plan.name.toLowerCase().includes('populer');
+                                
+                                return (
+                                    <div 
+                                        key={plan.id} 
+                                        className={`${isPopular ? 'bg-dagang-green text-white scale-[1.04] shadow-xl shadow-dagang-green/20' : 'bg-white border border-black/5'} rounded-[32px] p-9 flex flex-col items-center relative transition-all hover:-translate-y-1`}
+                                    >
+                                        {isPopular && (
+                                            <div className="absolute top-[-12px] left-1/2 -translate-x-1/2 bg-dagang-accent text-white text-[11px] font-bold px-4 py-1 rounded-full whitespace-nowrap z-10">
+                                                ⭐ Paling Populer
+                                            </div>
+                                        )}
+                                        <div className={`text-xs font-bold ${isPopular ? 'text-white/70' : 'opacity-70'} mb-4 tracking-wider uppercase`}>
+                                            {plan.name}
+                                        </div>
+                                        <div className={`font-serif text-[40px] mb-1 ${isPopular ? 'text-white' : 'text-dagang-dark'}`}>
+                                            {formatPrice(plan.price)}
+                                        </div>
+                                        <div className={`text-[13px] ${isPopular ? 'text-white/60' : 'text-dagang-gray'} mb-7`}>
+                                            per {plan.duration_days === 30 ? 'bulan' : `${plan.duration_days} hari`}
+                                        </div>
+                                        
+                                        <ul className="w-full list-none space-y-4 mb-10 flex-1">
+                                            {features.map((feature: string, fIdx: number) => (
+                                                <li key={fIdx} className="text-[14px] flex items-start gap-3">
+                                                    <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isPopular ? 'text-dagang-accent' : 'text-dagang-green'}`} />
+                                                    <span className={isPopular ? 'text-white/90' : 'text-dagang-dark/80'}>{feature}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        
+                                        <a 
+                                            href="/register" 
+                                            className={`w-full py-4 rounded-full text-sm font-bold transition-all text-center ${
+                                                isPopular 
+                                                ? 'bg-white text-dagang-green hover:bg-white/90' 
+                                                : 'border-[1.5px] border-black/15 hover:border-dagang-green hover:text-dagang-green'
+                                            }`}
+                                        >
+                                            Pilih {plan.name}
+                                        </a>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="col-span-full text-center py-20 bg-white rounded-3xl border border-black/5">
+                                <p className="text-dagang-gray">Paket langganan belum tersedia.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>
@@ -295,7 +350,7 @@ export const LandingPage = () => {
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-dagang-green/40 blur-[100px] rounded-full" />
                 <div className="relative z-10">
                     <h2 className="font-serif text-[54px] mb-4">Mulai Perjalanan Finansial Keluarga Anda</h2>
-                    <p className="text-white/60 text-lg mb-10 max-w-[600px] mx-auto">Gratis 10 hari. Setup 3 menit. Tidak perlu kartu kredit.</p>
+                    <p className="text-white/60 text-lg mb-10 max-w-[600px] mx-auto">Gratis {trialDuration} hari. Setup 3 menit. Tidak perlu kartu kredit.</p>
                     <a
                         href={token ? (user?.role === 'super_admin' ? "/admin" : (user?.familyName ? `/${encodeURIComponent(user.familyName)}/dashboard` : "/")) : "/register"}
                         className="inline-block bg-dagang-accent text-white px-11 py-4.5 rounded-full text-base font-bold shadow-[0_8px_32px_rgba(245,158,11,0.4)] hover:-translate-y-px hover:shadow-[0_16px_48px_rgba(245,158,11,0.5)] transition-all"
@@ -307,7 +362,7 @@ export const LandingPage = () => {
             </section>
 
             <footer className="px-[60px] pb-10 text-center text-[13px] text-dagang-gray">
-                © 2026 DagangFinance · Dibuat dengan ❤️ untuk keluarga Indonesia · Privacy · Terms · Contact
+                © 2026 Uangku · Dibuat dengan ❤️ untuk keluarga Indonesia · Privacy · Terms · Contact
             </footer>
         </div>
     );

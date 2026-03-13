@@ -98,8 +98,8 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h2 className="text-3xl font-serif text-dagang-dark">Kelola Dompet</h2>
-                    <p className="text-dagang-gray text-sm mt-1">Simpan dan pantau saldo dari berbagai akun finansial Anda.</p>
+                    <h2 className="text-h2 font-heading text-dagang-dark">Kelola Dompet</h2>
+                    <p className="text-body-s text-dagang-gray mt-1">Simpan dan pantau saldo dari berbagai akun finansial Anda.</p>
                 </div>
                 {!isModalOpen && (
                     <button
@@ -121,10 +121,10 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
                             <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-dagang-accent group-hover:scale-110 transition-transform shadow-inner">
                                 <TrendingUp className="w-5 h-5" />
                             </div>
-                            <h3 className="text-lg md:text-xl font-serif text-white/90">Total Kekayaan Bersih</h3>
+                            <h3 className="text-h4 mobile:text-h3 font-heading text-white/90">Total Kekayaan Bersih</h3>
                         </div>
                         <p className="text-white/40 text-xs md:text-sm max-w-md leading-relaxed hidden md:block">
-                            Nilai total dari seluruh aset digital dan uang tunai yang Anda kelola dalam sistem DagangFinance.
+                            Nilai total dari seluruh aset digital dan uang tunai yang Anda kelola dalam sistem Uangku.
                         </p>
                     </div>
                     <div className="flex flex-col items-start md:items-end w-full md:w-auto">

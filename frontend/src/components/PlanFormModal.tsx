@@ -69,13 +69,13 @@ export const PlanFormModal: React.FC<PlanFormModalProps> = ({
                 onClick={onClose}
             />
             
-            <div className="bg-white rounded-[32px] max-w-[560px] w-full max-h-[90vh] overflow-y-auto relative z-10 shadow-[0_48px_140px_rgba(0,0,0,0.12)] border border-black/5 animate-scale-up">
-                <div className="sticky top-0 bg-white/80 backdrop-blur-md px-8 py-6 flex items-center justify-between border-b border-black/5 z-20">
+            <div className="bg-white rounded-[24px] mobile:rounded-[32px] max-w-[560px] w-full max-h-[90vh] overflow-y-auto relative z-10 shadow-[0_48px_140px_rgba(0,0,0,0.12)] border border-black/5 animate-scale-up custom-scrollbar">
+                <div className="sticky top-0 bg-white/80 backdrop-blur-md px-6 mobile:px-8 py-5 mobile:py-6 flex items-center justify-between border-b border-black/5 z-20">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-dagang-green-pale text-dagang-green rounded-xl flex items-center justify-center">
                             <Shield className="w-5 h-5" />
                         </div>
-                        <h2 className="font-serif text-[24px] tracking-tight">{title}</h2>
+                        <h2 className="font-heading text-h3 mobile:text-h2 tracking-tight">{title}</h2>
                     </div>
                     <button 
                         onClick={onClose}
@@ -88,7 +88,7 @@ export const PlanFormModal: React.FC<PlanFormModalProps> = ({
                 <form onSubmit={handleSubmit} className="p-8 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-1.5 md:col-span-2">
-                            <label className="text-[11px] font-bold text-dagang-gray/60 uppercase tracking-widest flex items-center gap-2">
+                            <label className="text-label font-bold text-dagang-gray/60 uppercase tracking-widest flex items-center gap-2">
                                 <Package className="w-3.5 h-3.5" /> Nama Paket
                             </label>
                             <input

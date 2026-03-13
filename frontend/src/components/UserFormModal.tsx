@@ -49,13 +49,13 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                 onClick={onClose}
             />
             
-            <div className="bg-white rounded-[32px] max-w-[480px] w-full relative z-10 shadow-[0_48px_140px_rgba(0,0,0,0.12)] border border-black/5 animate-scale-up">
-                <div className="sticky top-0 bg-white/80 backdrop-blur-md px-8 py-6 flex items-center justify-between border-b border-black/5 z-20">
+            <div className="bg-white rounded-[24px] mobile:rounded-[32px] max-w-[480px] w-full max-h-[90vh] overflow-y-auto relative z-10 shadow-[0_48px_140px_rgba(0,0,0,0.12)] border border-black/5 animate-scale-up custom-scrollbar">
+                <div className="sticky top-0 bg-white/80 backdrop-blur-md px-6 mobile:px-8 py-5 mobile:py-6 flex items-center justify-between border-b border-black/5 z-20">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
                             <Shield className="w-5 h-5" />
                         </div>
-                        <h2 className="font-serif text-[24px] tracking-tight">{title}</h2>
+                        <h2 className="font-heading text-h3 mobile:text-h2 tracking-tight">{title}</h2>
                     </div>
                     <button 
                         onClick={onClose}
@@ -68,7 +68,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                 <form onSubmit={handleSubmit} className="p-8 space-y-6">
                     <div className="space-y-4">
                         <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold text-dagang-gray/60 uppercase tracking-widest flex items-center gap-2">
+                            <label className="text-label font-bold text-dagang-gray/60 uppercase tracking-widest flex items-center gap-2">
                                 <User className="w-3.5 h-3.5" /> Nama Lengkap
                             </label>
                             <input

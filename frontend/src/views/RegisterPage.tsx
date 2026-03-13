@@ -106,7 +106,8 @@ export const RegisterPage = () => {
             const mappedUser = {
                 ...user,
                 fullName: user.full_name,
-                familyName: family_name || formData.familyName
+                phoneNumber: user.phone_number,
+                familyName: family_name || ''
             };
 
             setAuth(mappedUser, token);
@@ -131,7 +132,7 @@ export const RegisterPage = () => {
                 <div className="absolute bottom-[-80px] left-[-80px] w-[200px] md:w-[300px] h-[200px] md:h-[300px] bg-dagang-accent/5 blur-[80px] rounded-full" />
  
                 <div className="logo font-serif text-2xl text-white relative z-10 mb-12 md:mb-0">
-                    Dagang<span className="text-dagang-accent">Finance</span>
+                    Uang<span className="text-dagang-accent">ku</span>
                 </div>
  
                 <div className="relative z-10 mb-12 md:mb-0">
@@ -139,7 +140,7 @@ export const RegisterPage = () => {
                         Kelola Keuangan Keluarga dengan <em className="text-dagang-accent not-italic font-serif italic">Lebih Bijak</em>
                     </h2>
                     <p className="text-white/55 text-[14px] md:text-[15px] leading-relaxed mb-6 md:mb-9">
-                        Bergabunglah bersama ribuan keluarga Indonesia yang sudah menggunakan DagangFinance untuk mengelola keuangan mereka.
+                        Bergabunglah bersama ribuan keluarga Indonesia yang sudah menggunakan Uangku untuk mengelola keuangan mereka.
                     </p>
  
                     <div className="flex flex-col gap-3 md:gap-4">

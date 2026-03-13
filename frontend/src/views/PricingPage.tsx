@@ -18,9 +18,23 @@ export const PricingPage = () => {
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
     const [plans, setPlans] = useState<any[]>([]);
     const [currentPlanName, setCurrentPlanName] = useState<string | null>(null);
+    const [familyStatus, setFamilyStatus] = useState<string | null>(null);
     const [trialDays, setTrialDays] = useState('7');
+    const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    const memberCount = 1; // Default to 1
+    const [memberCount, setMemberCount] = useState(1);
+
+    // Calculate trial remaining time
+    const getRemainingTrialTime = (endsAt: string | null) => {
+        if (!endsAt) return "";
+        const ends = new Date(endsAt);
+        const now = new Date();
+        const diff = ends.getTime() - now.getTime();
+        if (diff <= 0) return "Trial Berakhir";
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        return `${days} hari ${hours} jam`;
+    };
 
     // Simulate fetching member count for the logged in family
     // In a real app, this would be part of the family profile/stats
@@ -45,18 +59,18 @@ export const PricingPage = () => {
                 setPlans(mappedPlans);
                 setTrialDays(settingsData.trial_duration_days || '7');
 
-                if (summaryData?.family?.subscription_plan) {
+                if (summaryData?.family?.subscription_plan && summaryData?.family?.status === 'active') {
                     setCurrentPlanName(summaryData.family.subscription_plan);
+                    setFamilyStatus('active');
                 } else if (summaryData?.family?.status === 'trial') {
-                    setCurrentPlanName('Trial');
+                    setCurrentPlanName(null);
+                    setFamilyStatus('trial');
+                    setTrialEndsAt(summaryData.family.trial_ends_at);
                 }
 
-                // If user is logged in, we should ideally know their member count
-                // For now, let's assume it's in the user object or fetch it
-                // Since we don't have a specific "getMemberCount" endpoint ready, 
-                // let's assume we can get it from the user's current session/profile if needed.
-                // For demonstration, we'll try to find it in the dashboard stats if available.
-                // But generally, the user just wants the UI to reflect this.
+                if (summaryData?.member_count) {
+                    setMemberCount(summaryData.member_count + (summaryData.invitation_count || 0));
+                }
             } catch (error) {
                 console.error("Failed to fetch plans", error);
             } finally {
@@ -77,7 +91,7 @@ export const PricingPage = () => {
 
     const handleSelectPlan = (plan: any) => {
         if (memberCount > plan.max_members) {
-            alert(`Maaf, keluarga Anda memiliki ${memberCount} anggota. Paket ini hanya mendukung maksimal ${plan.max_members} anggota.`);
+            alert(`Maaf, keluarga Anda memiliki ${memberCount} anggota (termasuk undangan pending). Paket ini hanya mendukung maksimal ${plan.max_members} anggota.`);
             return;
         }
         setSelectedPlan(plan.id);
@@ -113,6 +127,13 @@ export const PricingPage = () => {
                     <p className="text-dagang-gray text-lg max-w-[620px] mx-auto leading-relaxed">
                         Pilih paket yang sesuai dengan kebutuhan keluarga Anda. Harga transparan, fitur lengkap, dan dukungan penuh.
                     </p>
+                    {familyStatus === 'trial' && (
+                        <div className="mt-8 p-4 bg-orange-50 border border-orange-200 rounded-2xl inline-block animate-in fade-in slide-in-from-top-4 duration-500">
+                             <p className="text-orange-700 font-bold flex items-center gap-2">
+                                <Clock className="w-4 h-4" /> Akun Anda sedang dalam masa trial (Sisa: {getRemainingTrialTime(trialEndsAt)}). Silakan pilih paket untuk membuka semua fitur.
+                             </p>
+                        </div>
+                    )}
                 </div>
 
                 {loading ? (
@@ -135,12 +156,12 @@ export const PricingPage = () => {
                                     maxMembers={plan.max_members}
                                     featured={plan.name.toLowerCase().includes('family')}
                                     isSelected={selectedPlan === plan.id}
-                                    isCurrentPlan={currentPlanName === plan.name}
+                                    isCurrentPlan={familyStatus === 'active' && currentPlanName === plan.name}
                                     onSelect={() => handleSelectPlan(plan)}
                                     description={plan.description}
                                     features={plan.featuresArray}
                                     currentFeatures={currentFeatures}
-                                    buttonText={currentPlanName === plan.name ? 'Paket Saat Ini' : `Pilih ${plan.name}`}
+                                    buttonText={(familyStatus === 'active' && currentPlanName === plan.name) ? 'Paket Saat Ini' : `Pilih ${plan.name}`}
                                     isLocked={memberCount > plan.max_members}
                                 />
                             ));

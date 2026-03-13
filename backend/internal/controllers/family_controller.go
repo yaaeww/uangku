@@ -93,7 +93,21 @@ func (ctrl *FamilyController) GetFamilyProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, family)
+	var memberCount int64
+	config.DB.Model(&models.FamilyMember{}).Where("family_id = ?", familyID).Count(&memberCount)
+
+	var invitationCount int64
+	config.DB.Model(&models.FamilyInvitation{}).Where("family_id = ?", familyID).Count(&invitationCount)
+
+	var plan models.SubscriptionPlan
+	config.DB.First(&plan, "name = ?", family.SubscriptionPlan)
+
+	c.JSON(http.StatusOK, gin.H{
+		"family":           family,
+		"member_count":     memberCount,
+		"invitation_count": invitationCount,
+		"plan":             plan,
+	})
 }
 
 func (ctrl *FamilyController) DeleteFamilyPhoto(c *gin.Context) {

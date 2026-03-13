@@ -8,10 +8,10 @@
         "trial": "Start Free Trial"
     },
     "hero": {
-        "badge": "🎉 7-Day Free Trial — No Credit Card Required",
+        "badge": "🎉 {{days}}-Day Free Trial — No Credit Card Required",
         "title": "Manage Family <em>Finances</em> Smarter",
         "subtitle": "Record, monitor, and plan family finances together. One platform for all family members, from anywhere.",
-        "cta_trial": "🚀 Start 7-Day Trial",
+        "cta_trial": "🚀 Start {{days}}-Day Trial",
         "cta_trial_sub": "Free",
         "cta_demo": "View Demo",
         "trust": "<strong>2,400+ families</strong> joined this month"

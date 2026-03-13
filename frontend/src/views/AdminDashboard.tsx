@@ -663,6 +663,7 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
                                         <td className="px-8 py-6 font-black text-dagang-dark uppercase tracking-tighter" colSpan={2}>
                                             {s.key === 'trial_duration_days' ? 'DURASI MASA TRIAL (HARI)' : 
                                              s.key === 'allow_registration' ? 'IZINKAN PENDAFTARAN' :
+                                             s.key === 'trial_max_members' ? 'LIMIT ANGGOTA TRIAL' :
                                              s.key.replace(/_/g, ' ')}
                                         </td>
                                         <td className="px-8 py-6 font-bold text-dagang-accent" colSpan={2}>{s.value}</td>

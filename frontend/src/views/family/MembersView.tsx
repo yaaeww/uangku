@@ -46,6 +46,11 @@ export const MembersView: React.FC = () => {
     // Family Profile State
     const [familyName, setFamilyName] = useState('');
     const [familyPhoto, setFamilyPhoto] = useState<string | null>(null);
+    const [familyStatus, setFamilyStatus] = useState('trial');
+    const [memberCount, setMemberCount] = useState(0);
+    const [invitationCount, setInvitationCount] = useState(0);
+    const [maxMembers, setMaxMembers] = useState(5);
+    const [trialMaxMembers, setTrialMaxMembers] = useState(2);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [isSavingFamily, setIsSavingFamily] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,7 +58,20 @@ export const MembersView: React.FC = () => {
     useEffect(() => {
         fetchMembers();
         fetchFamilyProfile();
+        fetchPublicSettings();
     }, []);
+
+    const fetchPublicSettings = async () => {
+        try {
+            const response = await api.get('/public/settings');
+            const settings = response.data;
+            if (settings.trial_max_members) {
+                setTrialMaxMembers(parseInt(settings.trial_max_members));
+            }
+        } catch (error) {
+            console.error("Failed to fetch public settings", error);
+        }
+    };
 
     const fetchMembers = async () => {
         try {
@@ -69,8 +87,13 @@ export const MembersView: React.FC = () => {
     const fetchFamilyProfile = async () => {
         try {
             const response = await api.get('/finance/families/profile');
-            setFamilyName(response.data.name);
-            setFamilyPhoto(response.data.photo_url);
+            const data = response.data;
+            setFamilyName(data.family.name);
+            setFamilyPhoto(data.family.photo_url);
+            setFamilyStatus(data.family.status);
+            setMemberCount(data.member_count);
+            setInvitationCount(data.invitation_count);
+            setMaxMembers(data.plan?.max_members || 5);
         } catch (error) {
             console.error("Failed to fetch family profile", error);
         }
@@ -152,12 +175,21 @@ export const MembersView: React.FC = () => {
 
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        const effectiveMax = familyStatus === 'trial' ? trialMaxMembers : maxMembers;
+
+        if (memberCount + invitationCount >= effectiveMax) {
+            alert("Limit anggota tercapai. Silakan hapus anggota atau upgrade paket.");
+            return;
+        }
         setIsSubmitting(true);
         try {
             const data = await FinanceController.inviteMember(inviteEmail, inviteRole);
             setInvitationId(data.invitation_id);
-        } catch (error) {
-            alert("Gagal mengirim undangan. Mungkin email sudah terdaftar atau ada masalah server.");
+            fetchFamilyProfile(); // Refresh counts
+        } catch (error: any) {
+            const msg = error.response?.data?.error || "Gagal mengirim undangan. Mungkin email sudah terdaftar atau ada masalah server.";
+            alert(msg);
         } finally {
             setIsSubmitting(false);
         }
@@ -173,9 +205,10 @@ export const MembersView: React.FC = () => {
     const shareWhatsApp = () => {
         if (!invitationId) return;
         const link = `${window.location.origin}/register?invitation_id=${invitationId}`;
-        const text = `Halo! Saya mengundang kamu untuk bergabung ke keluarga ${familyName || user?.familyName} di DagangFinance. Klik link berikut untuk mendaftar: ${link}`;
+        const text = `Halo! Saya mengundang kamu untuk bergabung ke keluarga ${familyName || user?.familyName} di Uangku. Klik link berikut untuk mendaftar: ${link}`;
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
+    
 
     const handleUpdateRole = async (id: string, newRole: string) => {
         try {
@@ -233,15 +266,33 @@ export const MembersView: React.FC = () => {
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-2xl font-serif text-dagang-dark">Ruang Keluarga</h1>
-                    <p className="text-dagang-gray text-sm mt-1">Kelola nama, foto, dan akses anggota keluarga Anda.</p>
+                    <h1 className="text-h2 font-heading text-dagang-dark">Ruang Keluarga</h1>
+                    <p className="text-body-s text-dagang-gray mt-1">Kelola nama, foto, dan akses anggota keluarga Anda.</p>
                 </div>
-                <button 
-                    onClick={() => setIsInviteModalOpen(true)}
-                    className="bg-dagang-dark text-white px-6 py-3 rounded-[20px] font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg shadow-dagang-dark/10"
-                >
-                    <UserPlus className="w-4 h-4" /> Undang Anggota
-                </button>
+                <div className="flex flex-col md:flex-row md:items-center gap-2">
+                    <button 
+                        onClick={() => {
+                            setIsInviteModalOpen(true);
+                        }}
+                        disabled={memberCount + invitationCount >= (familyStatus === 'trial' ? trialMaxMembers : maxMembers)}
+                        className={`bg-dagang-dark text-white px-6 py-3 rounded-[20px] font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg shadow-dagang-dark/10 ${(memberCount + invitationCount >= (familyStatus === 'trial' ? trialMaxMembers : maxMembers)) ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                    >
+                        <UserPlus className="w-4 h-4" /> 
+                        Undang Anggota
+                    </button>
+                    {(memberCount + invitationCount >= (familyStatus === 'trial' ? trialMaxMembers : maxMembers)) && (
+                        <div className="flex flex-col">
+                            <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest px-2">
+                                {familyStatus === 'trial' ? `Trial: Slot Terbatas (Max ${trialMaxMembers})` : 'Slot Penuh: Upgrade paket Anda'}
+                            </p>
+                            {familyStatus === 'trial' && (
+                                <p className="text-[9px] text-dagang-gray font-medium px-2 italic">
+                                    Buka fitur undang dengan berlangganan
+                                </p>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Family Profile Card */}
@@ -313,8 +364,15 @@ export const MembersView: React.FC = () => {
                 <div className="hidden lg:block w-px h-24 bg-black/5" />
                 
                 <div className="hidden lg:flex flex-col items-center gap-2 px-8">
-                    <div className="text-3xl font-serif text-dagang-dark">{members.length}</div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-dagang-gray">Anggota</div>
+                    <div className="text-3xl font-serif text-dagang-dark">
+                        {memberCount} / {familyStatus === 'trial' ? trialMaxMembers : maxMembers}
+                    </div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-dagang-gray">Slot Anggota Terisi</div>
+                    {invitationCount > 0 && (
+                        <div className="text-[9px] font-bold text-orange-500 uppercase tracking-tighter">
+                            + {invitationCount} Undangan Pending
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -324,7 +382,7 @@ export const MembersView: React.FC = () => {
                     <div className="w-10 h-10 rounded-xl bg-dagang-gray/5 flex items-center justify-center text-dagang-dark">
                         <Users className="w-5 h-5" />
                     </div>
-                    <h2 className="text-xl font-serif text-dagang-dark">Daftar Anggota</h2>
+                    <h2 className="text-h3 font-heading text-dagang-dark">Daftar Anggota</h2>
                 </div>
 
                 {/* Members Grid */}

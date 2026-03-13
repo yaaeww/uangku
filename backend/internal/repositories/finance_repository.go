@@ -24,6 +24,8 @@ type DashboardSummary struct {
 	CategoryExpenses map[string]float64    `json:"category_expenses"`
 	DailyActivity    map[int]DailyActivity `json:"daily_activity"`
 	Family           models.Family         `json:"family"`
+	MemberCount      int64                 `json:"member_count"`
+	InvitationCount  int64                 `json:"invitation_count"`
 	TrialDuration    int                   `json:"trial_duration"`
 }
 
@@ -160,8 +162,10 @@ func (r *financeRepository) GetDashboardSummary(familyID uuid.UUID, month int, y
 		summary.DailyActivity[day] = activity
 	}
 
-	// 5. Family Info
-	config.DB.First(&summary.Family, "id = ?", familyID)
+	// 5. Family Info & Counts
+	config.DB.Preload("Members.User").First(&summary.Family, "id = ?", familyID)
+	config.DB.Model(&models.FamilyMember{}).Where("family_id = ?", familyID).Count(&summary.MemberCount)
+	config.DB.Model(&models.FamilyInvitation{}).Where("family_id = ?", familyID).Count(&summary.InvitationCount)
 
 	// 6. Current Trial Duration Setting
 	var durationStr string

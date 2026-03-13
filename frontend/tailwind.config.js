@@ -5,6 +5,19 @@ export default {
         "./src/**/*.{js,ts,jsx,tsx}",
     ],
     theme: {
+        screens: {
+            'ms': '360px',
+            'mobile': '480px',
+            'tablet': '768px',
+            'desktop': '1280px',
+            'large': '1440px',
+            // Maintain compatibility with existing md/lg if used
+            'sm': '640px',
+            'md': '768px',
+            'lg': '1024px',
+            'xl': '1280px',
+            '2xl': '1536px',
+        },
         extend: {
             colors: {
                 dagang: {
@@ -18,8 +31,29 @@ export default {
                 },
             },
             fontFamily: {
-                serif: ['Instrument Serif', 'serif'],
-                sans: ['DM Sans', 'sans-serif'],
+                heading: ['Poppins', 'sans-serif'],
+                body: ['Inter', 'sans-serif'],
+                serif: ['Instrument Serif', 'serif'], // Keep for logo/specific flair
+                sans: ['Inter', 'sans-serif'], // Default sans to Inter
+            },
+            fontSize: {
+                // Typography Tokens from Guide
+                'display-xl': ['64px', { lineHeight: '1.1', letterSpacing: '-0.01em', fontWeight: '700' }],
+                'display-l': ['56px', { lineHeight: '1.1', letterSpacing: '-0.01em', fontWeight: '700' }],
+                'display-m': ['48px', { lineHeight: '1.2', letterSpacing: '-0.005em', fontWeight: '700' }],
+                'h1': ['40px', { lineHeight: '1.2', letterSpacing: '-0.005em', fontWeight: '700' }],
+                'h2': ['32px', { lineHeight: '1.25', letterSpacing: '-0.003em', fontWeight: '600' }],
+                'h3': ['28px', { lineHeight: '1.3', fontWeight: '600' }],
+                'h4': ['24px', { lineHeight: '1.35', fontWeight: '600' }],
+                'h5': ['20px', { lineHeight: '1.4', fontWeight: '500' }],
+                'h6': ['18px', { lineHeight: '1.4', fontWeight: '500' }],
+                'body-xl': ['20px', { lineHeight: '1.6', fontWeight: '400' }],
+                'body-l': ['18px', { lineHeight: '1.6', fontWeight: '400' }],
+                'body-m': ['16px', { lineHeight: '1.6', fontWeight: '400' }],
+                'body-s': ['14px', { lineHeight: '1.5', fontWeight: '400', letterSpacing: '0.002em' }],
+                'caption': ['13px', { lineHeight: '1.4', fontWeight: '400', letterSpacing: '0.003em' }],
+                'label': ['12px', { lineHeight: '1.4', fontWeight: '500', letterSpacing: '0.004em' }],
+                'btn-text': ['16px', { lineHeight: '1.3', fontWeight: '600', letterSpacing: '0.003em' }],
             },
             animation: {
                 'fade-in': 'fadeIn 0.5s ease-out',

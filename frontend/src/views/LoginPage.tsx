@@ -31,6 +31,7 @@ export const LoginPage = () => {
             const mappedUser = {
                 ...user,
                 fullName: user.full_name,
+                phoneNumber: user.phone_number,
                 familyName: family_name || ''
             };
 
@@ -55,7 +56,7 @@ export const LoginPage = () => {
                 <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-dagang-green/20 blur-[120px] rounded-full" />
 
                 <div className="logo font-serif text-2xl text-white relative z-10">
-                    Dagang<span className="text-dagang-accent">Finance</span>
+                    Uang<span className="text-dagang-accent">ku</span>
                 </div>
 
                 <div className="relative z-10">
@@ -77,7 +78,7 @@ export const LoginPage = () => {
                 </div>
 
                 <div className="text-[12px] text-white/20 relative z-10">
-                    © 2026 DagangFinance Platform. All rights reserved.
+                    © 2026 Uangku Platform. All rights reserved.
                 </div>
             </div>
 

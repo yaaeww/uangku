@@ -42,7 +42,7 @@ func (s *notificationService) SendDailyReminders() error {
 
 		if count == 0 {
 			// 3. Send WhatsApp Reminder
-			message := fmt.Sprintf("Halo %s! 👋\n\nWah, sepertinya hari ini belum ada pengeluaran yang dicatit nih. Yuk, jangan biarkan catatan keuangan keluarga bolong-bolong! Segera catatkan pengeluaranmu di DagangFinance ya. 😉", user.FullName)
+			message := fmt.Sprintf("Halo %s! 👋\n\nWah, sepertinya hari ini belum ada pengeluaran yang dicatat nih. Yuk, jangan biarkan catatan keuangan keluarga bolong-bolong! Segera catatkan pengeluaranmu di Uangku ya. 😉", user.FullName)
 			
 			if user.PhoneNumber != "" {
 				err := s.mail.SendWhatsApp(user.PhoneNumber, message)

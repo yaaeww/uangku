@@ -85,10 +85,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             )}
 
             {/* Setup Checklist Guide */}
-            <SetupChecklist 
-                summary={summary} 
-                wallets={wallets} 
-                transactions={transactions} 
+            <SetupChecklist
+                summary={summary}
+                wallets={wallets}
+                transactions={transactions}
             />
 
             {/* Summary Stats */}
@@ -135,8 +135,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
                 <div className="bg-white rounded-[32px] border border-black/5 shadow-sm overflow-hidden flex flex-col h-full">
                     <div className="p-8 border-b border-black/5 flex items-center justify-between">
-                        <h3 className="text-lg font-bold">Transaksi Terbaru</h3>
-                        <button className="text-sm font-bold text-dagang-green hover:underline">Lihat Semua</button>
+                        <h3 className="text-h4 font-heading text-dagang-dark">Transaksi Terbaru</h3>
+                        <button className="text-body-s font-bold text-dagang-green hover:underline">Lihat Semua</button>
                     </div>
                     <div className="divide-y divide-black/5 flex-1 overflow-y-auto max-h-[500px] custom-scrollbar">
                         {transactions.slice(0, 8).map((tx) => (
@@ -170,7 +170,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             {/* Existing Charts Section - Secondary focus now */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-white p-8 rounded-[32px] border border-black/5 shadow-sm">
-                    <h3 className="text-lg font-bold mb-8 text-dagang-dark">Kategori Pengeluaran Terbesar</h3>
+                    <h3 className="text-h4 font-heading mb-8 text-dagang-dark">Kategori Pengeluaran Terbesar</h3>
                     <div className="h-[280px] flex items-center justify-center">
                         <Doughnut
                             id="expense-doughnut"
@@ -204,7 +204,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 </div>
 
                 <div className="bg-white p-8 rounded-[32px] border border-black/5 shadow-sm">
-                    <h3 className="text-lg font-bold mb-8 text-dagang-dark">Pemasukan vs Pengeluaran</h3>
+                    <h3 className="text-h4 font-heading mb-8 text-dagang-dark">Pemasukan vs Pengeluaran</h3>
                     <div className="h-[280px]">
                         <Bar
                             id="income-expense-bar"
@@ -243,8 +243,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             {debts.length > 0 && (
                 <div className="bg-white p-8 rounded-[32px] border border-black/5 shadow-sm">
                     <div className="flex items-center justify-between mb-8">
-                        <h3 className="text-lg font-bold text-dagang-dark">Status Hutang Keluarga</h3>
-                        <div className="text-sm font-bold text-red-500">
+                        <h3 className="text-h4 font-heading text-dagang-dark">Status Hutang Keluarga</h3>
+                        <div className="text-body-s font-bold text-red-500">
                             Total Hutang: Rp {debts.reduce((s, d) => s + (d.remainingAmount || 0), 0).toLocaleString()}
                         </div>
                     </div>
@@ -302,8 +302,8 @@ const MonthlyCalendar = ({ dailyActivity }: { dailyActivity: any }) => {
 
     return (
         <div className="bg-white p-8 rounded-[32px] border border-black/5 shadow-sm h-full">
-            <h3 className="text-[11px] font-black text-dagang-gray/50 tracking-[0.2em] uppercase mb-1">Aktivitas Bulan Ini</h3>
-            <div className="text-xl font-serif mb-8 text-dagang-dark">{monthName}</div>
+            <h3 className="text-label font-black text-dagang-gray/50 tracking-[0.2em] uppercase mb-1">Aktivitas Bulan Ini</h3>
+            <div className="text-h3 font-heading mb-8 text-dagang-dark">{monthName}</div>
 
             <div className="grid grid-cols-7 gap-3">
                 {dayLabels.map(label => (
@@ -362,8 +362,8 @@ const StatCard = ({ title, value, trend, trendUp, color, icon: Icon }: any) => {
                     {trendUp ? '↑' : '↓'} {trend}
                 </div>
             </div>
-            <div className="text-[11px] sm:text-[12px] font-black text-dagang-gray/50 tracking-[0.1em] uppercase mb-2">{title}</div>
-            <div className="text-[24px] sm:text-[30px] font-serif text-dagang-dark leading-none break-words">{value}</div>
+            <div className="text-[12px] font-black text-dagang-gray/50 tracking-[0.1em] uppercase mb-2">{title}</div>
+            <div className="text-[30px] font-serif text-dagang-dark leading-none">{value}</div>
         </div>
     );
 };
@@ -426,8 +426,8 @@ const SetupChecklist = ({ summary, wallets, transactions }: any) => {
                 </div>
                 <div className="flex items-center gap-4 bg-dagang-cream/30 px-5 py-3 rounded-2xl">
                     <div className="text-right">
-                        <div className="text-[10px] font-black uppercase tracking-widest text-dagang-gray/50">Progres Setup</div>
-                        <div className="text-lg font-serif text-dagang-green">{progress}% Selesai</div>
+                        <div className="text-label font-black uppercase tracking-widest text-dagang-gray/50">Progres Setup</div>
+                        <div className="text-h4 font-heading text-dagang-green">{progress}% Selesai</div>
                     </div>
                     <div className="w-12 h-12 rounded-full border-4 border-dagang-green/10 border-t-dagang-green flex items-center justify-center text-[12px] font-bold text-dagang-green">
                         {completedCount}/{steps.length}
@@ -437,18 +437,16 @@ const SetupChecklist = ({ summary, wallets, transactions }: any) => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {steps.map((step) => (
-                    <div 
+                    <div
                         key={step.id}
-                        className={`group relative p-6 rounded-[28px] border transition-all duration-300 ${
-                            step.completed 
-                            ? 'bg-dagang-green/5 border-dagang-green/10' 
-                            : 'bg-white border-black/5 hover:border-dagang-green/20 hover:shadow-md'
-                        }`}
+                        className={`group relative p-6 rounded-[28px] border transition-all duration-300 ${step.completed
+                                ? 'bg-dagang-green/5 border-dagang-green/10'
+                                : 'bg-white border-black/5 hover:border-dagang-green/20 hover:shadow-md'
+                            }`}
                     >
                         <div className="flex items-start justify-between mb-4">
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${
-                                step.completed ? 'bg-dagang-green text-white' : 'bg-dagang-cream text-dagang-gray'
-                            }`}>
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${step.completed ? 'bg-dagang-green text-white' : 'bg-dagang-cream text-dagang-gray'
+                                }`}>
                                 <step.icon className="w-6 h-6" />
                             </div>
                             {step.completed ? (
@@ -459,10 +457,10 @@ const SetupChecklist = ({ summary, wallets, transactions }: any) => {
                         </div>
                         <div className="font-bold text-[15px] mb-1">{step.title}</div>
                         <p className="text-[12px] text-dagang-gray leading-relaxed mb-4">{step.desc}</p>
-                        
+
                         {!step.completed && (
-                            <a 
-                                href={step.link} 
+                            <a
+                                href={step.link}
                                 className="text-[12px] font-black uppercase tracking-widest text-dagang-green hover:text-dagang-dark transition-colors flex items-center gap-1"
                             >
                                 Setup Sekarang <ChevronRight className="w-3 h-3" />

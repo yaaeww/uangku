@@ -88,33 +88,33 @@ export const Calculator: React.FC<CalculatorProps> = ({ isOpen, onClose, onApply
     ];
 
     return (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-2 mobile:p-4">
             <div className="absolute inset-0 bg-dagang-dark/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative bg-[#1C1C1E] w-full max-w-[360px] rounded-[40px] shadow-2xl overflow-hidden border border-white/10 animate-in zoom-in-95 duration-300">
-                <div className="p-8 space-y-6">
+            <div className="relative bg-[#1C1C1E] w-full max-w-[320px] rounded-[32px] mobile:rounded-[40px] shadow-2xl overflow-hidden border border-white/10 animate-in zoom-in-95 duration-300">
+                <div className="p-5 mobile:p-8 space-y-4 mobile:space-y-6">
                     <div className="flex items-center justify-between text-white/50">
-                        <span className="text-sm font-bold tracking-widest uppercase">Kalkulator</span>
+                        <span className="text-[10px] mobile:text-sm font-bold tracking-widest uppercase">Kalkulator</span>
                         <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-all">
                             <X className="w-5 h-5" />
                         </button>
                     </div>
 
-                    <div className="bg-black/20 rounded-3xl p-6 text-right space-y-2 min-h-[120px] flex flex-col justify-end">
-                        <div className="text-white/40 text-lg font-medium overflow-hidden text-ellipsis whitespace-nowrap">
+                    <div className="bg-black/20 rounded-2xl p-4 mobile:p-6 text-right space-y-1 mobile:space-y-2 min-h-[100px] mobile:min-h-[120px] flex flex-col justify-end">
+                        <div className="text-white/40 text-sm mobile:text-lg font-medium overflow-hidden text-ellipsis whitespace-nowrap">
                             {expression || '0'}
                         </div>
-                        <div className="text-white text-4xl font-black">
+                        <div className="text-white text-2xl mobile:text-4xl font-black">
                             = {result.toLocaleString('id-ID')}
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-4 gap-2 mobile:gap-3">
                         {buttons.map((btn, i) => (
                             <button
                                 key={i}
                                 onClick={btn.action}
                                 className={`
-                                    h-16 rounded-2xl flex items-center justify-center text-xl font-bold transition-all active:scale-90
+                                    h-12 mobile:h-16 rounded-xl mobile:rounded-2xl flex items-center justify-center text-lg mobile:text-xl font-bold transition-all active:scale-90
                                     ${btn.color || 'bg-white/5 text-white hover:bg-white/10'}
                                     ${btn.colSpan === 2 ? 'col-span-2' : ''}
                                 `}
@@ -125,7 +125,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ isOpen, onClose, onApply
                         
                         <button
                             onClick={() => onApply(result)}
-                            className="col-span-4 mt-2 h-16 bg-dagang-green text-white rounded-2xl flex items-center justify-center gap-3 font-black text-lg shadow-xl shadow-dagang-green/20 hover:bg-dagang-green-light transition-all active:scale-[0.98]"
+                            className="col-span-4 mt-1 mobile:mt-2 h-12 mobile:h-16 bg-dagang-green text-white rounded-xl mobile:rounded-2xl flex items-center justify-center gap-3 font-black text-sm mobile:text-lg shadow-xl shadow-dagang-green/20 hover:bg-dagang-green-light transition-all active:scale-[0.98]"
                         >
                             Rp {result.toLocaleString('id-ID')}
                         </button>

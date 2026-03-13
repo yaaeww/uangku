@@ -15,55 +15,14 @@ import {
     ShieldCheck
 } from 'lucide-react';
 
-interface CategoryConfig {
-    id: string;
-    label: string;
-    description: string;
-    color: string;
-    bg: string;
-    icon: any;
-}
-
-const CATEGORIES: CategoryConfig[] = [
-    {
-        id: 'needs',
-        label: 'Kebutuhan',
-        description: 'Biaya rutin bulanan yang wajib dipenuhi (50%)',
-        color: 'text-blue-500',
-        bg: 'bg-blue-50',
-        icon: ShoppingCart
-    },
-    {
-        id: 'wants',
-        label: 'Keinginan',
-        description: 'Pengeluaran gaya hidup & hiburan (30%)',
-        color: 'text-amber-500',
-        bg: 'bg-amber-50',
-        icon: Coffee
-    },
-    {
-        id: 'savings',
-        label: 'Tabungan',
-        description: 'Investasi & dana untuk masa depan (10%)',
-        color: 'text-dagang-green',
-        bg: 'bg-dagang-green/5',
-        icon: Coins
-    },
-    {
-        id: 'emergency',
-        label: 'Dana Darurat',
-        description: 'Cadangan dana untuk keadaan tak terduga (10%)',
-        color: 'text-red-500',
-        bg: 'bg-red-50',
-        icon: ShieldCheck
-    }
-];
-
 export const BudgetView = () => {
     const context = useOutletContext<any>() || {};
     const {
         wallets = [],
-        savings = [],
+        budgetCategories = [],
+        handleCreateBudgetCategory,
+        handleUpdateBudgetCategory,
+        handleDeleteBudgetCategory,
         handleCreateSaving,
         handleUpdateSaving,
         handleDeleteSaving,
@@ -74,17 +33,18 @@ export const BudgetView = () => {
     const [isEditingBudget, setIsEditingBudget] = useState(false);
     const [tempBudget, setTempBudget] = useState<number>(10000000);
 
-    const [categoryAllocations, setCategoryAllocations] = useState({
-        needs: 50,
-        wants: 30,
-        savings: 10,
-        emergency: 10
-    });
-
     const [isEditingPercentages, setIsEditingPercentages] = useState(false);
-    const [tempPercentages, setTempPercentages] = useState(categoryAllocations);
+    const [tempPercentages, setTempPercentages] = useState<any>({});
+    const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+    const [editingCategory, setEditingCategory] = useState<any>(null);
+    const [catName, setCatName] = useState('');
+    const [catPercent, setCatPercent] = useState(0);
+    const [catIcon, setCatIcon] = useState('ShoppingCart');
+    const [catColor, setCatColor] = useState('text-blue-500');
+    const [catBg, setCatBg] = useState('bg-blue-50');
+    const [catDesc, setCatDesc] = useState('');
 
-    const totalPercentage = Object.values(categoryAllocations).reduce((a, b) => a + b, 0);
+    const totalPercentage = budgetCategories.reduce((acc: number, cat: any) => acc + cat.percentage, 0);
     const isAllocationComplete = totalPercentage === 100;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -153,14 +113,13 @@ export const BudgetView = () => {
         }
     };
 
-const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDeleteSaving, setSelectedGoal, setIsAllocateOpen, categoryAllocations, totalBudget }: any) => {
+const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDeleteSaving, setSelectedGoal, setIsAllocateOpen, totalBudget, openEditCategoryModal, handleDeleteCategory }: any) => {
     const [showInfo, setShowInfo] = useState(false);
-    const savings = context.savings || [];
-    const catSavings = savings.filter((s: any) => s.category === cat.id);
-    const allocationPercent = (categoryAllocations as any)[cat.id];
+    const catSavings = cat.items || [];
+    const allocationPercent = cat.percentage;
     const categoryBudget = (totalBudget * allocationPercent) / 100;
     const catTransactions = (context.transactions || []).filter((tx: any) =>
-        tx.type === 'expense' && savings.some((s: any) => s.id === tx.savingId && s.category === cat.id)
+        tx.type === 'expense' && catSavings.some((s: any) => s.id === tx.savingId)
     );
     const totalTarget = catSavings.reduce((acc: number, s: any) => acc + s.targetAmount, 0);
     const totalUsed = catTransactions.reduce((acc: number, tx: any) => acc + tx.amount, 0);
@@ -168,19 +127,33 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
     const progress = categoryBudget > 0 ? (totalTarget / categoryBudget) * 100 : 0;
     const usedProgress = categoryBudget > 0 ? (totalUsed / categoryBudget) * 100 : 0;
 
+    // Map string icon name to Lucide component
+    const IconComponent = (cat.icon === 'ShoppingCart' ? ShoppingCart : 
+                          cat.icon === 'Coffee' ? Coffee : 
+                          cat.icon === 'Coins' ? Coins : 
+                          cat.icon === 'ShieldCheck' ? ShieldCheck : Wallet);
+
     return (
         <div className="space-y-6 bg-white/50 backdrop-blur-sm p-8 rounded-[40px] border border-black/5 shadow-sm transition-all hover:shadow-xl hover:shadow-black/[0.02]">
             <div className="flex items-center justify-between gap-6">
                 <div className="flex items-center gap-5">
-                    <div className={`p-4 ${cat.bg} ${cat.color} rounded-2xl shadow-sm`}>
-                        <cat.icon className="w-6 h-6" />
+                    <div className={`p-4 ${cat.bg_color} ${cat.color} rounded-2xl shadow-sm relative group`}>
+                        <IconComponent className="w-6 h-6" />
+                        <div className="absolute -top-2 -right-2 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => openEditCategoryModal(cat)} className="p-1 bg-white border border-black/5 rounded-md shadow-sm hover:text-dagang-green">
+                                <Edit3 className="w-3 h-3" />
+                            </button>
+                            <button onClick={() => handleDeleteCategory(cat.id)} className="p-1 bg-white border border-black/5 rounded-md shadow-sm hover:text-red-500">
+                                <Trash2 className="w-3 h-3" />
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <div className="flex items-center gap-3 mb-1">
                             <h3 className="font-serif text-2xl text-dagang-dark">
-                                {cat.label}
+                                {cat.name}
                             </h3>
-                            <span className={`text-[12px] px-3 py-1 rounded-full ${cat.bg} ${cat.color} font-black`}>
+                            <span className={`text-[12px] px-3 py-1 rounded-full ${cat.bg_color} ${cat.color} font-black`}>
                                 {allocationPercent}%
                             </span>
                             <button
@@ -217,17 +190,17 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
             <div className="space-y-2">
                 <div className="h-3 bg-black/5 rounded-full overflow-hidden relative shadow-inner">
                     <div
-                        className={`absolute inset-y-0 left-0 transition-all duration-1000 opacity-20 ${cat.id === 'savings' ? 'bg-dagang-green' : (cat.id === 'emergency' ? 'bg-red-500' : (cat.id === 'needs' ? 'bg-blue-500' : 'bg-amber-500'))}`}
+                        className={`absolute inset-y-0 left-0 transition-all duration-1000 opacity-20 ${cat.color.replace('text', 'bg')}`}
                         style={{ width: `${Math.min(progress, 100)}%` }}
                     />
                     <div
-                        className={`absolute inset-y-0 left-0 transition-all duration-1000 ${cat.id === 'savings' ? 'bg-dagang-green' : (cat.id === 'emergency' ? 'bg-red-500' : (cat.id === 'needs' ? 'bg-blue-500' : 'bg-amber-500'))}`}
+                        className={`absolute inset-y-0 left-0 transition-all duration-1000 ${cat.color.replace('text', 'bg')}`}
                         style={{ width: `${Math.min(usedProgress, 100)}%` }}
                     />
                 </div>
                 <div className="flex justify-between items-center text-[11px] font-black text-dagang-gray/40 uppercase tracking-[0.2em] px-1">
                     <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${cat.id === 'savings' ? 'bg-dagang-green' : (cat.id === 'emergency' ? 'bg-red-500' : (cat.id === 'needs' ? 'bg-blue-500' : 'bg-amber-500'))}`} />
+                        <div className={`w-2 h-2 rounded-full ${cat.color.replace('text', 'bg')}`} />
                         Terpakai: Rp {totalUsed.toLocaleString()}
                     </div>
                     <span>Sisa: Rp {(categoryBudget - totalUsed).toLocaleString()}</span>
@@ -237,20 +210,19 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {catSavings.map((s: any) => {
                     const sProgress = (s.currentBalance / s.targetAmount) * 100;
-                    const sUsed = (context.transactions || []).filter((tx: any) => tx.savingId === s.id && tx.type === 'expense').reduce((a: number, b: any) => a + b.amount, 0);
                     return (
                         <div key={s.id} className="bg-white border border-black/5 rounded-3xl p-5 hover:shadow-xl hover:shadow-black/[0.03] transition-all group relative overflow-hidden">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-10 h-10 bg-dagang-cream/50 rounded-xl flex items-center justify-center text-xl shadow-inner group-hover:scale-110 transition-transform">
                                     {s.emoji || '💰'}
                                 </div>
-                                <div className="flex-1">
+                                <div className="flex-1 min-w-0">
                                     <h4 className="font-bold text-[14px] text-dagang-dark truncate">{s.name}</h4>
                                     <div className="text-[10px] text-dagang-gray/40 font-black uppercase tracking-wider flex items-center gap-1">
                                         <Info className="w-2.5 h-2.5" /> Tgl {s.dueDate || '-'}
                                     </div>
                                 </div>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex gap-1 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                     <button onClick={() => openEditModal(s)} className="p-1.5 text-dagang-gray hover:text-dagang-green hover:bg-dagang-green/5 rounded-lg">
                                         <Edit3 className="w-3.5 h-3.5" />
                                     </button>
@@ -319,7 +291,7 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                                 <div className="flex gap-3">
                                     <button
                                         onClick={() => {
-                                            setTempPercentages(categoryAllocations);
+                                            setTempPercentages(budgetCategories.reduce((a:any, c:any) => ({...a, [c.id]: c.percentage}), {}));
                                             setIsEditingPercentages(true);
                                         }}
                                         className="p-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl transition-all border border-white/10"
@@ -391,7 +363,7 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                     </div>
                     <button
                         onClick={() => {
-                            setTempPercentages(categoryAllocations);
+                            setTempPercentages(budgetCategories.reduce((a:any, c:any) => ({...a, [c.id]: c.percentage}), {}));
                             setIsEditingPercentages(true);
                         }}
                         className="px-6 py-2 bg-amber-600 text-white rounded-xl font-bold text-xs hover:bg-amber-700 transition-all"
@@ -401,9 +373,48 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                 </div>
             )}
 
+            <div className="flex justify-end mb-6">
+                <button
+                    onClick={() => {
+                        setEditingCategory(null);
+                        setCatName('');
+                        setCatPercent(0);
+                        setCatDesc('');
+                        setCatIcon('ShoppingCart');
+                        setCatColor('text-blue-500');
+                        setCatBg('bg-blue-50');
+                        setIsCategoryModalOpen(true);
+                    }}
+                    className="flex items-center gap-2 px-6 py-3 bg-dagang-dark text-white rounded-2xl font-black text-xs hover:scale-105 transition-all shadow-lg"
+                >
+                    <Plus className="w-4 h-4" /> TAMBAH KATEGORI BUDGET
+                </button>
+            </div>
+
             <div className="grid grid-cols-1 gap-12">
-                {CATEGORIES.map(cat => (
-                    <CategoryRow key={cat.id} cat={cat} context={context} openCreateModal={openCreateModal} openEditModal={openEditModal} handleDeleteSaving={handleDeleteSaving} setSelectedGoal={setSelectedGoal} setIsAllocateOpen={setIsAllocateOpen} categoryAllocations={categoryAllocations} totalBudget={totalBudget} />
+                {budgetCategories.map((cat: any) => (
+                    <CategoryRow 
+                        key={cat.id} 
+                        cat={cat} 
+                        context={context} 
+                        openCreateModal={openCreateModal} 
+                        openEditModal={openEditModal} 
+                        handleDeleteSaving={handleDeleteSaving} 
+                        setSelectedGoal={setSelectedGoal} 
+                        setIsAllocateOpen={setIsAllocateOpen} 
+                        totalBudget={totalBudget} 
+                        openEditCategoryModal={(c: any) => {
+                            setEditingCategory(c);
+                            setCatName(c.name);
+                            setCatPercent(c.percentage);
+                            setCatDesc(c.description);
+                            setCatIcon(c.icon);
+                            setCatColor(c.color);
+                            setCatBg(c.bg_color);
+                            setIsCategoryModalOpen(true);
+                        }}
+                        handleDeleteCategory={handleDeleteBudgetCategory}
+                    />
                 ))}
             </div>
 
@@ -427,8 +438,8 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                                         onChange={(e) => setSelectedCategory(e.target.value)}
                                         className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl focus:ring-2 focus:ring-dagang-green/20 outline-none transition-all appearance-none font-bold text-[15px]"
                                     >
-                                        {CATEGORIES.map(c => (
-                                            <option key={c.id} value={c.id}>{c.label}</option>
+                                        {budgetCategories.map((c: any) => (
+                                            <option key={c.id} value={c.id}>{c.name}</option>
                                         ))}
                                     </select>
                                     <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-dagang-gray pointer-events-none" />
@@ -556,7 +567,7 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                                 <input
                                     type="number"
                                     value={allocateAmount || ''}
-                                    onChange={(e) => setAllocateAmount(parseFloat(e.target.value))}
+                                    onChange={(e) => setAllocateAmount(parseFloat(e.target.value) || 0)}
                                     className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl outline-none font-black text-[28px] text-dagang-green"
                                     placeholder="0"
                                     required
@@ -581,18 +592,18 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                         <p className="text-sm text-dagang-gray mb-8">Tentukan porsi budget untuk setiap kategori agar totalnya 100%.</p>
 
                         <div className="space-y-6">
-                            {CATEGORIES.map(cat => (
+                            {budgetCategories.map((cat: any) => (
                                 <div key={cat.id} className="space-y-3">
                                     <div className="flex justify-between items-center text-sm font-bold">
-                                        <span className="text-dagang-dark">{cat.label}</span>
-                                        <span className={`${cat.color} font-black`}>{(tempPercentages as any)[cat.id]}%</span>
+                                        <span className="text-dagang-dark">{cat.name}</span>
+                                        <span className={`${cat.color} font-black`}>{(tempPercentages as any)[cat.id] ?? cat.percentage}%</span>
                                     </div>
                                     <input
                                         type="range"
                                         min="0"
                                         max="100"
                                         step="5"
-                                        value={(tempPercentages as any)[cat.id]}
+                                        value={(tempPercentages as any)[cat.id] ?? cat.percentage}
                                         onChange={(e) => setTempPercentages({
                                             ...tempPercentages,
                                             [cat.id]: parseInt(e.target.value)
@@ -605,8 +616,17 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                             <div className="pt-6 border-t border-black/5 flex items-center justify-between">
                                 <div className="text-sm">
                                     <div className="text-dagang-gray uppercase text-[10px] font-black tracking-widest">Total Alokasi</div>
-                                    <div className={`text-2xl font-serif ${Object.values(tempPercentages).reduce((a, b: any) => a + b, 0) === 100 ? 'text-dagang-green' : 'text-red-500'}`}>
-                                        {Object.values(tempPercentages).reduce((a, b: any) => a + b, 0)}%
+                                    <div className={`text-2xl font-serif ${(() => {
+                                        const base = budgetCategories.reduce((a: any, c: any) => ({ ...a, [c.id]: c.percentage }), {});
+                                        const merged = { ...base, ...tempPercentages };
+                                        const total = Object.values(merged).reduce((a: number, b: any) => a + (Number(b) || 0), 0);
+                                        return total === 100 ? 'text-dagang-green' : 'text-red-500';
+                                    })()}`}>
+                                        {(() => {
+                                            const base = budgetCategories.reduce((a: any, c: any) => ({ ...a, [c.id]: c.percentage }), {});
+                                            const merged = { ...base, ...tempPercentages };
+                                            return Object.values(merged).reduce((a: number, b: any) => a + (Number(b) || 0), 0);
+                                        })()}%
                                     </div>
                                 </div>
                                 <div className="flex gap-3">
@@ -617,9 +637,15 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                                         BATAL
                                     </button>
                                     <button
-                                        onClick={() => {
-                                            setCategoryAllocations(tempPercentages);
+                                        onClick={async () => {
+                                            for (const catId in tempPercentages) {
+                                                const cat = budgetCategories.find((c: any) => c.id === catId);
+                                                if (cat) {
+                                                    await handleUpdateBudgetCategory(catId, { ...cat, percentage: tempPercentages[catId] });
+                                                }
+                                            }
                                             setIsEditingPercentages(false);
+                                            setTempPercentages({});
                                         }}
                                         className="px-8 py-3 bg-dagang-dark text-white rounded-xl font-bold text-xs shadow-lg shadow-black/10"
                                     >
@@ -628,6 +654,88 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {isCategoryModalOpen && (
+                <div className="fixed inset-0 bg-dagang-dark/40 backdrop-blur-sm z-[130] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[32px] w-full max-w-lg p-8 shadow-2xl relative animate-in zoom-in-95 duration-300">
+                        <button onClick={() => setIsCategoryModalOpen(false)} className="absolute right-6 top-6 p-2 text-dagang-gray hover:text-dagang-dark rounded-full transition-all">
+                            <X className="w-6 h-6" />
+                        </button>
+
+                        <h3 className="text-2xl font-serif mb-6 text-dagang-dark">
+                            {editingCategory ? 'Edit Kategori Budget' : 'Tambah Kategori Budget'}
+                        </h3>
+
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            const payload = {
+                                name: catName,
+                                percentage: catPercent,
+                                description: catDesc,
+                                icon: catIcon,
+                                color: catColor,
+                                bgColor: catBg,
+                                order: budgetCategories.length + 1
+                            };
+                            if (editingCategory) {
+                                await handleUpdateBudgetCategory(editingCategory.id, payload);
+                            } else {
+                                await handleCreateBudgetCategory(payload);
+                            }
+                            setIsCategoryModalOpen(false);
+                        }} className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-[11px] font-black text-dagang-gray uppercase tracking-widest pl-1">Nama Kategori</label>
+                                <input
+                                    type="text"
+                                    value={catName}
+                                    onChange={(e) => setCatName(e.target.value)}
+                                    placeholder="cth. Kebutuhan Pokok"
+                                    className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl outline-none font-bold"
+                                    required
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[11px] font-black text-dagang-gray uppercase tracking-widest pl-1">Persentase (%)</label>
+                                    <input
+                                        type="number"
+                                        value={catPercent}
+                                        onChange={(e) => setCatPercent(parseInt(e.target.value))}
+                                        className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl outline-none font-bold"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[11px] font-black text-dagang-gray uppercase tracking-widest pl-1">Icon</label>
+                                    <select
+                                        value={catIcon}
+                                        onChange={(e) => setCatIcon(e.target.value)}
+                                        className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl outline-none font-bold appearance-none"
+                                    >
+                                        <option value="ShoppingCart">Shopping</option>
+                                        <option value="Coffee">Coffee</option>
+                                        <option value="Coins">Coins</option>
+                                        <option value="ShieldCheck">Guard</option>
+                                        <option value="Wallet">Wallet</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[11px] font-black text-dagang-gray uppercase tracking-widest pl-1">Deskripsi</label>
+                                <textarea
+                                    value={catDesc}
+                                    onChange={(e) => setCatDesc(e.target.value)}
+                                    className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl outline-none font-bold min-h-[80px]"
+                                />
+                            </div>
+                            <button type="submit" className="w-full py-4 bg-dagang-dark text-white rounded-2xl font-black shadow-xl hover:scale-[1.02] transition-all">
+                                {editingCategory ? 'SIMPAN PERUBAHAN' : 'BUAT KATEGORI'}
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}

@@ -10,8 +10,9 @@ import (
 type Saving struct {
 	ID             uuid.UUID `gorm:"type:uuid;primary_key" json:"id"`
 	FamilyID       uuid.UUID `gorm:"type:uuid;not null;index" json:"family_id"`
-	Name           string    `gorm:"not null" json:"name"`
-	Category       string    `gorm:"type:varchar(255);default:'savings'" json:"category"` // needs, wants, savings, emergency
+	Name             string    `gorm:"not null" json:"name"`
+	BudgetCategoryID *uuid.UUID `gorm:"type:uuid;index" json:"budget_category_id"`
+	Category         string    `gorm:"type:varchar(255);default:'savings'" json:"category"` // legacy/backup field
 	TargetAmount   float64   `gorm:"type:decimal(12,2);not null" json:"target_amount"`
 	CurrentBalance float64   `gorm:"type:decimal(12,2);default:0" json:"current_balance"`
 	Emoji          string    `gorm:"type:varchar(50)" json:"emoji"`

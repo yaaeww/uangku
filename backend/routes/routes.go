@@ -29,9 +29,12 @@ func SetupRoutes(router *gin.Engine) {
 	v1 := router.Group("/api/v1")
 
 	// Dependencies
+	budgetService := services.NewBudgetService()
+	budgetController := controllers.NewBudgetController(budgetService)
+
 	authRepo := repositories.NewAuthRepository()
 	mailService := services.NewMailService()
-	authService := services.NewAuthService(authRepo, mailService)
+	authService := services.NewAuthService(authRepo, mailService, budgetService)
 	authController := controllers.NewAuthController(authService)
 
 	walletRepo := repositories.NewWalletRepository()
@@ -61,6 +64,9 @@ func SetupRoutes(router *gin.Engine) {
 
 	tripayService := services.NewTripayService()
 	paymentController := controllers.NewPaymentController(tripayService)
+
+	scannerService := services.NewScannerService()
+	scannerController := controllers.NewScannerController(scannerService)
 
 	// Public Routes
 	v1.POST("/auth/login", authController.Login)
@@ -96,6 +102,7 @@ func SetupRoutes(router *gin.Engine) {
 			finance.GET("/summary", financeController.GetDashboardSummary)
 			finance.POST("/transactions", financeController.CreateTransaction)
 			finance.POST("/transactions/bulk", financeController.CreateBulkTransactions)
+			finance.POST("/transactions/scan", scannerController.ScanReceipt)
 			finance.PUT("/transactions/:id", financeController.UpdateTransaction)
 			finance.DELETE("/transactions/:id", financeController.DeleteTransaction)
 			finance.GET("/behavior", financeController.GetBehaviorSummary)
@@ -140,6 +147,15 @@ func SetupRoutes(router *gin.Engine) {
 			// Payment Routes
 			finance.POST("/payment/create", paymentController.CreatePayment)
 			finance.GET("/payment/:id", paymentController.GetPayment)
+
+			// Budget Planning Routes
+			budget := finance.Group("/budget")
+			{
+				budget.GET("/categories", budgetController.ListCategories)
+				budget.POST("/categories", budgetController.CreateCategory)
+				budget.PUT("/categories/:id", budgetController.UpdateCategory)
+				budget.DELETE("/categories/:id", budgetController.DeleteCategory)
+			}
 		}
 
 		// Admin Routes

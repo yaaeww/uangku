@@ -30,7 +30,7 @@ func (s *mailService) SendOTP(email, otp string) error {
 		return nil
 	}
 
-	subject := "Verifikasi Akun DagangFinance"
+	subject := "Verifikasi Akun Uangku"
 	body := fmt.Sprintf("Kode OTP Anda adalah: %s. Kode ini berlaku selama 15 menit.", otp)
 
 	return s.sendActualEmail(email, subject, body)
@@ -42,7 +42,7 @@ func (s *mailService) SendWhatsAppOTP(phone, otp string) error {
 		return nil
 	}
 
-	message := fmt.Sprintf("Kode OTP DagangFinance Anda adalah: %s. Berlaku selama 15 menit. Jangan bagikan kode ini kepada siapa pun.", otp)
+	message := fmt.Sprintf("Kode OTP Uangku Anda adalah: %s. Berlaku selama 15 menit. Jangan bagikan kode ini kepada siapa pun.", otp)
 
 	payload := strings.NewReader(fmt.Sprintf("target=%s&message=%s", phone, message))
 	req, _ := http.NewRequest("POST", config.AppConfig.WAUrl, payload)
@@ -83,7 +83,7 @@ func (s *mailService) SendWhatsApp(phone, message string) error {
 }
 
 func (s *mailService) SendResetToken(email, token string) error {
-	subject := "Reset Password DagangFinance"
+	subject := "Reset Password Uangku"
 	body := fmt.Sprintf("Klik link berikut untuk reset password: http://localhost:5173/reset-password?token=%s", token)
 
 	if config.AppConfig.SMTPUser == "" {
@@ -96,7 +96,7 @@ func (s *mailService) SendResetToken(email, token string) error {
 
 func (s *mailService) SendInvitation(email, familyName, inviterName, role string) error {
 	subject := fmt.Sprintf("Undangan Bergabung ke Keluarga %s", familyName)
-	body := fmt.Sprintf("Halo! %s mengundang Anda untuk bergabung ke keluarga '%s' sebagai %s.\nSilakan daftar di DagangFinance menggunakan email ini untuk langsung bergabung.\nLink: http://localhost:5173/register", inviterName, familyName, role)
+	body := fmt.Sprintf("Halo! %s mengundang Anda untuk bergabung ke keluarga '%s' sebagai %s.\nSilakan daftar di Uangku menggunakan email ini untuk langsung bergabung.\nLink: http://localhost:5173/register", inviterName, familyName, role)
 
 	if config.AppConfig.SMTPUser == "" {
 		log.Printf("[MOCK] Invitation to %s: %s", email, familyName)

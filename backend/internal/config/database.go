@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"keuangan-keluarga/internal/models"
+	"github.com/google/uuid"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -40,6 +41,7 @@ func ConnectDatabase() {
 	}
 
 	err = DB.AutoMigrate(
+		&models.BudgetCategory{},
 		&models.User{},
 		&models.Family{},
 		&models.FamilyMember{},
@@ -62,6 +64,9 @@ func ConnectDatabase() {
 	seedDefaultSettings()
 	// Seed subscription plans
 	seedSubscriptionPlans()
+
+	// Retroactively seed missing budgets for all families
+	seedMissingBudgets()
 
 	// Manual Migration for Partitioning (SAS Method)
 	log.Println("Setting up transactions partitioning (SAS Method)...")
@@ -209,6 +214,10 @@ func seedDefaultSettings() {
 			Key:   "trial_duration_days",
 			Value: "7",
 		},
+		{
+			Key:   "trial_max_members",
+			Value: "2",
+		},
 	}
 
 	for _, s := range defaultSettings {
@@ -256,5 +265,81 @@ func seedSubscriptionPlans() {
 	for _, p := range defaultPlans {
 		// Use FirstOrCreate to ensure we don't duplicate names
 		DB.Where(models.SubscriptionPlan{Name: p.Name}).FirstOrCreate(&p)
+	}
+}
+
+func seedMissingBudgets() {
+	log.Println("Checking for families with missing budget categories...")
+	var families []models.Family
+	if err := DB.Find(&families).Error; err != nil {
+		log.Printf("[ERROR] Failed to fetch families for budget seeding: %v", err)
+		return
+	}
+
+	for _, family := range families {
+		var count int64
+		DB.Model(&models.BudgetCategory{}).Where("family_id = ?", family.ID).Count(&count)
+
+		if count == 0 {
+			log.Printf("[INFO] Seeding default budget for family: %s (%s)", family.Name, family.ID)
+			
+			// Define default categories
+			categories := []models.BudgetCategory{
+				{FamilyID: family.ID, Name: "Kebutuhan", Percentage: 50, Description: "Biaya rutin bulanan yang wajib dipenuhi", Icon: "ShoppingCart", Color: "text-blue-500", BgColor: "bg-blue-50", Order: 1},
+				{FamilyID: family.ID, Name: "Keinginan", Percentage: 30, Description: "Pengeluaran gaya hidup & hiburan", Icon: "Coffee", Color: "text-amber-500", BgColor: "bg-amber-50", Order: 2},
+				{FamilyID: family.ID, Name: "Tabungan", Percentage: 10, Description: "Investasi & dana untuk masa depan", Icon: "Coins", Color: "text-dagang-green", BgColor: "bg-dagang-green/5", Order: 3},
+				{FamilyID: family.ID, Name: "Dana Darurat", Percentage: 10, Description: "Cadangan dana untuk keadaan tak terduga", Icon: "ShieldCheck", Color: "text-red-500", BgColor: "bg-red-50", Order: 4},
+			}
+
+			for _, cat := range categories {
+				if err := DB.Create(&cat).Error; err != nil {
+					log.Printf("[ERROR] Failed to create budget category %s for family %s: %v", cat.Name, family.ID, err)
+					continue
+				}
+
+				var items []models.Saving
+				switch cat.Name {
+				case "Kebutuhan":
+					items = []models.Saving{
+						{Name: "Makan", Emoji: "🍲", TargetAmount: 1000000, DueDate: 1},
+						{Name: "Tempat Tinggal", Emoji: "🏠", TargetAmount: 2500000, DueDate: 1},
+						{Name: "Listrik", Emoji: "⚡", TargetAmount: 500000, DueDate: 10},
+						{Name: "Air", Emoji: "💧", TargetAmount: 150000, DueDate: 10},
+						{Name: "Internet", Emoji: "🌐", TargetAmount: 400000, DueDate: 5},
+						{Name: "Transportasi", Emoji: "🚐", TargetAmount: 800000, DueDate: 0},
+						{Name: "Kesehatan", Emoji: "🏥", TargetAmount: 300000, DueDate: 0},
+						{Name: "Pendidikan", Emoji: "🎓", TargetAmount: 1000000, DueDate: 0},
+						{Name: "Sedekah", Emoji: "🙌", TargetAmount: 200000, DueDate: 0},
+						{Name: "Kebutuhan Lain", Emoji: "📦", TargetAmount: 500000, DueDate: 0},
+					}
+				case "Keinginan":
+					items = []models.Saving{
+						{Name: "Belanja Online", Emoji: "🛍️", TargetAmount: 1000000, DueDate: 25},
+						{Name: "Hiburan", Emoji: "🎬", TargetAmount: 500000, DueDate: 0},
+						{Name: "Hangout", Emoji: "☕", TargetAmount: 700000, DueDate: 0},
+						{Name: "Jajan", Emoji: "🍿", TargetAmount: 400000, DueDate: 0},
+						{Name: "Hobi", Emoji: "🎨", TargetAmount: 300000, DueDate: 0},
+						{Name: "Gaya Hidup", Emoji: "👔", TargetAmount: 600000, DueDate: 0},
+					}
+				case "Tabungan":
+					items = []models.Saving{
+						{Name: "Investasi Saham", Emoji: "📈", TargetAmount: 1000000, DueDate: 0},
+					}
+				case "Dana Darurat":
+					items = []models.Saving{
+						{Name: "Dana Darurat Utama", Emoji: "🛡️", TargetAmount: 1000000, DueDate: 0},
+					}
+				}
+
+				for _, item := range items {
+					item.ID = uuid.New()
+					item.FamilyID = family.ID
+					item.BudgetCategoryID = &cat.ID
+					if err := DB.Create(&item).Error; err != nil {
+						log.Printf("[ERROR] Failed to create item %s for category %s: %v", item.Name, cat.Name, err)
+					}
+				}
+			}
+		}
 	}
 }

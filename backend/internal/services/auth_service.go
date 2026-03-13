@@ -36,10 +36,11 @@ type AuthService interface {
 type authService struct {
 	repo repositories.AuthRepository
 	mail MailService
+	budget *BudgetService
 }
 
-func NewAuthService(repo repositories.AuthRepository, mail MailService) AuthService {
-	return &authService{repo: repo, mail: mail}
+func NewAuthService(repo repositories.AuthRepository, mail MailService, budget *BudgetService) AuthService {
+	return &authService{repo: repo, mail: mail, budget: budget}
 }
 
 func (s *authService) Register(email, phoneNumber, password, fullName, familyName string, invitationID uuid.UUID) error {
@@ -161,6 +162,12 @@ func (s *authService) Register(email, phoneNumber, password, fullName, familyNam
 			Name: familyName,
 		}
 		if err := tx.Create(family).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// Seed default budget categories and items
+		if err := s.budget.SeedDefaultBudget(family.ID); err != nil {
 			tx.Rollback()
 			return err
 		}

@@ -6,8 +6,8 @@ import { AuthController } from '../../controllers/AuthController';
 export const SettingsView: React.FC = () => {
     const user = useAuthStore(state => state.user);
     const [profileData, setProfileData] = useState({
-        fullName: user?.fullName || '',
-        phoneNumber: user?.phoneNumber || ''
+        fullName: user?.fullName || (user as any)?.full_name || '',
+        phoneNumber: user?.phoneNumber || (user as any)?.phone_number || ''
     });
     const [passwordData, setPasswordData] = useState({
         currentPassword: '',

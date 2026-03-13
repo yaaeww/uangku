@@ -14,8 +14,13 @@ import {
     Brain,
     LogOut,
     ChevronDown,
-    Menu
+    Menu,
+    Clock,
+    Info,
+    Trash2
 } from 'lucide-react';
+import { NotificationController } from '../controllers/NotificationController';
+import { BudgetController, BudgetCategory } from '../controllers/BudgetController';
 import { useAuthStore } from '../store/authStore';
 import { FinanceController } from '../controllers/FinanceController';
 import { Transaction, Wallet as WalletModel } from '../models';
@@ -43,6 +48,9 @@ export const FamilyDashboard = () => {
     const [isSingleModalOpen, setIsSingleModalOpen] = useState(false);
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'income' | 'expense' | 'transfer'>('income');
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
 
     // New Transaction State
     const [newTx, setNewTx] = useState({
@@ -79,18 +87,22 @@ export const FamilyDashboard = () => {
         setLoading(true);
         try {
             const now = new Date();
-            const [txData, summaryData, walletData, savingData, debtData] = await Promise.all([
+            const [txData, summaryData, walletData, savingData, debtData, notifData, budgetData] = await Promise.all([
                 FinanceController.getMonthlyTransactions(now.getMonth() + 1, now.getFullYear()),
                 FinanceController.getDashboardSummary(now.getMonth() + 1, now.getFullYear()),
                 FinanceController.getWallets(),
                 FinanceController.getSavings(),
-                FinanceController.getDebts()
+                FinanceController.getDebts(),
+                NotificationController.getNotifications(),
+                BudgetController.getCategories()
             ]);
             setTransactions(txData);
             setSummary(summaryData);
             setWallets(walletData);
             setSavings(savingData);
             setDebts(debtData);
+            setBudgetCategories(budgetData);
+            setUnreadCount((notifData || []).filter((n: any) => !n.is_read).length);
 
             // Sync family name and status to user store if changed
             if (user && summaryData.family) {
@@ -344,7 +356,7 @@ export const FamilyDashboard = () => {
             <aside className="w-[280px] bg-dagang-dark text-white p-7 hidden lg:flex flex-col fixed h-full z-[70] overflow-y-auto custom-scrollbar">
                 <div className="flex items-center justify-between mb-12">
                     <div className="logo font-serif text-2xl">
-                        Dagang<span className="text-dagang-accent">Finance</span>
+                        Uang<span className="text-dagang-accent">ku</span>
                     </div>
                 </div>
 
@@ -454,10 +466,10 @@ export const FamilyDashboard = () => {
                     <div className="pt-6 border-t border-white/10 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-dagang-accent flex items-center justify-center font-bold text-sm text-dagang-dark shadow-lg shadow-dagang-accent/20">
-                                {user?.fullName?.charAt(0) || 'U'}
+                                {user?.fullName?.charAt(0) || (user as any)?.full_name?.charAt(0) || 'U'}
                             </div>
                             <div>
-                                <div className="text-[13px] font-bold truncate max-w-[120px]">{user?.fullName || 'User'}</div>
+                                <div className="text-[13px] font-bold truncate max-w-[120px]">{user?.fullName || (user as any)?.full_name || 'User'}</div>
                                 <div className="text-[10px] text-white/30 uppercase font-black tracking-widest">{user?.role?.replace('_', ' ') || 'Member'}</div>
                             </div>
                         </div>
@@ -477,14 +489,17 @@ export const FamilyDashboard = () => {
                     <div className="flex items-center gap-4">
                         {/* Removed mobile sidebar toggle */}
                         <div>
-                            <h1 className="text-xl sm:text-[28px] font-serif leading-tight">Halo, {user?.fullName?.split(' ')[0]}! 👋</h1>
+                            <h1 className="text-h4 mobile:text-h2 font-heading leading-tight">Halo, {(user?.fullName || (user as any)?.full_name)?.split(' ')[0]}! 👋</h1>
                             <p className="hidden sm:block text-dagang-gray text-sm mt-1">
                                 Hari ini {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                             </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className="hidden sm:flex items-center gap-2 px-5 py-3 bg-white border border-black/5 rounded-2xl text-[13px] font-bold shadow-sm cursor-pointer hover:bg-dagang-cream/50 transition-all">
+                        <div 
+                            onClick={() => navigate('family')}
+                            className="hidden sm:flex items-center gap-2 px-5 py-3 bg-white border border-black/5 rounded-2xl text-[13px] font-bold shadow-sm cursor-pointer hover:bg-dagang-cream/50 transition-all active:scale-95"
+                        >
                             {summary?.family?.photo_url ? (
                                 <img 
                                     src={`http://localhost:3001${summary.family.photo_url}`} 
@@ -497,10 +512,28 @@ export const FamilyDashboard = () => {
                             <span className="truncate max-w-[150px]">{summary?.family?.name || user?.familyName || 'Keluarga'}</span>
                             <ChevronDown className="w-4 h-4 opacity-40" />
                         </div>
-                        <button className="p-3 bg-white border border-black/5 rounded-2xl text-dagang-gray hover:text-dagang-green transition-all relative shadow-sm">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-3.5 right-3.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-                        </button>
+                        <div className="relative">
+                            <button 
+                                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                                className={`p-3 border border-black/5 rounded-2xl transition-all relative shadow-sm ${isNotificationOpen ? 'bg-dagang-green text-white shadow-lg' : 'bg-white text-dagang-gray hover:text-dagang-green'}`}
+                            >
+                                <Bell className="w-5 h-5" />
+                                {unreadCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-sm" >
+                                        {unreadCount > 9 ? '9+' : unreadCount}
+                                    </span>
+                                )}
+                            </button>
+
+                            {/* Notification Dropdown */}
+                            {isNotificationOpen && (
+                                <NotificationDropdown 
+                                    onClose={() => setIsNotificationOpen(false)}
+                                    unreadCount={unreadCount}
+                                    refreshDashboard={fetchData}
+                                />
+                            )}
+                        </div>
                     </div>
                 </header>
 
@@ -533,7 +566,12 @@ export const FamilyDashboard = () => {
                     setIsSingleModalOpen,
                     isBulkModalOpen,
                     setIsBulkModalOpen,
+                    budgetCategories,
+                    handleCreateBudgetCategory: async (cat: any) => { await BudgetController.createCategory(cat); fetchData(); },
+                    handleUpdateBudgetCategory: async (id: string, cat: any) => { await BudgetController.updateCategory(id, cat); fetchData(); },
+                    handleDeleteBudgetCategory: async (id: string) => { if(confirm('Hapus kategori?')) { await BudgetController.deleteCategory(id); fetchData(); } },
                     categories: CATEGORIES,
+                    familyMembers: summary?.family?.members || [],
                     refreshDashboard: fetchData
                 }} />
             </main>
@@ -671,7 +709,7 @@ const MobileMenuItem = ({ icon: Icon, label, active = false, to, onClick }: { ic
     const content = (
         <div className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-300 ${active ? 'bg-dagang-green text-white shadow-lg shadow-dagang-green/20 font-bold' : 'text-white/50 hover:text-white'}`}>
             <Icon className="w-5 h-5" />
-            <span className="text-base">{label}</span>
+            <span className="text-body-m">{label}</span>
         </div>
     );
 
@@ -694,7 +732,7 @@ const SidebarItem = ({ icon: Icon, label, active = false, to, onClick }: { icon:
     const content = (
         <>
             <Icon className={`w-5 h-5 transition-transform ${active ? 'scale-110' : ''}`} />
-            <span className="text-[14px]">{label}</span>
+            <span className="text-body-m">{label}</span>
         </>
     );
 
@@ -715,5 +753,118 @@ const SidebarItem = ({ icon: Icon, label, active = false, to, onClick }: { icon:
         <button onClick={onClick} className={className}>
             {content}
         </button>
+    );
+};
+
+const NotificationDropdown = ({ onClose, unreadCount, refreshDashboard }: { onClose: () => void, unreadCount: number, refreshDashboard: () => void }) => {
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+
+    const fetchNotifications = async () => {
+        try {
+            const data = await NotificationController.getNotifications();
+            // Show only latest 5 for dropdown
+            setNotifications(data.slice(0, 5));
+        } catch (error) {
+            console.error('Failed to fetch notifications:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchNotifications();
+    }, []);
+
+    const handleMarkAsRead = async (id: string) => {
+        try {
+            await NotificationController.markAsRead(id);
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+            // Trigger parent refresh to update badge count
+            refreshDashboard();
+        } catch (error) {
+            console.error('Failed to mark as read:', error);
+        }
+    };
+
+    const getIcon = (type: string) => {
+        switch (type) {
+            case 'reminder': return <Clock className="w-4 h-4 text-orange-500" />;
+            case 'alert': return <Trash2 className="w-4 h-4 text-red-500" />;
+            case 'info': return <Info className="w-4 h-4 text-blue-500" />;
+            default: return <Bell className="w-4 h-4 text-dagang-green" />;
+        }
+    };
+
+    return (
+        <div className="absolute top-full right-0 mt-4 w-[320px] sm:w-[380px] bg-white rounded-[24px] border border-black/5 shadow-2xl shadow-black/10 z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="p-6 border-b border-black/5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <h3 className="text-body-m font-black text-dagang-dark">Notifikasi</h3>
+                    {unreadCount > 0 && (
+                        <span className="px-2 py-0.5 bg-dagang-green/10 text-dagang-green text-[10px] font-black rounded-full uppercase tracking-widest">
+                            {unreadCount} Baru
+                        </span>
+                    )}
+                </div>
+                <button 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onClose();
+                    }}
+                    className="p-2 hover:bg-black/5 rounded-xl transition-colors"
+                >
+                    <X className="w-4 h-4 text-dagang-gray" />
+                </button>
+            </div>
+
+            <div className="divide-y divide-black/5 max-h-[360px] overflow-y-auto custom-scrollbar">
+                {loading ? (
+                    <div className="p-10 text-center text-dagang-gray text-body-s animate-pulse">Memuat...</div>
+                ) : notifications.length === 0 ? (
+                    <div className="p-10 text-center text-dagang-gray text-body-s italic">Tidak ada notifikasi baru.</div>
+                ) : (
+                    notifications.map((n: any) => (
+                        <div 
+                            key={n.id} 
+                            className={`p-5 flex items-start gap-4 transition-all hover:bg-dagang-cream/10 cursor-pointer ${!n.is_read ? 'bg-dagang-green/5' : ''}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (!n.is_read) handleMarkAsRead(n.id);
+                            }}
+                        >
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${!n.is_read ? 'bg-dagang-green/10' : 'bg-black/5'}`}>
+                                {getIcon(n.type)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-0.5">
+                                    <h4 className={`text-[13px] truncate ${!n.is_read ? 'font-black' : 'font-bold'} text-dagang-dark uppercase tracking-tight`}>
+                                        {n.title}
+                                    </h4>
+                                    <span className="text-[9px] font-black text-dagang-gray/30 uppercase shrink-0">
+                                        {new Date(n.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                                    </span>
+                                </div>
+                                <p className="text-[12px] text-dagang-gray leading-relaxed line-clamp-2">
+                                    {n.message}
+                                </p>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            <button 
+                onClick={(e) => {
+                    e.stopPropagation();
+                    navigate('notifications');
+                    onClose();
+                }}
+                className="w-full p-4 text-body-s font-black text-dagang-green hover:bg-dagang-green hover:text-white transition-all border-t border-black/5 flex items-center justify-center gap-2 uppercase tracking-widest"
+            >
+                Lihat Semua Notifikasi <ChevronDown className="w-3 h-3 -rotate-90" />
+            </button>
+        </div>
     );
 };
