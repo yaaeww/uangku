@@ -80,6 +80,16 @@ func (ctrl *FinanceController) CreateTransaction(c *gin.Context) {
 		return
 	}
 
+	// Reload to get association data (User)
+	if reloadedTx, err := ctrl.service.GetMonthlyTransactions(tx.FamilyID, int(tx.Date.Month()), tx.Date.Year()); err == nil {
+		for _, rtx := range reloadedTx {
+			if rtx.ID == tx.ID {
+				tx = rtx
+				break
+			}
+		}
+	}
+
 	c.JSON(http.StatusCreated, tx)
 }
 
@@ -135,6 +145,16 @@ func (ctrl *FinanceController) UpdateTransaction(c *gin.Context) {
 		log.Printf("[ERROR] Service.UpdateTransaction failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Reload to get association data (User)
+	if reloadedTx, err := ctrl.service.GetMonthlyTransactions(tx.FamilyID, int(tx.Date.Month()), tx.Date.Year()); err == nil {
+		for _, rtx := range reloadedTx {
+			if rtx.ID == tx.ID {
+				tx = rtx
+				break
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, tx)

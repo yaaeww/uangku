@@ -645,8 +645,18 @@ const TransactionItem = ({
                          isTransfer ? <ArrowRightLeft className="w-6 h-6" /> :
                          isSaving ? <Target className="w-6 h-6" /> : <TrendingDown className="w-6 h-6" />}
                     </div>
-                    <div>
-                        <h4 className="text-[15px] font-bold text-dagang-dark leading-snug">{tx.description}</h4>
+                    <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                            <h4 className="text-[15px] font-bold text-dagang-dark leading-snug">{tx.description}</h4>
+                            {tx.user?.fullName && (
+                                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-dagang-dark/5 rounded-full border border-black/5" title={`Dicatat oleh ${tx.user.fullName}`}>
+                                    <div className="w-4 h-4 rounded-full bg-dagang-green/20 flex items-center justify-center text-[9px] font-black text-dagang-green">
+                                        {tx.user.fullName[0].toUpperCase()}
+                                    </div>
+                                    <span className="text-[9px] font-bold text-dagang-gray/60 uppercase tracking-tighter">{tx.user.fullName.split(' ')[0]}</span>
+                                </div>
+                            )}
+                        </div>
                         <div className="flex items-center gap-2 mt-1">
                             <span className="text-[10px] font-black uppercase tracking-widest text-dagang-gray opacity-30">
                                 {tx.category || (isSaving ? 'Tabungan' : 'Lainnya')}
@@ -694,6 +704,15 @@ const TransactionItem = ({
                                 <span className="text-dagang-dark">
                                     {new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                 </span>
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] font-bold py-3 border-b border-black/[0.03]">
+                            <span className="text-dagang-gray opacity-40 uppercase tracking-widest">DICATAT OLEH</span>
+                            <div className="flex items-center gap-2">
+                                <div className="w-5 h-5 rounded-full bg-dagang-dark/5 flex items-center justify-center text-[10px] font-bold text-dagang-dark">
+                                    {tx.user?.fullName?.[0]?.toUpperCase() || '?'}
+                                </div>
+                                <span className="text-dagang-dark">{tx.user?.fullName || 'Sistem / Unknown'}</span>
                             </div>
                         </div>
                     </div>

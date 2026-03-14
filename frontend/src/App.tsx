@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+// Final nudge to clear IDE errors
 import { LandingPage } from './views/LandingPage';
 import { LoginPage } from './views/LoginPage';
 import { RegisterPage } from './views/RegisterPage';
@@ -26,6 +27,9 @@ import { SeoAudit } from './views/blog/SeoAudit';
 import { WritingRoomLayout } from './views/blog/WritingRoomLayout';
 import { BlogList } from './views/blog/BlogList';
 import { BlogDetail } from './views/blog/BlogDetail';
+import { PlanPricingView } from './views/family/PlanPricingView';
+import { PaymentInvoiceView } from './views/family/PaymentInvoiceView';
+import { PurchaseHistoryView } from './views/family/PurchaseHistoryView';
 
 const DashboardOverviewWrapper = () => {
   const context = useOutletContext<any>();
@@ -61,6 +65,21 @@ const MembersViewWrapper = () => {
 const DebtViewWrapper = () => {
   const context = useOutletContext<any>();
   return <DebtView {...context} />;
+};
+
+const PricingViewWrapper = () => {
+    const context = useOutletContext<any>();
+    return <PlanPricingView {...context} />;
+};
+
+const InvoiceViewWrapper = () => {
+    const context = useOutletContext<any>();
+    return <PaymentInvoiceView {...context} />;
+};
+
+const PurchaseHistoryViewWrapper = () => {
+    const context = useOutletContext<any>();
+    return <PurchaseHistoryView {...context} />;
 };
 
 const NotificationsViewWrapper = () => {
@@ -124,7 +143,12 @@ function App() {
             <Route path="wallets" element={<WalletsViewWrapper />} />
             <Route path="budget" element={<BudgetViewWrapper />} />
             <Route path="coach" element={<CoachViewWrapper />} />
-            <Route path="family" element={<MembersViewWrapper />} />
+            <Route path="family">
+              <Route index element={<MembersViewWrapper />} />
+              <Route path="pricing" element={<PricingViewWrapper />} />
+              <Route path="invoice/:reference" element={<InvoiceViewWrapper />} />
+              <Route path="history" element={<PurchaseHistoryViewWrapper />} />
+            </Route>
             <Route path="debts" element={<DebtViewWrapper />} />
             <Route path="notifications" element={<NotificationsViewWrapper />} />
             <Route path="settings" element={<SettingsViewWrapper />} />

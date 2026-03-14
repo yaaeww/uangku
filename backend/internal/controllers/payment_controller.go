@@ -74,9 +74,9 @@ func (pc *PaymentController) CreatePayment(c *gin.Context) {
 		FamilyID:      user.FamilyMember.FamilyID,
 		PlanID:        plan.ID,
 		PlanName:      plan.Name,
-		Amount:        tripayResp.Data.Amount,
-		Fee:           tripayResp.Data.TotalFee,
-		TotalAmount:   tripayResp.Data.AmountReceived,
+		Amount:        tripayResp.Data.AmountReceived, // Base price (Net)
+		Fee:           tripayResp.Data.TotalFee,       // Service Fee
+		TotalAmount:   tripayResp.Data.Amount,        // Total customer pays (Gross)
 		Status:        "UNPAID",
 		PaymentMethod: tripayResp.Data.PaymentMethod,
 		PaymentName:   tripayResp.Data.PaymentName,
@@ -200,6 +200,48 @@ func (pc *PaymentController) GetPayment(c *gin.Context) {
 	c.JSON(http.StatusOK, payment)
 }
 
+// ListPayments - Returns all payment transactions for the family (protected)
+func (pc *PaymentController) ListPayments(c *gin.Context) {
+	familyID, exists := c.Get("family_id")
+	if !exists {
+		// Fallback for head_of_family if family_id is not in context but user_id is
+		userID, _ := c.Get("user_id")
+		var member models.FamilyMember
+		if err := config.DB.Where("user_id = ?", userID).First(&member).Error; err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return
+		}
+		familyID = member.FamilyID
+	}
+
+	var payments []models.PaymentTransaction
+	if err := config.DB.Where("family_id = ?", familyID).Order("created_at desc").Find(&payments).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch payments"})
+		return
+	}
+
+	c.JSON(http.StatusOK, payments)
+}
+
+// DeletePayment - Deletes a payment record (protected)
+func (pc *PaymentController) DeletePayment(c *gin.Context) {
+	id := c.Param("id")
+	familyID, _ := c.Get("family_id")
+
+	var payment models.PaymentTransaction
+	if err := config.DB.Where("id = ? AND family_id = ?", id, familyID).First(&payment).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Transaction not found"})
+		return
+	}
+
+	if err := config.DB.Delete(&payment).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete transaction"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Transaction record deleted"})
+}
+
 // activateSubscription - Activates/extends the family's subscription after payment
 func (pc *PaymentController) activateSubscription(payment models.PaymentTransaction) {
 	var family models.Family
@@ -247,4 +289,68 @@ func (pc *PaymentController) activateSubscription(payment models.PaymentTransact
 			log.Printf("[Subscription] Warning: Failed to create notification: %v", err)
 		}
 	}
+}
+// SimulatePayment - Mock payment for testing/dev to avoid real TriPay costs
+func (pc *PaymentController) SimulatePayment(c *gin.Context) {
+	var req struct {
+		PlanID string `json:"plan_id" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID Paket diperlukan"})
+		return
+	}
+
+	// 1. Get Plan
+	var plan models.SubscriptionPlan
+	if err := config.DB.Where("id = ?", req.PlanID).First(&plan).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Paket tidak ditemukan"})
+		return
+	}
+
+	// 2. Get User
+	userIDStr := c.GetString("user_id")
+	userID, _ := uuid.Parse(userIDStr)
+	var user models.User
+	if err := config.DB.Preload("FamilyMember").Where("id = ?", userID).First(&user).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User tidak ditemukan"})
+		return
+	}
+
+	if user.FamilyMember == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User tidak memiliki keluarga"})
+		return
+	}
+
+	// 3. Create a Successful Mock Transaction
+	now := time.Now()
+	merchantRef := fmt.Sprintf("SIM-%d", now.UnixNano())
+	payment := models.PaymentTransaction{
+		Reference:     "SIM-" + uuid.New().String()[:8],
+		MerchantRef:   merchantRef,
+		FamilyID:      user.FamilyMember.FamilyID,
+		PlanID:        plan.ID,
+		PlanName:      plan.Name,
+		Amount:        plan.Price,
+		TotalAmount:   plan.Price,
+		Status:        "PAID",
+		PaymentMethod: "SIMULATION",
+		PaymentName:   "Simulasi Pembayaran",
+		PaidAt:        &now,
+		ExpiredAt:     now.Add(24 * time.Hour),
+	}
+
+	if err := config.DB.Create(&payment).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mencatat simulasi transaksi"})
+		return
+	}
+
+	// 4. Activate Subscription
+	pc.activateSubscription(payment)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":   fmt.Sprintf("Simulasi pembayaran paket %s berhasil!", plan.Name),
+		"reference": payment.Reference,
+		"plan":      plan.Name,
+	})
 }

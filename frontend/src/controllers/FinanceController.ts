@@ -15,7 +15,8 @@ export const FinanceController = {
             amount: tx.amount,
             category: tx.category,
             date: tx.date,
-            description: tx.description
+            description: tx.description,
+            user: tx.user ? { fullName: tx.user.full_name } : undefined
         }));
     },
 
@@ -65,7 +66,8 @@ export const FinanceController = {
             amount: newTx.amount,
             category: newTx.category,
             date: newTx.date,
-            description: newTx.description
+            description: newTx.description,
+            user: newTx.user ? { fullName: newTx.user.full_name } : undefined
         };
     },
 
@@ -98,7 +100,21 @@ export const FinanceController = {
             date: tx.date
         };
         const response = await api.put(`/finance/transactions/${id}`, payload);
-        return response.data;
+        const updatedTx = response.data;
+        return {
+            id: updatedTx.id,
+            familyId: updatedTx.family_id,
+            userId: updatedTx.user_id,
+            walletId: updatedTx.wallet_id,
+            toWalletId: updatedTx.to_wallet_id,
+            savingId: updatedTx.saving_id,
+            type: updatedTx.type,
+            amount: updatedTx.amount,
+            category: updatedTx.category,
+            date: updatedTx.date,
+            description: updatedTx.description,
+            user: updatedTx.user ? { fullName: updatedTx.user.full_name } : undefined
+        };
     },
 
     deleteTransaction: async (id: string): Promise<any> => {
@@ -289,6 +305,17 @@ export const FinanceController = {
 
     updateFamilyBudget: async (amount: number): Promise<any> => {
         const response = await api.put('/finance/budget', { amount });
+        return response.data;
+    },
+
+    // Payments
+    getPayments: async (): Promise<any[]> => {
+        const response = await api.get('/finance/payments');
+        return response.data;
+    },
+
+    deletePayment: async (id: string): Promise<any> => {
+        const response = await api.delete(`/finance/payments/${id}`);
         return response.data;
     }
 };

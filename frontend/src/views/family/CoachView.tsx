@@ -132,7 +132,10 @@ export const CoachView: React.FC = () => {
 
                 {/* Behavioral Insights */}
                 <div className="lg:col-span-2 space-y-4">
-                    <h3 className="text-[11px] font-black text-dagang-gray/50 tracking-[0.2em] uppercase px-4">AI Coach Insights</h3>
+                    <h3 className="text-[11px] font-black text-dagang-gray/50 tracking-[0.2em] uppercase px-4 flex items-center justify-between">
+                        <span>AI Coach Insights</span>
+                        {behavior?.avg_daily && <span className="text-dagang-green">Avg: Rp{behavior.avg_daily.toLocaleString()}</span>}
+                    </h3>
                     {behavior?.insights?.map((insight: any, idx: number) => (
                         <div key={idx} className="bg-white p-6 rounded-[24px] border border-black/5 shadow-sm flex gap-5 hover:translate-x-1 transition-transform cursor-default group">
                             <div className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center ${
@@ -159,6 +162,38 @@ export const CoachView: React.FC = () => {
                             Belum ada anomali perilaku yang terdeteksi. Terus catat transaksi kamu!
                         </div>
                     )}
+                </div>
+            </div>
+
+            {/* Member Profiles Section */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between px-4">
+                    <h3 className="text-[11px] font-black text-dagang-gray/50 tracking-[0.2em] uppercase">Karakter Pengeluaran Keluarga</h3>
+                    <div className="text-[10px] font-bold text-dagang-green flex items-center gap-1 bg-dagang-green/10 px-2 py-1 rounded-full">
+                         <Brain className="w-3 h-3" /> Berdasarkan Pola Belanja
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {behavior?.member_profiles?.map((profile: any, idx: number) => (
+                        <div key={idx} className="bg-white p-6 rounded-[28px] border border-black/5 shadow-sm hover:shadow-md transition-all group">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="w-10 h-10 rounded-full bg-dagang-dark/5 flex items-center justify-center font-bold text-dagang-dark">
+                                    {profile.full_name[0]}
+                                </div>
+                                <div>
+                                    <div className="text-[14px] font-bold text-dagang-dark">{profile.full_name}</div>
+                                    <div className="text-[11px] font-bold text-dagang-green uppercase">{profile.trait}</div>
+                                </div>
+                            </div>
+                            <p className="text-xs text-dagang-gray leading-relaxed mb-4 line-clamp-2">
+                                {profile.description}
+                            </p>
+                            <div className="pt-4 border-t border-black/5 flex items-center justify-between">
+                                <div className="text-[10px] font-black text-dagang-gray/40 uppercase">Saving Rate</div>
+                                <div className="text-sm font-serif text-dagang-dark">{profile.saving_rate?.toFixed(1)}%</div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 

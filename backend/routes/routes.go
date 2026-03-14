@@ -177,10 +177,14 @@ func SetupRoutes(router *gin.Engine) {
 			finance.GET("/families/profile", familyController.GetFamilyProfile)
 			finance.PUT("/families/profile", familyController.UpdateFamily)
 			finance.DELETE("/families/profile/photo", familyController.DeleteFamilyPhoto)
+			finance.PUT("/families/plan", familyController.UpdateSubscriptionPlan)
 
 			// Payment Routes
 			finance.POST("/payment/create", paymentController.CreatePayment)
+			finance.GET("/payments", paymentController.ListPayments)
 			finance.GET("/payment/:id", paymentController.GetPayment)
+			finance.DELETE("/payments/:id", paymentController.DeletePayment)
+			finance.POST("/payment/simulate", paymentController.SimulatePayment)
 
 			// Budget Planning Routes
 			budget := finance.Group("/budget")

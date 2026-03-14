@@ -6,5 +6,7 @@
         "build.directoryFilters": [
             "-frontend"
         ]
-    }
+    },
+    "css.lint.unknownAtRules": "ignore",
+    "scss.lint.unknownAtRules": "ignore"
 }

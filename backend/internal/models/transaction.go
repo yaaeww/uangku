@@ -21,6 +21,7 @@ type Transaction struct {
 	Date        time.Time  `gorm:"not null;primary_key;index:idx_tx_family_date" json:"date"`
 	Description string     `json:"description"`
 	CreatedAt   time.Time  `json:"created_at"`
+	User        User       `gorm:"foreignKey:UserID" json:"user,omitempty"`
 }
 
 // TableName overrides the table name to ensure it's correct for partitioning logic

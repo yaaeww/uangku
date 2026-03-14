@@ -533,6 +533,13 @@ export const FamilyDashboard = () => {
                         to="debts"
                         onClick={() => { }}
                     />
+                    <SidebarItem 
+                        icon={History} 
+                        label="Riwayat Pembelian" 
+                        active={currentPath === 'history'}
+                        to="family/history"
+                        onClick={() => { }}
+                    />
                     <div className="pt-8 pb-4">
                         <span className="px-4 text-[10px] font-black uppercase tracking-[0.2em] text-white/20">Keluarga</span>
                     </div>

@@ -34,6 +34,9 @@ export interface Transaction {
     category: string | null;
     date: string;
     description: string;
+    user?: {
+        fullName: string;
+    };
 }
 
 export interface Saving {

@@ -13,8 +13,10 @@ import {
     CreditCard,
     Banknote,
     PieChart,
-    UserPlus
+    UserPlus,
+    Clock
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -48,6 +50,93 @@ interface DashboardOverviewProps {
     familyMembers?: any[];
 }
 
+const SubscriptionBanner = ({ family }: { family: any }) => {
+    if (!family || (family.status !== 'trial' && family.status !== 'active')) return null;
+
+    const [timeLeft, setTimeLeft] = React.useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+    React.useEffect(() => {
+        const calculateTimeLeft = () => {
+            const targetDate = family.status === 'trial' ? family.trial_ends_at : family.subscription_ends_at;
+            if (!targetDate) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+            
+            const target = new Date(targetDate).getTime();
+            const now = new Date().getTime();
+            const diff = target - now;
+
+            if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+
+            return {
+                days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+                hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+                minutes: Math.floor((diff / 1000 / 60) % 60),
+                seconds: Math.floor((diff / 1000) % 60)
+            };
+        };
+
+        const timer = setInterval(() => {
+            setTimeLeft(calculateTimeLeft());
+        }, 1000);
+
+        setTimeLeft(calculateTimeLeft());
+        return () => clearInterval(timer);
+    }, [family.trial_ends_at, family.subscription_ends_at, family.status]);
+
+    const isTrial = family.status === 'trial';
+    const planName = family.subscription_plan || 'Standard';
+
+    return (
+        <div className={`bg-gradient-to-r ${isTrial ? 'from-dagang-green/10' : 'from-dagang-accent/10'} to-transparent border-l-4 ${isTrial ? 'border-dagang-green' : 'border-dagang-accent'} rounded-r-xl p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-700`}>
+            <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 ${isTrial ? 'bg-dagang-green' : 'bg-dagang-accent'} rounded-2xl flex items-center justify-center text-white shadow-lg ${isTrial ? 'shadow-dagang-green/20' : 'shadow-dagang-accent/20'} shrink-0`}>
+                    {isTrial ? <AlertCircle className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
+                </div>
+                <div>
+                    <div className="text-[14px] sm:text-[16px] font-bold text-dagang-dark flex items-center gap-2">
+                        {isTrial ? 'Trial Gratis sedang aktif' : `Paket ${planName} Aktif`}
+                        {!isTrial && (
+                            <span className="px-2 py-0.5 bg-dagang-accent/20 text-dagang-accent text-[10px] font-black uppercase rounded-md tracking-widest">Premium</span>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[12px] sm:text-[14px] text-dagang-gray">
+                            {isTrial ? 'Nikmati semua fitur premium. Tersisa:' : 'Masa aktif paket Anda tersisa:'}
+                        </span>
+                        <div className="flex items-center gap-1">
+                            {[
+                                { val: timeLeft.days, unit: 'H' },
+                                { val: timeLeft.hours, unit: 'J' },
+                                { val: timeLeft.minutes, unit: 'M' },
+                                { val: timeLeft.seconds, unit: 'D' }
+                            ].map((t, i) => (
+                                <React.Fragment key={t.unit}>
+                                    <div className={`flex items-baseline gap-0.5 px-2 py-0.5 ${isTrial ? 'bg-dagang-green/10' : 'bg-dagang-accent/10'} rounded-md`}>
+                                        <span className={`text-[13px] font-black ${isTrial ? 'text-dagang-green' : 'text-dagang-accent'} tabular-nums`}>
+                                            {String(t.val).padStart(2, '0')}
+                                        </span>
+                                        <span className={`text-[9px] font-bold ${isTrial ? 'text-dagang-green/50' : 'text-dagang-accent/50'}`}>{t.unit}</span>
+                                    </div>
+                                    {i < 3 && <span className={`${isTrial ? 'text-dagang-green/30' : 'text-dagang-accent/30'} font-bold`}>:</span>}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {isTrial && (
+                <Link to={`/${encodeURIComponent(family.name)}/dashboard/family/pricing`} className="w-full sm:w-auto px-6 py-3 bg-dagang-green text-white rounded-full text-[14px] font-bold hover:bg-dagang-green-light transition-all whitespace-nowrap shadow-lg shadow-dagang-green/10 flex items-center justify-center sm:justify-start gap-2 group">
+                    Pilih Paket <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+            )}
+            {!isTrial && planName !== 'Premium' && (
+                <Link to={`/${encodeURIComponent(family.name)}/dashboard/family/pricing`} className="w-full sm:w-auto px-6 py-3 bg-dagang-dark text-white rounded-full text-[14px] font-bold hover:bg-black transition-all whitespace-nowrap shadow-lg shadow-dagang-dark/10 flex items-center justify-center sm:justify-start gap-2 group">
+                    Upgrade Paket <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+            )}
+        </div>
+    );
+};
+
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     summary,
     wallets,
@@ -62,31 +151,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Trial Alert Banner */}
-            {summary?.family?.status === 'trial' && (
-                <div className="bg-gradient-to-r from-dagang-green/10 to-transparent border-l-4 border-dagang-green rounded-r-xl p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-dagang-green rounded-2xl flex items-center justify-center text-white shadow-lg shadow-dagang-green/20 shrink-0">
-                            <AlertCircle className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <div className="text-[14px] sm:text-[16px] font-bold text-dagang-dark">Trial Gratis sedang aktif</div>
-                            <p className="text-[12px] sm:text-[14px] text-dagang-gray">
-                                {(() => {
-                                    const trialEnds = new Date(summary.family.trial_ends_at);
-                                    const diff = trialEnds.getTime() - new Date().getTime();
-                                    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-                                    const remaining = days > 0 ? days : 0;
-                                    return `Nikmati semua fitur premium. Tersisa ${remaining} hari lagi.`;
-                                })()}
-                            </p>
-                        </div>
-                    </div>
-                    <a href="/pricing" className="w-full sm:w-auto px-6 py-3 bg-dagang-green text-white rounded-full text-[14px] font-bold hover:bg-dagang-green-light transition-all whitespace-nowrap shadow-lg shadow-dagang-green/10 flex items-center justify-center sm:justify-start gap-2 group">
-                        Pilih Paket <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </a>
-                </div>
-            )}
+            {/* Subscription & Trial Status */}
+            <SubscriptionBanner family={summary?.family} />
 
             {/* Setup Checklist Guide */}
             <SetupChecklist

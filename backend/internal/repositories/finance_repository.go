@@ -55,7 +55,7 @@ func (r *financeRepository) GetMonthlyTransactions(familyID uuid.UUID, month int
 	startDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	endDate := startDate.AddDate(0, 1, 0)
 
-	err := config.DB.Where("family_id = ? AND date >= ? AND date < ?", familyID, startDate, endDate).
+	err := config.DB.Preload("User").Where("family_id = ? AND date >= ? AND date < ?", familyID, startDate, endDate).
 		Order("date DESC").
 		Find(&transactions).Error
 
@@ -181,7 +181,7 @@ func (r *financeRepository) GetDashboardSummary(familyID uuid.UUID, month int, y
 
 func (r *financeRepository) GetByID(id uuid.UUID) (*models.Transaction, error) {
 	var tx models.Transaction
-	err := config.DB.First(&tx, "id = ?", id).Error
+	err := config.DB.Preload("User").First(&tx, "id = ?", id).Error
 	return &tx, err
 }
 

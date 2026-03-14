@@ -11,18 +11,125 @@ import {
     Mail,
     X,
     Copy,
-    ExternalLink,
     MessageCircle,
+    ExternalLink,
     Camera,
     Save,
-    Home
+    Home,
+    ArrowUpCircle,
+    Star,
+    AlertCircle
 } from 'lucide-react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import { FinanceController } from '../../controllers/FinanceController';
 import api, { getStorageUrl } from '../../services/api';
 
+const SubscriptionCountdown: React.FC<{ family: any }> = ({ family }) => {
+    if (!family || (family.status !== 'trial' && family.status !== 'active')) return null;
+
+    const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+    useEffect(() => {
+        const calculateTimeLeft = () => {
+            const targetDate = family.status === 'trial' ? family.trial_ends_at : family.subscription_ends_at;
+            if (!targetDate) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+            
+            const target = new Date(targetDate).getTime();
+            const now = new Date().getTime();
+            const diff = target - now;
+
+            if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+
+            return {
+                days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+                hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+                minutes: Math.floor((diff / 1000 / 60) % 60),
+                seconds: Math.floor((diff / 1000) % 60)
+            };
+        };
+
+        const timer = setInterval(() => {
+            setTimeLeft(calculateTimeLeft());
+        }, 1000);
+
+        setTimeLeft(calculateTimeLeft());
+        return () => clearInterval(timer);
+    }, [family.trial_ends_at, family.subscription_ends_at, family.status]);
+
+    const isTrial = family.status === 'trial';
+
+    return (
+        <div className={`p-6 rounded-[32px] ${isTrial ? 'bg-dagang-green/5 border-dagang-green/10' : 'bg-dagang-accent/5 border-dagang-accent/10'} border flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm overflow-hidden relative animate-in fade-in slide-in-from-top-4 duration-700`}>
+             <div className="flex items-center gap-4 relative z-10">
+                <div className={`w-12 h-12 ${isTrial ? 'bg-dagang-green' : 'bg-dagang-accent'} rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0`}>
+                    {isTrial ? <AlertCircle className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
+                </div>
+                <div>
+                    <div className="text-[14px] font-bold text-dagang-dark">
+                        {isTrial ? 'Trial Gratis Berakhir Dalam:' : 'Sisa Masa Langganan Aktif:'}
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-2 relative z-10">
+                {[
+                    { val: timeLeft.days, unit: 'HARI' },
+                    { val: timeLeft.hours, unit: 'JAM' },
+                    { val: timeLeft.minutes, unit: 'MENIT' },
+                    { val: timeLeft.seconds, unit: 'DETIK' }
+                ].map((t, i) => (
+                    <React.Fragment key={t.unit}>
+                        <div className={`flex flex-col items-center min-w-[60px] p-2 rounded-2xl bg-white/50 border border-black/5`}>
+                            <span className={`text-[18px] font-black ${isTrial ? 'text-dagang-green' : 'text-dagang-accent'} tabular-nums`}>
+                                {String(t.val).padStart(2, '0')}
+                            </span>
+                            <span className="text-[8px] font-black text-dagang-gray/60 tracking-widest">{t.unit}</span>
+                        </div>
+                        {i < 3 && <span className={`text-[18px] font-black ${isTrial ? 'text-dagang-green/20' : 'text-dagang-accent/20'}`}>:</span>}
+                    </React.Fragment>
+                ))}
+            </div>
+            
+            {/* Background Decoration */}
+            <div className={`absolute -right-8 -top-8 w-32 h-32 ${isTrial ? 'bg-dagang-green/5' : 'bg-dagang-accent/5'} rounded-full blur-2xl`} />
+        </div>
+    );
+};
+
+const getRoleBadge = (role: string) => {
+    switch (role) {
+        case 'head_of_family':
+            return (
+                <span className="flex items-center gap-1.5 px-3 py-1 bg-dagang-dark text-dagang-accent text-[10px] font-black uppercase tracking-widest rounded-full border border-dagang-accent/20 ring-2 ring-dagang-accent/10">
+                    <Home className="w-3 h-3" /> Kepala Keluarga
+                </span>
+            );
+        case 'treasurer':
+            return (
+                <span className="flex items-center gap-1.5 px-3 py-1 bg-dagang-green/10 text-dagang-green text-[10px] font-black uppercase tracking-widest rounded-full border border-dagang-green/20">
+                    <Shield className="w-3 h-3" /> Bendahara Utama
+                </span>
+            );
+        case 'member':
+            return (
+                <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-500 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-100">
+                    <User className="w-3 h-3" /> Anggota
+                </span>
+            );
+        case 'viewer':
+            return (
+                <span className="flex items-center gap-1.5 px-3 py-1 bg-dagang-gray/10 text-dagang-gray text-[10px] font-black uppercase tracking-widest rounded-full border border-black/5">
+                    <Eye className="w-3 h-3" /> Pantau Only
+                </span>
+            );
+        default:
+            return null;
+    }
+};
+
 export const MembersView: React.FC = () => {
     const { user, refreshDashboard, familyRole } = useOutletContext<any>();
+    const navigate = useNavigate();
     const [members, setMembers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -41,13 +148,22 @@ export const MembersView: React.FC = () => {
     const [trialMaxMembers, setTrialMaxMembers] = useState(2);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [isSavingFamily, setIsSavingFamily] = useState(false);
+    const [familyData, setFamilyData] = useState<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        fetchMembers();
-        fetchFamilyProfile();
-        fetchPublicSettings();
+        const init = async () => {
+            setLoading(true);
+            await Promise.all([
+                fetchMembers(),
+                fetchFamilyProfile(),
+                fetchPublicSettings()
+            ]);
+            setLoading(false);
+        };
+        init();
     }, []);
+
 
     const fetchPublicSettings = async () => {
         try {
@@ -67,8 +183,6 @@ export const MembersView: React.FC = () => {
             setMembers(data);
         } catch (error) {
             console.error("Failed to fetch members", error);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -76,6 +190,7 @@ export const MembersView: React.FC = () => {
         try {
             const response = await api.get('/finance/families/profile');
             const data = response.data;
+            setFamilyData(data.family);
             setFamilyName(data.family.name);
             setFamilyPhoto(data.family.photo_url);
             setFamilyStatus(data.family.status);
@@ -85,6 +200,11 @@ export const MembersView: React.FC = () => {
         } catch (error) {
             console.error("Failed to fetch family profile", error);
         }
+    };
+
+    const handleUpgradePlan = () => {
+        const familyName = user?.familyName || '';
+        navigate(`/${encodeURIComponent(familyName)}/dashboard/family/pricing`);
     };
 
     const convertToWebP = (file: File): Promise<Blob> => {
@@ -174,9 +294,9 @@ export const MembersView: React.FC = () => {
         try {
             const data = await FinanceController.inviteMember(inviteEmail, inviteRole);
             setInvitationId(data.invitation_id);
-            fetchFamilyProfile(); // Refresh counts
+            fetchFamilyProfile();
         } catch (error: any) {
-            const msg = error.response?.data?.error || "Gagal mengirim undangan. Mungkin email sudah terdaftar atau ada masalah server.";
+            const msg = error.response?.data?.error || "Gagal mengirim undangan.";
             alert(msg);
         } finally {
             setIsSubmitting(false);
@@ -196,7 +316,6 @@ export const MembersView: React.FC = () => {
         const text = `Halo! Saya mengundang kamu untuk bergabung ke keluarga ${familyName || user?.familyName} di Uangku. Klik link berikut untuk mendaftar: ${link}`;
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
-    
 
     const handleUpdateRole = async (id: string, newRole: string) => {
         try {
@@ -217,43 +336,14 @@ export const MembersView: React.FC = () => {
         }
     };
 
-    const getRoleBadge = (role: string) => {
-        switch (role) {
-            case 'head_of_family':
-                return (
-                    <span className="flex items-center gap-1.5 px-3 py-1 bg-dagang-dark text-dagang-accent text-[10px] font-black uppercase tracking-widest rounded-full border border-dagang-accent/20 ring-2 ring-dagang-accent/10">
-                        <Home className="w-3 h-3" /> Kepala Keluarga
-                    </span>
-                );
-            case 'treasurer':
-                return (
-                    <span className="flex items-center gap-1.5 px-3 py-1 bg-dagang-green/10 text-dagang-green text-[10px] font-black uppercase tracking-widest rounded-full border border-dagang-green/20">
-                        <Shield className="w-3 h-3" /> Bendahara Utama
-                    </span>
-                );
-            case 'member':
-                return (
-                    <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-500 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-100">
-                        <User className="w-3 h-3" /> Anggota
-                    </span>
-                );
-            case 'viewer':
-                return (
-                    <span className="flex items-center gap-1.5 px-3 py-1 bg-dagang-gray/10 text-dagang-gray text-[10px] font-black uppercase tracking-widest rounded-full border border-black/5">
-                        <Eye className="w-3 h-3" /> Pantau Only
-                    </span>
-                );
-            default:
-                return null;
-        }
-    };
-
     if (loading) return (
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
             <div className="w-12 h-12 border-4 border-dagang-green/20 border-t-dagang-green rounded-full animate-spin" />
             <p className="text-sm font-bold text-dagang-dark/40 tracking-widest uppercase">Memuat Ruang Keluarga...</p>
         </div>
     );
+
+    const effectiveMax = familyStatus === 'trial' ? trialMaxMembers : maxMembers;
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -265,27 +355,28 @@ export const MembersView: React.FC = () => {
                 </div>
                 <div className="flex flex-col md:flex-row md:items-center gap-2">
                     <button 
-                        onClick={() => {
-                            setIsInviteModalOpen(true);
-                        }}
-                        disabled={memberCount + invitationCount >= (familyStatus === 'trial' ? trialMaxMembers : maxMembers)}
-                        className={`bg-dagang-dark text-white px-6 py-3 rounded-[20px] font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg shadow-dagang-dark/10 ${(memberCount + invitationCount >= (familyStatus === 'trial' ? trialMaxMembers : maxMembers)) ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                        onClick={() => setIsInviteModalOpen(true)}
+                        disabled={memberCount + invitationCount >= effectiveMax}
+                        className={`bg-dagang-dark text-white px-6 py-3 rounded-[20px] font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg shadow-dagang-dark/10 ${(memberCount + invitationCount >= effectiveMax) ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                     >
                         <UserPlus className="w-4 h-4" /> 
                         Undang Anggota
                     </button>
-                    {(memberCount + invitationCount >= (familyStatus === 'trial' ? trialMaxMembers : maxMembers)) && (
+                    {(memberCount + invitationCount >= effectiveMax) && (
                         <div className="flex flex-col items-end gap-1.5">
                             <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest px-2">
                                 {familyStatus === 'trial' ? `Trial: Slot Terbatas (Max ${trialMaxMembers})` : 'Slot Penuh: Upgrade paket Anda'}
                             </p>
-                            <a href="/pricing" className="text-[10px] font-bold text-white bg-dagang-accent px-4 py-1.5 rounded-full hover:bg-amber-600 transition-colors shadow-sm inline-flex items-center gap-1.5">
+                            <a href="#pricing-section" className="text-[10px] font-bold text-white bg-dagang-accent px-4 py-1.5 rounded-full hover:bg-amber-600 transition-colors shadow-sm inline-flex items-center gap-1.5">
                                 🚀 Upgrade Akun
                             </a>
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Subscription Countdown */}
+            {familyData && <SubscriptionCountdown family={familyData} />}
 
             {/* Family Profile Card */}
             <div className="bg-white p-8 rounded-[40px] border border-black/5 shadow-sm flex flex-col md:flex-row gap-8 items-center">
@@ -336,6 +427,7 @@ export const MembersView: React.FC = () => {
                         <input 
                             type="text" 
                             value={familyName}
+                            onChange={(e) => setFamilyName(e.target.value)}
                             disabled={familyRole !== 'head_of_family'}
                             className={`w-full h-14 px-6 rounded-2xl bg-dagang-gray/5 border border-black/5 outline-none focus:ring-2 focus:ring-dagang-green/20 transition-all font-bold text-lg ${familyRole !== 'head_of_family' ? 'opacity-70 cursor-not-allowed' : ''}`}
                             placeholder="Contoh: Keluarga Stark"
@@ -361,13 +453,47 @@ export const MembersView: React.FC = () => {
                 
                 <div className="hidden lg:flex flex-col items-center gap-2 px-8">
                     <div className="text-3xl font-serif text-dagang-dark">
-                        {memberCount} / {familyStatus === 'trial' ? trialMaxMembers : maxMembers}
+                        {memberCount} / {effectiveMax}
                     </div>
                     <div className="text-[10px] font-black uppercase tracking-widest text-dagang-gray">Slot Anggota Terisi</div>
                     {invitationCount > 0 && (
                         <div className="text-[9px] font-bold text-orange-500 uppercase tracking-tighter">
                             + {invitationCount} Undangan Pending
                         </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Subscription Status & Upgrade CTA */}
+            <div className="bg-white p-8 md:p-12 rounded-[48px] border border-black/5 shadow-sm overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-dagang-green/5 blur-3xl rounded-full -mr-32 -mt-32" />
+                <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+                    <div className="flex items-center gap-6">
+                        <div className="w-20 h-20 rounded-[32px] bg-dagang-dark text-dagang-accent flex items-center justify-center">
+                            <Star className="w-10 h-10" />
+                        </div>
+                        <div>
+                            <div className="text-[10px] font-black text-dagang-gray uppercase tracking-[0.2em] mb-2">Paket Langganan</div>
+                            <h2 className="text-3xl font-serif text-dagang-dark mb-1">
+                                {familyData?.subscription_plan || 'Trial'}
+                                <span className="ml-3 inline-block px-3 py-1 bg-dagang-green/10 text-dagang-green text-[10px] font-black uppercase tracking-widest rounded-full">Aktif</span>
+                            </h2>
+                            <p className="text-dagang-gray text-sm">
+                                {familyStatus === 'trial' 
+                                    ? `Masa percobaan Anda mendukung hingga ${trialMaxMembers} anggota.` 
+                                    : `Paket ${familyData?.subscription_plan} mendukung hingga ${maxMembers} anggota.`}
+                            </p>
+                        </div>
+                    </div>
+
+                    {familyRole === 'head_of_family' && (
+                        <button 
+                            onClick={handleUpgradePlan}
+                            className="bg-dagang-dark text-white px-10 h-16 rounded-[24px] font-black text-xs uppercase tracking-[0.15em] hover:bg-black transition-all shadow-xl shadow-dagang-dark/10 flex items-center gap-3 group"
+                        >
+                            {familyStatus === 'trial' ? 'Upgrade Sekarang' : 'Perpanjang / Ganti Paket'}
+                            <ArrowUpCircle className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
+                        </button>
                     )}
                 </div>
             </div>
@@ -384,7 +510,7 @@ export const MembersView: React.FC = () => {
                 {/* Members Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {members.map((member) => (
-                        <div key={member.id} className="bg-white p-6 rounded-[32px] border border-black/5 shadow-sm hover:shadow-md transition-shadow relative group">
+                         <div key={member.id} className="bg-white p-6 rounded-[32px] border border-black/5 shadow-sm hover:shadow-md transition-shadow relative group">
                             <div className="flex items-start justify-between mb-6">
                                 <div className="w-14 h-14 bg-dagang-gray/5 rounded-2xl flex items-center justify-center border border-black/5 overflow-hidden">
                                     <img 
@@ -395,9 +521,6 @@ export const MembersView: React.FC = () => {
                                 </div>
                                 <div className="flex flex-col items-end gap-2">
                                     {getRoleBadge(member.role)}
-                                    <div className="flex items-center gap-1 text-[10px] font-bold text-dagang-green bg-dagang-green/10 px-2 py-0.5 rounded-lg border border-dagang-green/10">
-                                        <CheckCircle2 className="w-2.5 h-2.5" /> Online
-                                    </div>
                                 </div>
                             </div>
 
@@ -448,10 +571,18 @@ export const MembersView: React.FC = () => {
             {/* Invite Modal */}
             {isInviteModalOpen && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-dagang-dark/40 backdrop-blur-sm" onClick={() => setIsInviteModalOpen(false)} />
+                    <div className="absolute inset-0 bg-dagang-dark/40 backdrop-blur-sm" onClick={() => {
+                        setIsInviteModalOpen(false);
+                        setInvitationId(null);
+                        setInviteEmail('');
+                    }} />
                     <div className="bg-white w-full max-w-md rounded-[40px] p-10 relative z-10 shadow-2xl animate-in zoom-in-95 duration-300">
                         <button 
-                            onClick={() => setIsInviteModalOpen(false)}
+                            onClick={() => {
+                                setIsInviteModalOpen(false);
+                                setInvitationId(null);
+                                setInviteEmail('');
+                            }}
                             className="absolute top-8 right-8 p-2 text-dagang-gray hover:text-dagang-dark transition-colors"
                         >
                             <X className="w-6 h-6" />
@@ -466,7 +597,7 @@ export const MembersView: React.FC = () => {
                         {!invitationId ? (
                             <>
                                 <p className="text-dagang-gray text-sm mb-8 leading-relaxed">
-                                    Masukkan email anggota keluarga yang ingin kamu ajak kolaborasi. Mereka akan langsung bergabung saat mendaftar.
+                                    Masukkan email anggota keluarga yang ingin kamu ajak kolaborasi.
                                 </p>
 
                                 <form onSubmit={handleInvite} className="space-y-6">

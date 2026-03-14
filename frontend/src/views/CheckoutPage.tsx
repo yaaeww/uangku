@@ -97,7 +97,7 @@ export const CheckoutPage = () => {
                 if (prev <= 1) {
                     clearInterval(countdownRef.current);
                     const familyName = user?.familyName;
-                    navigate(familyName ? `/${encodeURIComponent(familyName)}/dashboard` : '/dashboard');
+                    navigate(familyName ? `/${encodeURIComponent(familyName)}/dashboard/family/invoice/${paymentResult.reference}` : '/dashboard');
                     return 0;
                 }
                 return prev - 1;
@@ -390,7 +390,7 @@ export const CheckoutPage = () => {
                                 <div className="space-y-3 mb-8">
                                     <div className="flex justify-between text-[14px]">
                                         <span className="text-white/40">Subtotal</span>
-                                        <span>Rp {plan?.price?.toLocaleString()}</span>
+                                        <span>Rp {(paymentResult?.amount || plan?.price)?.toLocaleString()}</span>
                                     </div>
                                     {paymentResult && (
                                         <div className="flex justify-between text-[14px]">
@@ -402,7 +402,9 @@ export const CheckoutPage = () => {
                                     <div className="flex justify-between items-center">
                                         <span className="text-[18px] font-serif">Total Bayar</span>
                                         <span className="text-[28px] font-serif text-dagang-accent">
-                                            Rp {(paymentResult ? paymentResult.total_amount || paymentResult.amount : plan?.price)?.toLocaleString()}
+                                            Rp {(paymentResult 
+                                                ? (paymentResult.total_amount || (paymentResult.amount + paymentResult.fee)) 
+                                                : plan?.price)?.toLocaleString()}
                                         </span>
                                     </div>
                                 </div>

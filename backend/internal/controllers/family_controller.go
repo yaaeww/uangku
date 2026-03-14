@@ -147,3 +147,67 @@ func (ctrl *FamilyController) DeleteFamilyPhoto(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Foto keluarga berhasil dihapus"})
 }
+func (ctrl *FamilyController) UpdateSubscriptionPlan(c *gin.Context) {
+	familyIDStr := c.GetString("family_id")
+	userIDStr := c.GetString("user_id")
+	familyID, _ := uuid.Parse(familyIDStr)
+	userID, _ := uuid.Parse(userIDStr)
+
+	// Check if requester is head_of_family
+	var requester models.FamilyMember
+	if err := config.DB.First(&requester, "family_id = ? AND user_id = ?", familyID, userID).Error; err != nil || requester.Role != "head_of_family" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Hanya Kepala Keluarga yang dapat mengubah paket langganan"})
+		return
+	}
+
+	var input struct {
+		PlanName string `json:"plan_name" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nama paket tidak valid"})
+		return
+	}
+
+	var family models.Family
+	if err := config.DB.First(&family, "id = ?", familyID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Keluarga tidak ditemukan"})
+		return
+	}
+
+	// If already Premium, we still allow "renewal" to extend the period (useful for testing duration changes)
+	// But we should notify if it's a renewal vs upgrade
+	isRenewal := family.SubscriptionPlan == input.PlanName
+
+	// Fetch plan details to get duration
+	var plan models.SubscriptionPlan
+	if err := config.DB.First(&plan, "name = ?", input.PlanName).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Paket tidak ditemukan"})
+		return
+	}
+
+	// Update logic
+	now := time.Now()
+	family.SubscriptionPlan = plan.Name
+	family.Status = "active"
+	
+	if family.SubscriptionEndsAt.After(now) {
+		family.SubscriptionEndsAt = family.SubscriptionEndsAt.AddDate(0, 0, plan.DurationDays)
+	} else {
+		family.SubscriptionEndsAt = now.AddDate(0, 0, plan.DurationDays)
+	}
+
+	if err := config.DB.Save(&family).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui paket langganan"})
+		return
+	}
+
+	msg := fmt.Sprintf("Berhasil upgrade ke paket %s", plan.Name)
+	if isRenewal {
+		msg = fmt.Sprintf("Berhasil perpanjang paket %s. Masa aktif bertambah %d hari.", plan.Name, plan.DurationDays)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": msg,
+		"family":  family,
+	})
+}
