@@ -10,13 +10,18 @@ import (
 type BudgetCategory struct {
 	ID          uuid.UUID `gorm:"type:uuid;primary_key" json:"id"`
 	FamilyID    uuid.UUID `gorm:"type:uuid;not null;index" json:"family_id"`
+	UserID      uuid.UUID `gorm:"type:uuid;index" json:"user_id"`
+	User        *User     `gorm:"foreignKey:UserID" json:"user,omitempty"`
 	Name        string    `gorm:"not null" json:"name"`
 	Percentage  int       `gorm:"not null" json:"percentage"`
 	Description string    `json:"description"`
 	Icon        string    `json:"icon"` // lucide icon name
 	Color       string    `json:"color"` // tailwind text color class
 	BgColor     string    `json:"bg_color"` // tailwind bg color class
+	Type        string    `gorm:"default:'kebutuhan'" json:"type"` // "kebutuhan" or "keinginan"
 	Order       int       `gorm:"default:0" json:"order"`
+	Month       int       `gorm:"default:0" json:"month"`
+	Year        int       `gorm:"default:0" json:"year"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 

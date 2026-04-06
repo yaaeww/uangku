@@ -41,10 +41,31 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Check if user is blocked in real-time
+		var user models.User
+		if err := config.DB.First(&user, "id = ?", claims["user_id"]).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found or session invalid"})
+			c.Abort()
+			return
+		}
+
+		if user.IsBlocked {
+			log.Printf("[SECURITY] Access denied for BLOCKED user ID=%s", user.ID)
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "Akun Anda telah diblokir oleh administrator.",
+				"code":  "USER_BLOCKED",
+			})
+			c.Abort()
+			return
+		}
+
 		// Inject user info into context
-		c.Set("user_id", claims["user_id"])
-		c.Set("role", claims["role"])
+		c.Set("user_id", user.ID.String())
+		c.Set("role", user.Role)
 		c.Set("family_id", claims["family_id"])
+		if familyRole, ok := claims["family_role"].(string); ok {
+			c.Set("family_role", familyRole)
+		}
 
 		c.Next()
 	}
@@ -74,6 +95,17 @@ func TenantMiddleware() gin.HandlerFunc {
 		if err := config.DB.First(&family, "id = ?", familyIDStr).Error; err != nil {
 			log.Printf("[ERROR] TenantMiddleware: family not found ID=%s", familyIDStr)
 			c.JSON(http.StatusForbidden, gin.H{"error": "Keluarga tidak ditemukan. Akses ditolak."})
+			c.Abort()
+			return
+		}
+
+		// Check if Family is Blocked/Deactivated
+		if family.IsBlocked {
+			log.Printf("[SECURITY] Access denied for members of BLOCKED family ID=%s", family.ID)
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "Layanan untuk keluarga Anda telah dinonaktifkan oleh administrator.",
+				"code":  "FAMILY_BLOCKED",
+			})
 			c.Abort()
 			return
 		}

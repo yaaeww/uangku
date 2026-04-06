@@ -14,12 +14,18 @@ export const AuthController = {
         family_name: string; 
         selected_plan: string;
         invitation_id?: string;
-    }): Promise<void> => {
-        await api.post('/auth/register', data);
+    }): Promise<any> => {
+        const response = await api.post('/auth/register', data);
+        return response.data;
     },
 
     verifyOTP: async (email: string, otp: string): Promise<any> => {
         const response = await api.post('/auth/verify-otp', { email, otp });
+        return response.data;
+    },
+
+    resendOTP: async (email: string): Promise<any> => {
+        const response = await api.post('/auth/resend-otp', { email });
         return response.data;
     },
 
@@ -36,8 +42,14 @@ export const AuthController = {
         return response.data;
     },
 
-    updateProfile: async (data: { full_name: string; phone_number: string }): Promise<void> => {
-        await api.put('/finance/profile', data);
+    updateProfile: async (data: { full_name: string; phone_number: string }): Promise<any> => {
+        const response = await api.put('/finance/profile', data);
+        return response.data;
+    },
+
+    getCurrentUser: async (): Promise<any> => {
+        const response = await api.get('/finance/me');
+        return response.data;
     },
 
     updatePassword: async (data: any): Promise<void> => {

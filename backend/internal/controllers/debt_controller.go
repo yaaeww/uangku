@@ -33,6 +33,8 @@ func (ctrl *DebtController) ListDebts(c *gin.Context) {
 func (ctrl *DebtController) CreateDebt(c *gin.Context) {
 	familyIDStr := c.GetString("family_id")
 	familyID, _ := uuid.Parse(familyIDStr)
+	userIDStr := c.GetString("user_id")
+	userID, _ := uuid.Parse(userIDStr)
 
 	var debt models.Debt
 	if err := c.ShouldBindJSON(&debt); err != nil {
@@ -41,12 +43,39 @@ func (ctrl *DebtController) CreateDebt(c *gin.Context) {
 	}
 
 	debt.FamilyID = familyID
-	if err := ctrl.service.Create(&debt); err != nil {
+	if err := ctrl.service.Create(&debt, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusCreated, debt)
+}
+
+func (ctrl *DebtController) UpdateDebt(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid debt ID"})
+		return
+	}
+
+	var debt models.Debt
+	if err := c.ShouldBindJSON(&debt); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userIDStr := c.GetString("user_id")
+	userID, _ := uuid.Parse(userIDStr)
+	familyRole := c.GetString("family_role")
+
+	debt.ID = id
+	if err := ctrl.service.Update(&debt, userID, familyRole); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, debt)
 }
 
 func (ctrl *DebtController) RecordPayment(c *gin.Context) {
@@ -77,7 +106,7 @@ func (ctrl *DebtController) GetPaymentHistory(c *gin.Context) {
 		return
 	}
 
-	history, err := ctrl.service.GetPaymentsByDebtID(debtID)
+	history, err := ctrl.service.GetDebtHistory(debtID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -90,8 +119,12 @@ func (ctrl *DebtController) DeleteDebt(c *gin.Context) {
 	idStr := c.Param("id")
 	id, _ := uuid.Parse(idStr)
 
-	if err := ctrl.service.Delete(id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	userIDStr := c.GetString("user_id")
+	userID, _ := uuid.Parse(userIDStr)
+	familyRole := c.GetString("family_role")
+
+	if err := ctrl.service.Delete(id, userID, familyRole); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
 

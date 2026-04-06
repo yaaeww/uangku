@@ -4,6 +4,7 @@ import (
 	"keuangan-keluarga/internal/models"
 	"keuangan-keluarga/internal/services"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -22,7 +23,12 @@ func (ctrl *SavingController) ListSavings(c *gin.Context) {
 	familyIDStr := c.GetString("family_id")
 	familyID, _ := uuid.Parse(familyIDStr)
 
-	savings, err := ctrl.service.GetByFamilyID(familyID)
+	monthStr := c.DefaultQuery("month", "0")
+	yearStr := c.DefaultQuery("year", "0")
+	month, _ := strconv.Atoi(monthStr)
+	year, _ := strconv.Atoi(yearStr)
+
+	savings, err := ctrl.service.GetByFamilyID(familyID, month, year)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -34,6 +40,8 @@ func (ctrl *SavingController) ListSavings(c *gin.Context) {
 func (ctrl *SavingController) CreateSaving(c *gin.Context) {
 	familyIDStr := c.GetString("family_id")
 	familyID, _ := uuid.Parse(familyIDStr)
+	userIDStr := c.GetString("user_id")
+	userID, _ := uuid.Parse(userIDStr)
 
 	var saving models.Saving
 	if err := c.ShouldBindJSON(&saving); err != nil {
@@ -42,6 +50,7 @@ func (ctrl *SavingController) CreateSaving(c *gin.Context) {
 	}
 
 	saving.FamilyID = familyID
+	saving.UserID = userID
 	if err := ctrl.service.Create(&saving); err != nil {
 		log.Printf("[ERROR] Failed to create saving: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -54,6 +63,9 @@ func (ctrl *SavingController) CreateSaving(c *gin.Context) {
 func (ctrl *SavingController) UpdateSaving(c *gin.Context) {
 	familyIDStr := c.GetString("family_id")
 	familyID, _ := uuid.Parse(familyIDStr)
+	userIDStr := c.GetString("user_id")
+	userID, _ := uuid.Parse(userIDStr)
+	role := c.GetString("role")
 
 	var req struct {
 		ID               uuid.UUID  `json:"id" binding:"required"`
@@ -64,6 +76,8 @@ func (ctrl *SavingController) UpdateSaving(c *gin.Context) {
 		BudgetCategoryID *uuid.UUID `json:"budget_category_id"`
 		Emoji            string     `json:"emoji"`
 		DueDate          int        `json:"due_date"`
+		Month            int        `json:"month"`
+		Year             int        `json:"year"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -85,8 +99,10 @@ func (ctrl *SavingController) UpdateSaving(c *gin.Context) {
 	existing.BudgetCategoryID = req.BudgetCategoryID
 	existing.Emoji = req.Emoji
 	existing.DueDate = req.DueDate
+	existing.Month = req.Month
+	existing.Year = req.Year
 
-	if err := ctrl.service.Update(existing); err != nil {
+	if err := ctrl.service.Update(existing, userID, role); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -100,8 +116,11 @@ func (ctrl *SavingController) DeleteSaving(c *gin.Context) {
 
 	familyIDStr := c.GetString("family_id")
 	familyID, _ := uuid.Parse(familyIDStr)
+	userIDStr := c.GetString("user_id")
+	userID, _ := uuid.Parse(userIDStr)
+	role := c.GetString("role")
 
-	if err := ctrl.service.Delete(id, familyID); err != nil {
+	if err := ctrl.service.Delete(id, familyID, userID, role); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

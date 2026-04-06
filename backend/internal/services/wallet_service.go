@@ -10,11 +10,11 @@ import (
 )
 
 type WalletService interface {
-	CreateWallet(familyID uuid.UUID, name string, walletType string, accountNumber string, initialBalance float64) error
-	GetFamilyWallets(familyID uuid.UUID) ([]models.Wallet, error)
+	CreateWallet(familyID, userID uuid.UUID, name string, walletType string, accountNumber string, initialBalance float64) error
+	GetFamilyWallets(familyID, userID uuid.UUID, role string) ([]models.Wallet, error)
 	GetWalletByID(id uuid.UUID) (*models.Wallet, error)
-	UpdateWallet(wallet *models.Wallet) error
-	DeleteWallet(id uuid.UUID) error
+	UpdateWallet(requestingUserID uuid.UUID, wallet *models.Wallet) error
+	DeleteWallet(requestingUserID uuid.UUID, id uuid.UUID) error
 }
 
 type walletService struct {
@@ -25,8 +25,8 @@ func NewWalletService(repo repositories.WalletRepository) WalletService {
 	return &walletService{repo: repo}
 }
 
-func (s *walletService) CreateWallet(familyID uuid.UUID, name string, walletType string, accountNumber string, initialBalance float64) error {
-	// --- LIMIT CHECK BEGIN ---
+func (s *walletService) CreateWallet(familyID, userID uuid.UUID, name string, walletType string, accountNumber string, initialBalance float64) error {
+	// ... (limit logic omitted for brevity, keeping existing code)
 	var family models.Family
 	if err := config.DB.First(&family, "id = ?", familyID).Error; err != nil {
 		return err
@@ -48,10 +48,10 @@ func (s *walletService) CreateWallet(familyID uuid.UUID, name string, walletType
 	if int(currentCount) >= maxWallets {
 		return fmt.Errorf("limit dompet tercapai. Paket '%s' hanya memperbolehkan maksimal %d dompet. Silakan upgrade paket Anda.", family.SubscriptionPlan, maxWallets)
 	}
-	// --- LIMIT CHECK END ---
 
 	wallet := &models.Wallet{
 		FamilyID:      familyID,
+		UserID:        userID,
 		Name:          name,
 		WalletType:    walletType,
 		AccountNumber: accountNumber,
@@ -60,18 +60,47 @@ func (s *walletService) CreateWallet(familyID uuid.UUID, name string, walletType
 	return s.repo.Create(wallet)
 }
 
-func (s *walletService) GetFamilyWallets(familyID uuid.UUID) ([]models.Wallet, error) {
-	return s.repo.GetByFamilyID(familyID)
+func (s *walletService) GetFamilyWallets(familyID, userID uuid.UUID, role string) ([]models.Wallet, error) {
+	isPrivileged := role == "head_of_family" || role == "treasurer"
+	
+	var wallets []models.Wallet
+	var err error
+	
+	if isPrivileged {
+		wallets, err = s.repo.GetByFamilyID(familyID)
+	} else {
+		wallets, err = s.repo.GetByUserID(familyID, userID)
+	}
+	
+	if err != nil {
+		return nil, err
+	}
+
+	return wallets, nil
 }
 
 func (s *walletService) GetWalletByID(id uuid.UUID) (*models.Wallet, error) {
 	return s.repo.GetByID(id)
 }
 
-func (s *walletService) UpdateWallet(wallet *models.Wallet) error {
+func (s *walletService) UpdateWallet(requestingUserID uuid.UUID, wallet *models.Wallet) error {
+	existing, err := s.repo.GetByID(wallet.ID)
+	if err != nil {
+		return err
+	}
+	if existing.UserID != requestingUserID {
+		return fmt.Errorf("anda tidak memiliki izin untuk mengubah dompet ini. Hanya pembuat dompet yang diperbolehkan.")
+	}
 	return s.repo.Update(wallet)
 }
 
-func (s *walletService) DeleteWallet(id uuid.UUID) error {
+func (s *walletService) DeleteWallet(requestingUserID uuid.UUID, id uuid.UUID) error {
+	existing, err := s.repo.GetByID(id)
+	if err != nil {
+		return err
+	}
+	if existing.UserID != requestingUserID {
+		return fmt.Errorf("anda tidak memiliki izin untuk menghapus dompet ini. Hanya pembuat dompet yang diperbolehkan.")
+	}
 	return s.repo.Delete(id)
 }

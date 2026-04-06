@@ -14,11 +14,15 @@ export interface User {
 export interface Wallet {
     id: string;
     familyId: string;
+    userId: string;
     name: string;
     walletType: string;
     accountNumber: string;
     balance: number;
     createdAt: string;
+    user?: {
+        fullName: string;
+    };
 }
 
 export interface Transaction {
@@ -28,7 +32,8 @@ export interface Transaction {
     walletId: string;
     toWalletId: string | null;
     savingId?: string | null;
-    type: 'income' | 'expense' | 'transfer' | 'saving';
+    goalId?: string | null;
+    type: 'income' | 'expense' | 'transfer' | 'saving' | 'goal_allocation';
     amount: number;
     fee?: number;
     category: string | null;

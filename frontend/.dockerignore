@@ -1,0 +1,10 @@
+# .dockerignore for Frontend
+.git
+.vscode
+node_modules
+dist
+build.log
+errors.log
+.env
+.env.local
+.env.*.local

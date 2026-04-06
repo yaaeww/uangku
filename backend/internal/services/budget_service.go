@@ -5,6 +5,7 @@ import (
 	"keuangan-keluarga/internal/models"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type BudgetService struct{}
@@ -13,121 +14,137 @@ func NewBudgetService() *BudgetService {
 	return &BudgetService{}
 }
 
-func (s *BudgetService) SeedDefaultBudget(familyID uuid.UUID) error {
-	db := config.DB
-
-	// Check if family already has budget categories
-	var count int64
-	db.Model(&models.BudgetCategory{}).Where("family_id = ?", familyID).Count(&count)
-	if count > 0 {
-		return nil // Already has budget, don't seed
+func (s *BudgetService) SeedDefaultBudget(db *gorm.DB, familyID uuid.UUID, userID uuid.UUID, month int, year int) error {
+	if db == nil {
+		db = config.DB
 	}
 
-	// 1. Define Categories
-	categories := []models.BudgetCategory{
+	// 0. Get Base Budget (check monthly plan first)
+	var plan models.BudgetPlan
+	baseBudget := 0.0
+	if err := db.First(&plan, "family_id = ? AND user_id = ? AND month = ? AND year = ?", familyID, userID, month, year).Error; err == nil {
+		baseBudget = plan.Amount
+	} else {
+		var member models.FamilyMember
+		if err := db.First(&member, "family_id = ? AND user_id = ?", familyID, userID).Error; err == nil {
+			baseBudget = member.MonthlyBudget
+		}
+	}
+	
+	if baseBudget <= 0 {
+		baseBudget = 5000000 // Default fallback 5jt
+	}
+
+	// 1. Define Categories (Level 1)
+	type catDef struct {
+		Name    string
+		Icon    string
+		Color   string
+		BgColor string
+		Type    string
+		Percent int
+		Items   []struct {
+			Name  string
+			Emoji string
+		}
+	}
+
+	categories := []catDef{
 		{
-			FamilyID:    familyID,
-			Name:        "Kebutuhan",
-			Percentage:  50,
-			Description: "Biaya rutin bulanan yang wajib dipenuhi",
-			Icon:        "ShoppingCart",
-			Color:       "text-blue-500",
-			BgColor:     "bg-blue-50",
-			Order:       1,
+			Name: "Makanan", Icon: "Coffee", Color: "text-orange-500", BgColor: "bg-orange-50", Type: "kebutuhan", Percent: 20,
+			Items: []struct{ Name, Emoji string }{
+				{"Makan harian", "🍲"}, {"Ngopi", "☕"}, {"Jajan", "🍿"}, {"Delivery (GoFood/GrabFood)", "🛵"},
+			},
 		},
 		{
-			FamilyID:    familyID,
-			Name:        "Keinginan",
-			Percentage:  30,
-			Description: "Pengeluaran gaya hidup & hiburan",
-			Icon:        "Coffee",
-			Color:       "text-amber-500",
-			BgColor:     "bg-amber-50",
-			Order:       2,
+			Name: "Transport", Icon: "Wallet", Color: "text-blue-500", BgColor: "bg-blue-50", Type: "kebutuhan", Percent: 15,
+			Items: []struct{ Name, Emoji string }{
+				{"Bensin", "⛽"}, {"Ojol", "🏍️"}, {"Parkir", "🅿️"}, {"Servis kendaraan", "🔧"},
+			},
 		},
 		{
-			FamilyID:    familyID,
-			Name:        "Tabungan",
-			Percentage:  10,
-			Description: "Investasi & dana untuk masa depan",
-			Icon:        "Coins",
-			Color:       "text-dagang-green",
-			BgColor:     "bg-dagang-green/5",
-			Order:       3,
+			Name: "Tagihan", Icon: "ShieldCheck", Color: "text-purple-500", BgColor: "bg-purple-50", Type: "kebutuhan", Percent: 15,
+			Items: []struct{ Name, Emoji string }{
+				{"Listrik", "⚡"}, {"Air", "💧"}, {"Internet", "🌐"}, {"Pulsa", "📱"},
+			},
 		},
 		{
-			FamilyID:    familyID,
-			Name:        "Dana Darurat",
-			Percentage:  10,
-			Description: "Cadangan dana untuk keadaan tak terduga",
-			Icon:        "ShieldCheck",
-			Color:       "text-red-500",
-			BgColor:     "bg-red-50",
-			Order:       4,
+			Name: "Hiburan", Icon: "Coins", Color: "text-pink-500", BgColor: "bg-pink-50", Type: "keinginan", Percent: 10,
+			Items: []struct{ Name, Emoji string }{
+				{"Netflix", "📺"}, {"Spotify", "🎧"}, {"Nongkrong", "🤝"}, {"Game", "🎮"},
+			},
+		},
+		{
+			Name: "Belanja", Icon: "ShoppingCart", Color: "text-emerald-500", BgColor: "bg-emerald-50", Type: "keinginan", Percent: 15,
+			Items: []struct{ Name, Emoji string }{
+				{"Pakaian", "👕"}, {"Skincare", "🧴"}, {"Gadget", "📱"},
+			},
+		},
+		{
+			Name: "Kesehatan", Icon: "ShieldCheck", Color: "text-red-500", BgColor: "bg-red-50", Type: "kebutuhan", Percent: 15,
+			Items: []struct{ Name, Emoji string }{
+				{"Obat", "💊"}, {"Klinik", "🏥"}, {"Asuransi", "🛡️"},
+			},
+		},
+		{
+			Name: "Pendidikan", Icon: "Coins", Color: "text-indigo-500", BgColor: "bg-indigo-50", Type: "kebutuhan", Percent: 10,
+			Items: []struct{ Name, Emoji string }{
+				{"Kursus", "🎓"}, {"Buku", "📚"},
+			},
 		},
 	}
 
-	// 2. Create Categories and their Items
-	for _, cat := range categories {
-		if err := db.Create(&cat).Error; err != nil {
-			return err
+	// 2. CLEANUP: Delete existing sub-items (Savings) for THIS user and THIS month
+	// We don't delete categories because they might be reused or customized
+	db.Delete(&models.Saving{}, "family_id = ? AND user_id = ? AND month = ? AND year = ?", familyID, userID, month, year)
+
+	// 3. Create Categories and Sub-items
+	for i, cDef := range categories {
+		var cat models.BudgetCategory
+		// Key Change: Check if category exists for this user and period
+		err := db.Where("family_id = ? AND user_id = ? AND name = ? AND month = ? AND year = ?", familyID, userID, cDef.Name, month, year).First(&cat).Error
+		if err != nil {
+			cat = models.BudgetCategory{
+				FamilyID:    familyID,
+				UserID:      userID,
+				Name:        cDef.Name,
+				Percentage:  cDef.Percent,
+				Description: "Kategori " + cDef.Name,
+				Icon:        cDef.Icon,
+				Color:       cDef.Color,
+				BgColor:     cDef.BgColor,
+				Type:        cDef.Type,
+				Order:       i + 1,
+				Month:       month,
+				Year:        year,
+			}
+			if err := db.Create(&cat).Error; err != nil {
+				return err
+			}
+		} else {
+			// Update existing category properties to match defaults
+			cat.Percentage = cDef.Percent
+			cat.Type = cDef.Type
+			cat.Icon = cDef.Icon
+			cat.Color = cDef.Color
+			cat.BgColor = cDef.BgColor
+			db.Save(&cat)
 		}
 
-		var items []models.Saving
-		switch cat.Name {
-		case "Kebutuhan":
-			items = []models.Saving{
-				{Name: "Makan Sehari-hari", Emoji: "🍲", TargetAmount: 3000000, DueDate: 0},
-				{Name: "Belanja Dapur", Emoji: "🛒", TargetAmount: 1500000, DueDate: 0},
-				{Name: "Tempat Tinggal", Emoji: "🏠", TargetAmount: 2500000, DueDate: 1},
-				{Name: "Listrik & Air", Emoji: "⚡", TargetAmount: 850000, DueDate: 10},
-				{Name: "Internet & Pulsa", Emoji: "📱", TargetAmount: 500000, DueDate: 5},
-				{Name: "Transportasi", Emoji: "🚐", TargetAmount: 1200000, DueDate: 0},
-				{Name: "Bensin / Tol", Emoji: "⛽", TargetAmount: 800000, DueDate: 0},
-				{Name: "Kesehatan / Obat", Emoji: "🏥", TargetAmount: 500000, DueDate: 0},
-				{Name: "Pendidikan Anak", Emoji: "🎓", TargetAmount: 2000000, DueDate: 15},
-				{Name: "Perlengkapan Mandi & Cuci", Emoji: "🧼", TargetAmount: 400000, DueDate: 0},
-				{Name: "Cicilan / Pinjaman", Emoji: "💳", TargetAmount: 1000000, DueDate: 25},
-				{Name: "Kebutuhan Anak/Bayi", Emoji: "🍼", TargetAmount: 1500000, DueDate: 0},
-				{Name: "Asuransi Kesehatan", Emoji: "⚕️", TargetAmount: 500000, DueDate: 20},
-				{Name: "Sedekah / Zakat", Emoji: "🤲", TargetAmount: 500000, DueDate: 0},
-			}
-		case "Keinginan":
-			items = []models.Saving{
-				{Name: "Belanja Online (Checkout)", Emoji: "🛍️", TargetAmount: 1000000, DueDate: 0},
-				{Name: "Hiburan & Streaming", Emoji: "🎬", TargetAmount: 300000, DueDate: 0},
-				{Name: "Makan di Luar / Cafe", Emoji: "🍽️", TargetAmount: 1000000, DueDate: 0},
-				{Name: "Jajan / Ngopi", Emoji: "☕", TargetAmount: 500000, DueDate: 0},
-				{Name: "Hobi / Mainan", Emoji: "🎨", TargetAmount: 500000, DueDate: 0},
-				{Name: "Gaya Hidup / Pakaian", Emoji: "👕", TargetAmount: 800000, DueDate: 0},
-				{Name: "Skincare / Perawatan Diri", Emoji: "✨", TargetAmount: 700000, DueDate: 0},
-				{Name: "Liburan / Staycation", Emoji: "✈️", TargetAmount: 2000000, DueDate: 0},
-				{Name: "Gadget / Elektronik Baru", Emoji: "📱", TargetAmount: 1000000, DueDate: 0},
-				{Name: "Hadiah / Kado", Emoji: "🎁", TargetAmount: 300000, DueDate: 0},
-			}
-		case "Tabungan":
-			items = []models.Saving{
-				{Name: "Investasi Saham", Emoji: "📈", TargetAmount: 1000000, DueDate: 0},
-				{Name: "Reksa Dana / Obligasi", Emoji: "🏦", TargetAmount: 1000000, DueDate: 0},
-				{Name: "Tabungan Emas", Emoji: "🪙", TargetAmount: 500000, DueDate: 0},
-				{Name: "Tabungan Rumah / KPR", Emoji: "🏡", TargetAmount: 2000000, DueDate: 0},
-				{Name: "Tabungan Anak", Emoji: "👨‍👩‍👧", TargetAmount: 1000000, DueDate: 0},
-				{Name: "Tabungan Pensiun", Emoji: "👴", TargetAmount: 500000, DueDate: 0},
-				{Name: "Deposito", Emoji: "💹", TargetAmount: 1000000, DueDate: 0},
-			}
-		case "Dana Darurat":
-			items = []models.Saving{
-				{Name: "Dana Darurat Utama", Emoji: "🛡️", TargetAmount: 5000000, DueDate: 0},
-				{Name: "Dana Darurat Medis", Emoji: "🏥", TargetAmount: 2000000, DueDate: 0},
-				{Name: "Dana Darurat Kendaraan", Emoji: "🚗", TargetAmount: 1000000, DueDate: 0},
-				{Name: "Dana Darurat PHK", Emoji: "💼", TargetAmount: 3000000, DueDate: 0},
-				{Name: "Dana Darurat Rumah", Emoji: "🏠", TargetAmount: 1500000, DueDate: 0},
-			}
-		}
+		// Create sub-items (savings)
+		for _, sDef := range cDef.Items {
+			itemTarget := (baseBudget * float64(cDef.Percent) / 100.0) / float64(len(cDef.Items))
 
-		for _, item := range items {
-			item.FamilyID = familyID
-			item.BudgetCategoryID = &cat.ID
+			item := models.Saving{
+				FamilyID:         familyID,
+				UserID:           userID,
+				BudgetCategoryID: &cat.ID,
+				Name:             sDef.Name,
+				Emoji:            sDef.Emoji,
+				TargetAmount:     itemTarget,
+				Month:            month,
+				Year:             year,
+			}
 			if err := db.Create(&item).Error; err != nil {
 				return err
 			}
@@ -137,8 +154,18 @@ func (s *BudgetService) SeedDefaultBudget(familyID uuid.UUID) error {
 	return nil
 }
 
-func (s *BudgetService) GetBudgetCategories(familyID uuid.UUID) ([]models.BudgetCategory, error) {
+func (s *BudgetService) GetBudgetCategories(db *gorm.DB, familyID uuid.UUID, userID uuid.UUID, month int, year int) ([]models.BudgetCategory, error) {
+	if db == nil {
+		db = config.DB
+	}
+
 	var categories []models.BudgetCategory
-	err := config.DB.Preload("Items").Where("family_id = ?", familyID).Order("\"order\" asc").Find(&categories).Error
-	return categories, err
+	query := db.Preload("Items", "user_id = ? AND month = ? AND year = ?", userID, month, year).
+		Where("family_id = ? AND user_id = ? AND month = ? AND year = ?", familyID, userID, month, year)
+
+	if err := query.Order("\"order\" asc").Find(&categories).Error; err != nil {
+		return nil, err
+	}
+
+	return categories, nil
 }

@@ -1,4 +1,30 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler,
+    ArcElement,
+    BarElement
+} from 'chart.js';
+
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler,
+    ArcElement,
+    BarElement
+);
 // Final nudge to clear IDE errors
 import { LandingPage } from './views/LandingPage';
 import { LoginPage } from './views/LoginPage';
@@ -10,7 +36,9 @@ import { PricingPage } from './views/PricingPage';
 import { CheckoutPage } from './views/CheckoutPage';
 import { AdminDashboard } from './views/AdminDashboard';
 import { useAuthStore } from './store/authStore';
+import { useSystemStore } from './store/systemStore';
 import { useOutletContext } from 'react-router-dom';
+import { useEffect } from 'react';
 
 // Import sub-views
 import { DashboardOverview } from './views/family/DashboardOverview';
@@ -30,6 +58,15 @@ import { BlogDetail } from './views/blog/BlogDetail';
 import { PlanPricingView } from './views/family/PlanPricingView';
 import { PaymentInvoiceView } from './views/family/PaymentInvoiceView';
 import { PurchaseHistoryView } from './views/family/PurchaseHistoryView';
+import { GoalsView } from './views/family/GoalsView';
+import { AssetManagementView } from './views/family/AssetManagementView';
+import { SupportView } from './views/family/SupportView';
+import { AboutPage } from './views/AboutPage';
+import { PrivacyPage } from './views/PrivacyPage';
+import { TermsPage } from './views/TermsPage';
+import { ContactPage } from './views/ContactPage';
+import { Error404 } from './views/errors/Error404';
+import { Error500 } from './views/errors/Error500';
 
 const DashboardOverviewWrapper = () => {
   const context = useOutletContext<any>();
@@ -82,6 +119,21 @@ const PurchaseHistoryViewWrapper = () => {
     return <PurchaseHistoryView {...context} />;
 };
 
+const GoalsViewWrapper = () => {
+    const context = useOutletContext<any>();
+    return <GoalsView {...context} />;
+};
+
+const AssetManagementViewWrapper = () => {
+    const context = useOutletContext<any>();
+    return <AssetManagementView {...context} />;
+};
+
+const SupportViewWrapper = () => {
+    const context = useOutletContext<any>();
+    return <SupportView {...context} />;
+};
+
 const NotificationsViewWrapper = () => {
   return <NotificationsView />;
 };
@@ -90,14 +142,26 @@ const SettingsViewWrapper = () => {
     return <SettingsView />;
 };
 
+import { ModalProvider } from './providers/ModalProvider';
+import { DynamicMeta } from './components/common/DynamicMeta';
+import { PWAInstallPrompt } from './components/common/PWAInstallPrompt';
+
 function App() {
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
+  const { fetchSettings } = useSystemStore();
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   return (
-    <Router>
-      <div className="min-h-screen">
-        <Routes>
+    <ModalProvider>
+      <DynamicMeta />
+      <PWAInstallPrompt />
+      <Router>
+        <div className="min-h-screen">
+          <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route
             path="/login"
@@ -150,23 +214,22 @@ function App() {
               <Route path="history" element={<PurchaseHistoryViewWrapper />} />
             </Route>
             <Route path="debts" element={<DebtViewWrapper />} />
+            <Route path="goals" element={<GoalsViewWrapper />} />
+            <Route path="assets" element={<AssetManagementViewWrapper />} />
+            <Route path="support" element={<SupportViewWrapper />} />
             <Route path="notifications" element={<NotificationsViewWrapper />} />
             <Route path="settings" element={<SettingsViewWrapper />} />
           </Route>
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route
-            path="/admin"
+            path="/admin/*"
             element={token && user?.role === 'super_admin' ? <AdminDashboard /> : <Navigate to="/" />}
-          >
-            <Route index element={<Navigate to="overview" replace />} />
-            <Route path="overview" element={<AdminDashboard activeSection="overview" />} />
-            <Route path="users" element={<AdminDashboard activeSection="users" />} />
-            <Route path="families" element={<AdminDashboard activeSection="families" />} />
-            <Route path="settings" element={<AdminDashboard activeSection="settings" />} />
-            <Route path="plans" element={<AdminDashboard activeSection="plans" />} />
-            <Route path="transactions" element={<AdminDashboard activeSection="transactions" />} />
-          </Route>
+          />
           <Route 
             path="/writing-room" 
             element={token && (user?.role === 'content_strategist' || user?.role === 'super_admin') ? <WritingRoomLayout /> : <Navigate to="/login" />}
@@ -181,10 +244,12 @@ function App() {
           <Route path="/blog" element={<BlogList />} />
           <Route path="/blog/:slug" element={<BlogDetail />} />
 
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="/500" element={<Error500 />} />
+          <Route path="*" element={<Error404 />} />
         </Routes>
       </div>
-    </Router>
+      </Router>
+    </ModalProvider>
   );
 }
 

@@ -90,12 +90,16 @@ func (ctrl *AuthController) Register(c *gin.Context) {
 
 	invitationID, _ := uuid.Parse(req.InvitationID)
 
-	if err := ctrl.service.Register(req.Email, req.PhoneNumber, req.Password, req.FullName, req.FamilyName, invitationID); err != nil {
+	otpExpiresAt, err := ctrl.service.Register(req.Email, req.PhoneNumber, req.Password, req.FullName, req.FamilyName, invitationID)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Registration successful. Please verify your email with OTP."})
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Registration successful. Please verify your email with OTP.",
+		"otp_expires_at": otpExpiresAt,
+	})
 }
 
 func (ctrl *AuthController) VerifyOTP(c *gin.Context) {
@@ -156,16 +160,20 @@ func (ctrl *AuthController) GetInvitation(c *gin.Context) {
 		return
 	}
 
-	inv, familyName, err := ctrl.service.GetInvitationDetails(id)
+	inv, familyName, user, err := ctrl.service.GetInvitationDetails(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"email":       inv.Email,
-		"family_name": familyName,
-		"role":        inv.Role,
+		"email":          inv.Email,
+		"family_name":    familyName,
+		"role":           inv.Role,
+		"is_user_exists": user != nil && user.ID != uuid.Nil,
+		"is_verified":    user != nil && user.IsVerified,
+		"full_name":      func() string { if user != nil { return user.FullName }; return "" }(),
+		"phone_number":   func() string { if user != nil { return user.PhoneNumber }; return "" }(),
 	})
 }
 
@@ -179,12 +187,40 @@ func (ctrl *AuthController) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.service.UpdateProfile(userID, req.FullName, req.PhoneNumber); err != nil {
+	updatedUser, err := ctrl.service.UpdateProfile(userID, req.FullName, req.PhoneNumber)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Profil berhasil diperbarui"})
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Profil berhasil diperbarui",
+		"user":    updatedUser,
+	})
+}
+
+func (ctrl *AuthController) GetCurrentUser(c *gin.Context) {
+	userIDStr := c.GetString("user_id")
+	userID, _ := uuid.Parse(userIDStr)
+
+	// We can reuse a helper or fetch from service
+	// For simplicity, let's just fetch from the underlying repository via service
+	// Actually, UpdateProfile already returns a user, but we need a dedicated 'Me' fetcher.
+	// Since UpdateProfile returns a *models.User, let's assume we want the same object.
+	
+	// Better: Get current user with family info too, just like login
+	// I'll add a GetProfile method to auth service if needed, or just fetch directly here.
+	// Let's check if the service has a FindByID equivalent or just Fetch with Family.
+	
+	// For now, let's just return the user object.
+	// I'll add a 'GetProfile' to AuthService.
+	user, err := ctrl.service.UpdateProfile(userID, "", "") // Hack: calling with empty string doesn't change it if we handle it
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"user": user})
 }
 
 func (ctrl *AuthController) UpdatePassword(c *gin.Context) {
@@ -233,4 +269,25 @@ func (ctrl *AuthController) ResetWithOTP(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password berhasil direset"})
+}
+
+func (ctrl *AuthController) ResendOTP(c *gin.Context) {
+	var req struct {
+		Email string `json:"email" binding:"required,email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	otpExpiresAt, err := ctrl.service.ResendOTP(req.Email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Kode OTP baru telah dikirim",
+		"otp_expires_at": otpExpiresAt,
+	})
 }

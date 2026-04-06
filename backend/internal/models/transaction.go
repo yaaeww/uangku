@@ -13,8 +13,9 @@ type Transaction struct {
 	UserID      uuid.UUID  `gorm:"type:uuid;not null;index:idx_tx_family_user" json:"user_id"`
 	WalletID    uuid.UUID  `gorm:"type:uuid;not null;index" json:"wallet_id"`
 	ToWalletID  *uuid.UUID `gorm:"type:uuid;index" json:"to_wallet_id,omitempty"` // For internal transfers
-	SavingID    *uuid.UUID `gorm:"type:uuid;index" json:"saving_id,omitempty"`    // Link to Savings/Goals
-	Type        string     `gorm:"not null" json:"type"`                          // income, expense, transfer, saving
+	SavingID    *uuid.UUID `gorm:"type:uuid;index" json:"saving_id,omitempty"`    // Link to Savings
+	GoalID      *uuid.UUID `gorm:"type:uuid;index" json:"goal_id,omitempty"`      // Link to Goals
+	Type        string     `gorm:"not null" json:"type"`                          // income, expense, transfer, saving, goal_allocation
 	Amount      float64    `gorm:"type:decimal(12,2);not null" json:"amount"`
 	Fee         float64    `gorm:"type:decimal(12,2);default:0" json:"fee"`
 	Category    string     `json:"category"`

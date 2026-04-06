@@ -7,11 +7,69 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"keuangan-keluarga/internal/utils"
 )
+
+func calculateSEOScore(post *models.BlogPost) int {
+	score := 0
+	totalChecks := 8
+
+	// 1. Title length (50-60 chars ideal)
+	titleLen := len(post.Title)
+	if titleLen >= 30 && titleLen <= 70 {
+		score++
+	}
+
+	// 2. Meta description length (120-160 chars ideal)
+	metaLen := len(post.MetaDescription)
+	if metaLen >= 80 && metaLen <= 160 {
+		score++
+	}
+
+	// 3. Keywords field is populated
+	if strings.TrimSpace(post.Keywords) != "" {
+		score++
+	}
+
+	// 4. Focus keyword appears in title
+	if post.Keywords != "" {
+		keywords := strings.Split(post.Keywords, ",")
+		if len(keywords) > 0 {
+			focusKw := strings.TrimSpace(strings.ToLower(keywords[0]))
+			if focusKw != "" && strings.Contains(strings.ToLower(post.Title), focusKw) {
+				score++
+			}
+		}
+	}
+
+	// 5. Content length (>= 300 words)
+	wordCount := len(strings.Fields(post.Content))
+	if wordCount >= 300 {
+		score++
+	}
+
+	// 6. Featured image present
+	if strings.TrimSpace(post.FeaturedImage) != "" {
+		score++
+	}
+
+	// 7. Image alt text present
+	if strings.TrimSpace(post.ImageAltText) != "" {
+		score++
+	}
+
+	// 8. Heading structure (H2 or H3 detected in content via ## or ###)
+	if strings.Contains(post.Content, "## ") || strings.Contains(post.Content, "### ") {
+		score++
+	}
+
+	return int(float64(score) / float64(totalChecks) * 100)
+}
 
 type BlogController struct {
 	repo repositories.BlogRepository
@@ -31,6 +89,7 @@ func (ctrl *BlogController) Create(c *gin.Context) {
 	authorIDStr := c.GetString("user_id")
 	authorID, _ := uuid.Parse(authorIDStr)
 	post.AuthorID = authorID
+	post.SeoScore = calculateSEOScore(&post)
 
 	if err := ctrl.repo.Create(&post); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat artikel"})
@@ -67,6 +126,8 @@ func (ctrl *BlogController) Update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	post.SeoScore = calculateSEOScore(&post)
 
 	if err := ctrl.repo.Update(&post); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal update artikel"})
@@ -147,11 +208,36 @@ func (ctrl *BlogController) UploadImage(c *gin.Context) {
 		os.MkdirAll(uploadDir, os.ModePerm)
 	}
 
+	// 1. Save as temporary file first
+	ext := filepath.Ext(file.Filename)
+	tempFilename := fmt.Sprintf("temp_blog_%d%s", time.Now().UnixNano(), ext)
+	tempPath := filepath.Join(uploadDir, tempFilename)
+
+	if err := c.SaveUploadedFile(file, tempPath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save temporary file"})
+		return
+	}
+	defer os.Remove(tempPath)
+
+	// 2. Prepare final WebP filename
 	filename := fmt.Sprintf("blog_%d.webp", time.Now().UnixNano())
 	filePath := filepath.Join(uploadDir, filename)
 
-	if err := c.SaveUploadedFile(file, filePath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
+	// 3. Convert to WebP
+	if err := utils.ConvertToWebP(tempPath, filePath, 80); err != nil {
+		fmt.Printf("[UploadImage] WebP conversion failed, falling back to original: %v\n", err)
+		
+		// Fallback: Use original extension
+		finalFilename := fmt.Sprintf("blog_%d%s", time.Now().UnixNano(), ext)
+		finalPath := filepath.Join(uploadDir, finalFilename)
+		
+		if err := os.Rename(tempPath, finalPath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save original image"})
+			return
+		}
+		
+		url := "/uploads/blog/" + finalFilename
+		c.JSON(http.StatusOK, gin.H{"url": url})
 		return
 	}
 

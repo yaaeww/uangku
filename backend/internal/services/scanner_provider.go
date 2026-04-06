@@ -38,18 +38,13 @@ func (p *OpenAIProvider) Scan(imageData []byte) (*ParsedReceipt, error) {
 	
 	prompt := `
 		Analyze this receipt image and extract the following information in JSON format:
-		- merchant: name of the store
-		- date: date of transaction (ISO format)
-		- items: list of objects with:
-			- name: item name
-			- quantity: number of items
-			- price: price per item
-			- total: total price for this item
-			- category: suggested category (e.g. Food, Transport, Household, etc.)
-		- total: total amount spent on the receipt
+		- merchant: name of the store (string)
+		- date: date of transaction (ISO format YYYY-MM-DD, string)
+		- total: the FINAL TOTAL amount spent (number)
+		- is_valid: boolean, set to true if you can clearly identify the total amount, false if blurry/unidentifiable
+		- error_message: string, if is_valid is false, explain why (e.g., "Gambar terlalu buram", "Bukan struk belanja", "Total tidak terbaca")
 		
-		Context: This is for an Indonesian family finance app. Please translate/normalize categories to common Indonesian categories if possible (e.g. Makan, Jajan, Sembako, Kebutuhan Rumah).
-		Important: Return ONLY the raw JSON object.
+		Important: Return ONLY the raw JSON object. Focus on the final Grand Total.
 	`
 
 	resp, err := p.client.CreateChatCompletion(

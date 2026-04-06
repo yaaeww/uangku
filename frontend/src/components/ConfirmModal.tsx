@@ -7,7 +7,7 @@ interface ConfirmModalProps {
     onConfirm: () => void;
     title: string;
     message: string;
-    type?: 'confirm' | 'alert' | 'danger';
+    type?: 'confirm' | 'alert' | 'danger' | 'warning';
     confirmText?: string;
     cancelText?: string;
 }
@@ -34,40 +34,42 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     if (!isOpen) return null;
 
     const iconMap = {
-        confirm: <HelpCircle className="w-12 h-12 text-dagang-accent" />,
-        alert: <CheckCircle2 className="w-12 h-12 text-dagang-green" />,
-        danger: <AlertCircle className="w-12 h-12 text-red-500" />
+        confirm: <HelpCircle className="w-12 h-12 text-[var(--accent)]" />,
+        alert: <CheckCircle2 className="w-12 h-12 text-emerald-500" />,
+        danger: <AlertCircle className="w-12 h-12 text-red-500" />,
+        warning: <AlertCircle className="w-12 h-12 text-amber-500" />
     };
 
     const buttonClassMap = {
-        confirm: "bg-dagang-green hover:bg-dagang-green-light",
-        alert: "bg-dagang-green hover:bg-dagang-green-light",
-        danger: "bg-red-500 hover:bg-red-600"
+        confirm: "bg-[var(--primary)] hover:opacity-90",
+        alert: "bg-[var(--primary)] hover:opacity-90",
+        danger: "bg-red-500 hover:bg-red-600",
+        warning: "bg-amber-500 hover:bg-amber-600"
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 sm:p-0">
             {/* Backdrop */}
             <div 
-                className="absolute inset-0 bg-[#faf8f3]/60 backdrop-blur-md animate-fade-in" 
+                className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" 
                 onClick={onClose}
             />
             
             {/* Modal Content */}
-            <div className="bg-white rounded-[32px] max-w-[440px] w-full p-8 text-center relative z-10 shadow-[0_32px_120px_rgba(0,0,0,0.1)] border border-black/5 animate-scale-up">
+            <div className="bg-[var(--surface-card)] rounded-[32px] max-w-[440px] w-full p-8 text-center relative z-10 shadow-[var(--card-shadow)] border border-[var(--border)] animate-scale-up">
                 <button 
                     onClick={onClose}
-                    className="absolute top-6 right-6 p-2 hover:bg-dagang-cream rounded-full transition-colors text-dagang-gray/40 hover:text-dagang-dark"
+                    className="absolute top-6 right-6 p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-[var(--text-muted)] hover:text-[var(--text-main)]"
                 >
                     <X className="w-5 h-5" />
                 </button>
 
-                <div className="w-20 h-20 bg-dagang-cream rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="w-20 h-20 bg-[var(--surface)] rounded-full flex items-center justify-center mx-auto mb-6">
                     {iconMap[type]}
                 </div>
 
-                <h2 className="font-serif text-[28px] mb-3 leading-tight text-dagang-dark">{title}</h2>
-                <p className="text-dagang-gray text-[15px] leading-relaxed mb-8">
+                <h2 className="font-serif text-[28px] mb-3 leading-tight text-[var(--text-main)]">{title}</h2>
+                <p className="text-[var(--text-muted)] text-[15px] leading-relaxed mb-8">
                     {message}
                 </p>
 
@@ -75,7 +77,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                     {type !== 'alert' && (
                         <button
                             onClick={onClose}
-                            className="flex-1 py-3.5 px-6 bg-dagang-cream text-dagang-dark rounded-2xl text-[14px] font-bold hover:bg-dagang-cream-dark transition-all"
+                            className="flex-1 py-3.5 px-6 bg-[var(--surface)] text-[var(--text-main)] rounded-2xl text-[14px] font-bold hover:opacity-80 transition-all border border-[var(--border)]"
                         >
                             {cancelText}
                         </button>

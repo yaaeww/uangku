@@ -4,6 +4,7 @@ export default {
         "./index.html",
         "./src/**/*.{js,ts,jsx,tsx}",
     ],
+    darkMode: ['class', '[data-theme="dark"]'],
     theme: {
         screens: {
             'ms': '360px',
@@ -21,20 +22,30 @@ export default {
         extend: {
             colors: {
                 dagang: {
-                    green: '#1a6b4a',
+                    green: 'var(--primary)',
                     'green-light': '#2d9668',
                     'green-pale': '#e8f5ee',
                     cream: '#faf8f3',
-                    dark: '#1a1f16',
-                    gray: '#6b7280',
-                    accent: '#f59e0b',
+                    dark: 'var(--foreground)',
+                    gray: 'var(--text-muted)',
+                    accent: 'var(--accent)',
+                    // Emerald Harmony Tokens
+                    emerald: {
+                        950: 'var(--background)',
+                        900: 'var(--surface)', // Surface
+                        800: 'var(--surface-card)', // Card Surface
+                        700: 'var(--primary)', // Primary
+                        600: 'var(--primary)', // Primary
+                        50: '#E8F5EE',  // Soft Mint
+                    },
+                    amber: 'var(--accent)',    // Accent Gold
                 },
             },
             fontFamily: {
-                heading: ['Poppins', 'sans-serif'],
+                heading: ['Plus Jakarta Sans', 'Poppins', 'sans-serif'],
                 body: ['Inter', 'sans-serif'],
-                serif: ['Instrument Serif', 'serif'], // Keep for logo/specific flair
-                sans: ['Inter', 'sans-serif'], // Default sans to Inter
+                serif: ['Instrument Serif', 'serif'],
+                sans: ['Inter', 'sans-serif'],
             },
             fontSize: {
                 // Typography Tokens from Guide
@@ -71,5 +82,7 @@ export default {
             },
         },
     },
-    plugins: [],
+    plugins: [
+        require('@tailwindcss/typography'),
+    ],
 }

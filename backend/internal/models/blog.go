@@ -16,6 +16,7 @@ type BlogPost struct {
 	CategoryID      *uuid.UUID   `gorm:"type:uuid" json:"category_id"`
 	Status          string       `gorm:"not null;default:'draft'" json:"status"` // draft, published, scheduled
 	FeaturedImage   string       `json:"featured_image"`
+	ImageAltText    string       `json:"image_alt_text"`
 	MetaDescription string       `gorm:"size:160" json:"meta_description"`
 	Keywords        string       `json:"keywords"`
 	ViewsCount      int          `gorm:"default:0" json:"views_count"`

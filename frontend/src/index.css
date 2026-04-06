@@ -3,8 +3,46 @@
 @tailwind utilities;
 
 :root {
-  --background: #faf8f3;
-  --foreground: #1a1f16;
+  --background: #FFFFFF;
+  --surface: #F1F5F9;
+  --surface-card: #FFFFFF;
+  --foreground: #0A1F18;
+  --primary: #1A6B4A;
+  --primary-rgb: 26, 107, 74;
+  --accent: #F59E0B;
+  --text-main: #0A1F18;
+  --text-muted: #334155;
+  --text-faint: #64748B;
+  --border: #CBD5E1;
+  --sidebar-bg: #F0F9F5;
+  --sidebar-text: #064E3B; /* Slightly greener dark text */
+  --sidebar-text-muted: #475569;
+  --sidebar-border: rgba(26, 107, 74, 0.1);
+  --card-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='dark'] {
+  --background: #06130F;
+  --surface: #0A1F18;
+  --surface-card: #142B23;
+  --foreground: #E8F5EE;
+  --primary: #2D9668;
+  --primary-rgb: 45, 150, 104;
+  --accent: #F59E0B;
+  --text-main: #E8F5EE;
+  --text-muted: #94A3B8;
+  --text-faint: rgba(232, 245, 238, 0.3);
+  --border: rgba(45, 150, 104, 0.2);
+  --sidebar-bg: #06130F;
+  --sidebar-text: #FFFFFF;
+  --sidebar-text-muted: rgba(255, 255, 255, 0.5);
+  --sidebar-border: rgba(255, 255, 255, 0.05);
+  --card-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.3);
+}
+
+html {
+  background-color: var(--background);
+  transition: background-color 0.3s ease;
 }
 
 body {
@@ -12,6 +50,7 @@ body {
   color: var(--foreground);
   font-family: 'Inter', sans-serif;
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 @layer components {
@@ -22,6 +61,26 @@ body {
   .btn-secondary {
     @apply px-7 py-4 bg-transparent text-dagang-dark border-[1.5px] border-black/15 rounded-full hover:border-dagang-green hover:text-dagang-green transition-all duration-200 font-medium;
   }
+}
+
+/* Global Select/Option Styles for better contrast */
+select {
+  @apply text-[var(--text-main)] bg-transparent;
+}
+
+select option {
+  @apply bg-[var(--surface-card)] text-[var(--text-main)] py-2;
+}
+
+[data-theme='dark'] select option {
+  background-color: #142B23 !important; /* Force surface-card color */
+  color: #E8F5EE !important; /* Force text-main color */
+}
+
+/* For browsers that don't respect the above (like some versions of Chrome) */
+option {
+  background: var(--surface-card);
+  color: var(--text-main);
 }
 
 .custom-scrollbar::-webkit-scrollbar {

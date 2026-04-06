@@ -18,11 +18,13 @@ import {
     Home,
     ArrowUpCircle,
     Star,
-    AlertCircle
+    AlertCircle,
+    ChevronDown
 } from 'lucide-react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { FinanceController } from '../../controllers/FinanceController';
 import api, { getStorageUrl } from '../../services/api';
+import { useModal } from '../../providers/ModalProvider';
 
 const SubscriptionCountdown: React.FC<{ family: any }> = ({ family }) => {
     if (!family || (family.status !== 'trial' && family.status !== 'active')) return null;
@@ -59,13 +61,13 @@ const SubscriptionCountdown: React.FC<{ family: any }> = ({ family }) => {
     const isTrial = family.status === 'trial';
 
     return (
-        <div className={`p-6 rounded-[32px] ${isTrial ? 'bg-dagang-green/5 border-dagang-green/10' : 'bg-dagang-accent/5 border-dagang-accent/10'} border flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm overflow-hidden relative animate-in fade-in slide-in-from-top-4 duration-700`}>
+        <div className={`p-6 rounded-[32px] ${isTrial ? 'bg-[var(--primary)]/10 border-[var(--primary)]/20' : 'bg-[var(--accent)]/10 border-[var(--accent)]/20'} border flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm overflow-hidden relative animate-in fade-in slide-in-from-top-4 duration-700`}>
              <div className="flex items-center gap-4 relative z-10">
-                <div className={`w-12 h-12 ${isTrial ? 'bg-dagang-green' : 'bg-dagang-accent'} rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0`}>
+                <div className={`w-12 h-12 ${isTrial ? 'bg-[var(--primary)]' : 'bg-[var(--accent)]'} rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0`}>
                     {isTrial ? <AlertCircle className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
                 </div>
                 <div>
-                    <div className="text-[14px] font-bold text-dagang-dark">
+                    <div className="text-[14px] font-bold text-[var(--text-main)]">
                         {isTrial ? 'Trial Gratis Berakhir Dalam:' : 'Sisa Masa Langganan Aktif:'}
                     </div>
                 </div>
@@ -79,19 +81,19 @@ const SubscriptionCountdown: React.FC<{ family: any }> = ({ family }) => {
                     { val: timeLeft.seconds, unit: 'DETIK' }
                 ].map((t, i) => (
                     <React.Fragment key={t.unit}>
-                        <div className={`flex flex-col items-center min-w-[60px] p-2 rounded-2xl bg-white/50 border border-black/5`}>
-                            <span className={`text-[18px] font-black ${isTrial ? 'text-dagang-green' : 'text-dagang-accent'} tabular-nums`}>
+                        <div className={`flex flex-col items-center min-w-[60px] p-2 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--border)]`}>
+                            <span className={`text-[18px] font-black ${isTrial ? 'text-[var(--primary)]' : 'text-[var(--accent)]'} tabular-nums`}>
                                 {String(t.val).padStart(2, '0')}
                             </span>
-                            <span className="text-[8px] font-black text-dagang-gray/60 tracking-widest">{t.unit}</span>
+                            <span className="text-[8px] font-black text-[var(--text-muted)] opacity-80 tracking-widest">{t.unit}</span>
                         </div>
-                        {i < 3 && <span className={`text-[18px] font-black ${isTrial ? 'text-dagang-green/20' : 'text-dagang-accent/20'}`}>:</span>}
+                        {i < 3 && <span className={`text-[18px] font-black ${isTrial ? 'text-[var(--primary)]/20' : 'text-[var(--accent)]/20'}`}>:</span>}
                     </React.Fragment>
                 ))}
             </div>
             
             {/* Background Decoration */}
-            <div className={`absolute -right-8 -top-8 w-32 h-32 ${isTrial ? 'bg-dagang-green/5' : 'bg-dagang-accent/5'} rounded-full blur-2xl`} />
+            <div className={`absolute -right-8 -top-8 w-32 h-32 ${isTrial ? 'bg-[var(--primary)]/5' : 'bg-[var(--accent)]/5'} rounded-full blur-2xl`} />
         </div>
     );
 };
@@ -100,25 +102,25 @@ const getRoleBadge = (role: string) => {
     switch (role) {
         case 'head_of_family':
             return (
-                <span className="flex items-center gap-1.5 px-3 py-1 bg-dagang-dark text-dagang-accent text-[10px] font-black uppercase tracking-widest rounded-full border border-dagang-accent/20 ring-2 ring-dagang-accent/10">
+                <span className="flex items-center gap-1.5 px-3 py-1 bg-dagang-dark text-[var(--accent)] text-[10px] font-black uppercase tracking-widest rounded-full border border-[var(--accent)]/20 ring-2 ring-[var(--accent)]/10">
                     <Home className="w-3 h-3" /> Kepala Keluarga
                 </span>
             );
         case 'treasurer':
             return (
-                <span className="flex items-center gap-1.5 px-3 py-1 bg-dagang-green/10 text-dagang-green text-[10px] font-black uppercase tracking-widest rounded-full border border-dagang-green/20">
+                <span className="flex items-center gap-1.5 px-3 py-1 bg-[var(--primary)]/10 text-[var(--primary)] text-[10px] font-black uppercase tracking-widest rounded-full border border-[var(--primary)]/20">
                     <Shield className="w-3 h-3" /> Bendahara Utama
                 </span>
             );
         case 'member':
             return (
-                <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-500 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-100">
+                <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 text-blue-500 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-500/20">
                     <User className="w-3 h-3" /> Anggota
                 </span>
             );
         case 'viewer':
             return (
-                <span className="flex items-center gap-1.5 px-3 py-1 bg-dagang-gray/10 text-dagang-gray text-[10px] font-black uppercase tracking-widest rounded-full border border-black/5">
+                <span className="flex items-center gap-1.5 px-3 py-1 bg-black/5 dark:bg-white/5 text-[var(--text-muted)] text-[10px] font-black uppercase tracking-widest rounded-full border border-[var(--border)]">
                     <Eye className="w-3 h-3" /> Pantau Only
                 </span>
             );
@@ -128,8 +130,25 @@ const getRoleBadge = (role: string) => {
 };
 
 export const MembersView: React.FC = () => {
-    const { user, refreshDashboard, familyRole } = useOutletContext<any>();
+    const { user, refreshDashboard, familyRole, familyMembers: contextMembers, summary: contextSummary } = useOutletContext<any>();
+    const { showAlert, showConfirm } = useModal();
     const navigate = useNavigate();
+
+    const getBudgetStatus = (memberId: string) => {
+        const memberBudget = contextSummary?.memberBudgets?.[memberId] || 0;
+        if (memberBudget > 0) {
+            return (
+                <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase tracking-widest rounded-md border border-emerald-500/10">
+                    <CheckCircle2 className="w-3 h-3" /> Budget OK
+                </span>
+            );
+        }
+        return (
+            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-orange-500/10 text-orange-500 text-[9px] font-black uppercase tracking-widest rounded-md border border-orange-500/10">
+                <AlertCircle className="w-3 h-3" /> No Budget
+            </span>
+        );
+    };
     const [members, setMembers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -137,6 +156,7 @@ export const MembersView: React.FC = () => {
     const [inviteRole, setInviteRole] = useState('member');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [invitationId, setInvitationId] = useState<string | null>(null);
+    const [invitations, setInvitations] = useState<any[]>([]);
 
     // Family Profile State
     const [familyName, setFamilyName] = useState('');
@@ -154,15 +174,33 @@ export const MembersView: React.FC = () => {
     useEffect(() => {
         const init = async () => {
             setLoading(true);
+            // Use context data if available, otherwise fetch
+            if (contextMembers && contextMembers.length > 0) {
+                setMembers(contextMembers);
+            } else {
+                await fetchMembers();
+            }
+
+            if (contextSummary) {
+                setFamilyData(contextSummary.family);
+                setFamilyName(contextSummary.family.name);
+                setFamilyPhoto(contextSummary.family.photo_url);
+                setFamilyStatus(contextSummary.family.status);
+                setMemberCount(contextSummary.memberCount);
+                setInvitationCount(contextSummary.invitationCount);
+                setMaxMembers(contextSummary.plan?.max_members || 5);
+            } else {
+                await fetchFamilyProfile();
+            }
+
             await Promise.all([
-                fetchMembers(),
-                fetchFamilyProfile(),
+                fetchInvitations(),
                 fetchPublicSettings()
             ]);
             setLoading(false);
         };
         init();
-    }, []);
+    }, [contextMembers, contextSummary]);
 
 
     const fetchPublicSettings = async () => {
@@ -183,6 +221,15 @@ export const MembersView: React.FC = () => {
             setMembers(data);
         } catch (error) {
             console.error("Failed to fetch members", error);
+        }
+    };
+
+    const fetchInvitations = async () => {
+        try {
+            const data = await FinanceController.getInvitations();
+            setInvitations(data);
+        } catch (error) {
+            console.error("Failed to fetch invitations", error);
         }
     };
 
@@ -239,7 +286,7 @@ export const MembersView: React.FC = () => {
                 setPhotoFile(webpFile);
                 setFamilyPhoto(URL.createObjectURL(webpBlob));
             } catch (err) {
-                alert("Gagal memproses gambar");
+                showAlert('Error', "Gagal memproses gambar", 'danger');
             }
         }
     };
@@ -256,48 +303,53 @@ export const MembersView: React.FC = () => {
             await api.put('/finance/families/profile', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            alert("Profil keluarga berhasil diperbarui!");
+            showAlert('Berhasil', "Profil keluarga berhasil diperbarui!", 'alert');
             setPhotoFile(null);
             fetchFamilyProfile();
             refreshDashboard();
         } catch (error) {
-            alert("Gagal memperbarui profil keluarga");
+            showAlert('Gagal', "Gagal memperbarui profil keluarga", 'danger');
         } finally {
             setIsSavingFamily(false);
         }
     };
 
     const handleDeletePhoto = async () => {
-        if (!confirm("Apakah Anda yakin ingin menghapus foto keluarga?")) return;
-        try {
-            await api.delete('/finance/families/profile/photo');
-            setFamilyPhoto(null);
-            setPhotoFile(null);
-            alert("Foto keluarga berhasil dihapus!");
-            fetchFamilyProfile();
-            refreshDashboard();
-        } catch (error) {
-            alert("Gagal menghapus foto keluarga");
-        }
+        showConfirm('Hapus Foto', "Apakah Anda yakin ingin menghapus foto keluarga?", async () => {
+            try {
+                await api.delete('/finance/families/profile/photo');
+                setFamilyPhoto(null);
+                setPhotoFile(null);
+                showAlert('Berhasil', "Foto keluarga berhasil dihapus!", 'alert');
+                fetchFamilyProfile();
+                refreshDashboard();
+            } catch (error) {
+                showAlert('Gagal', "Gagal menghapus foto keluarga", 'danger');
+            }
+        }, 'danger');
     };
 
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        const effectiveMax = familyStatus === 'trial' ? trialMaxMembers : maxMembers;
+        const activePlanMax = maxMembers > 0 ? maxMembers : 2;
+        const effectiveMax = (familyStatus === 'trial' && (!familyData?.subscription_plan || familyData.subscription_plan === 'Standard')) 
+            ? trialMaxMembers 
+            : activePlanMax;
 
         if (memberCount + invitationCount >= effectiveMax) {
-            alert("Limit anggota tercapai. Silakan hapus anggota atau upgrade paket.");
+            showAlert('Limit Tercapai', "Limit anggota tercapai. Silakan hapus anggota atau upgrade paket.", 'warning');
             return;
         }
         setIsSubmitting(true);
         try {
             const data = await FinanceController.inviteMember(inviteEmail, inviteRole);
             setInvitationId(data.invitation_id);
+            fetchInvitations();
             fetchFamilyProfile();
         } catch (error: any) {
             const msg = error.response?.data?.error || "Gagal mengirim undangan.";
-            alert(msg);
+            showAlert('Gagal', msg, 'danger');
         } finally {
             setIsSubmitting(false);
         }
@@ -307,7 +359,7 @@ export const MembersView: React.FC = () => {
         if (!invitationId) return;
         const link = `${window.location.origin}/register?invitation_id=${invitationId}`;
         navigator.clipboard.writeText(link);
-        alert("Link undangan berhasil disalin!");
+        showAlert('Berhasil', "Link undangan berhasil disalin!", 'alert');
     };
 
     const shareWhatsApp = () => {
@@ -322,42 +374,65 @@ export const MembersView: React.FC = () => {
             await FinanceController.updateMemberRole(id, newRole);
             fetchMembers();
         } catch (error) {
-            alert("Gagal memperbarui peran anggota");
+            showAlert('Gagal', "Gagal memperbarui peran anggota", 'danger');
         }
     };
 
     const handleRemoveMember = async (id: string) => {
-        if (!confirm("Apakah Anda yakin ingin menghapus anggota ini dari keluarga?")) return;
-        try {
-            await FinanceController.removeMember(id);
-            fetchMembers();
-        } catch (error) {
-            alert("Gagal menghapus anggota");
-        }
+        showConfirm('Hapus Anggota', "Apakah Anda yakin ingin menghapus anggota ini dari keluarga?", async () => {
+            try {
+                await FinanceController.removeMember(id);
+                fetchMembers();
+                fetchFamilyProfile();
+            } catch (error) {
+                showAlert('Gagal', "Gagal menghapus anggota", 'danger');
+            }
+        }, 'danger');
+    };
+
+    const handleCancelInvitation = async (id: string) => {
+        showConfirm('Batalkan Undangan', "Apakah Anda yakin ingin membatalkan undangan ini?", async () => {
+            try {
+                await FinanceController.cancelInvitation(id);
+                fetchInvitations();
+                fetchFamilyProfile();
+            } catch (error) {
+                showAlert('Gagal', "Gagal membatalkan undangan", 'danger');
+            }
+        }, 'danger');
     };
 
     if (loading) return (
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-            <div className="w-12 h-12 border-4 border-dagang-green/20 border-t-dagang-green rounded-full animate-spin" />
-            <p className="text-sm font-bold text-dagang-dark/40 tracking-widest uppercase">Memuat Ruang Keluarga...</p>
+            <div className="w-12 h-12 border-4 border-[var(--primary)]/20 border-t-[var(--primary)] rounded-full animate-spin" />
+            <p className="text-sm font-bold text-[var(--text-muted)] opacity-60 tracking-widest uppercase">Memuat Ruang Keluarga...</p>
         </div>
     );
 
-    const effectiveMax = familyStatus === 'trial' ? trialMaxMembers : maxMembers;
+    const activePlanMax = maxMembers > 0 ? maxMembers : 2;
+    const effectiveMax = (familyStatus === 'trial' && (!familyData?.subscription_plan || familyData.subscription_plan === 'Standard')) 
+        ? trialMaxMembers 
+        : activePlanMax;
+    
+    // Filter invitations that don't have a corresponding member yet
+    const pendingInvitations = invitations.filter(inv => 
+        !members.some(m => m.email.toLowerCase() === inv.email.toLowerCase())
+    );
+    const activeInvitationCount = pendingInvitations.length;
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-h2 font-heading text-dagang-dark">Ruang Keluarga</h1>
-                    <p className="text-body-s text-dagang-gray mt-1">Kelola nama, foto, dan akses anggota keluarga Anda.</p>
+                    <h1 className="text-h2 font-heading text-[var(--text-main)]">Ruang Keluarga</h1>
+                    <p className="text-body-s text-[var(--text-muted)] mt-1">Kelola nama, foto, dan akses anggota keluarga Anda.</p>
                 </div>
                 <div className="flex flex-col md:flex-row md:items-center gap-2">
                     <button 
                         onClick={() => setIsInviteModalOpen(true)}
                         disabled={memberCount + invitationCount >= effectiveMax}
-                        className={`bg-dagang-dark text-white px-6 py-3 rounded-[20px] font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-lg shadow-dagang-dark/10 ${(memberCount + invitationCount >= effectiveMax) ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                        className={`bg-[var(--primary)] text-white px-6 py-3 rounded-[20px] font-bold text-sm flex items-center gap-2 hover:opacity-90 transition-all shadow-xl shadow-black/10 ${(memberCount + invitationCount >= effectiveMax) ? 'opacity-70 cursor-not-allowed grayscale' : ''}`}
                     >
                         <UserPlus className="w-4 h-4" /> 
                         Undang Anggota
@@ -367,9 +442,12 @@ export const MembersView: React.FC = () => {
                             <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest px-2">
                                 {familyStatus === 'trial' ? `Trial: Slot Terbatas (Max ${trialMaxMembers})` : 'Slot Penuh: Upgrade paket Anda'}
                             </p>
-                            <a href="#pricing-section" className="text-[10px] font-bold text-white bg-dagang-accent px-4 py-1.5 rounded-full hover:bg-amber-600 transition-colors shadow-sm inline-flex items-center gap-1.5">
+                            <button 
+                                onClick={handleUpgradePlan}
+                                className="text-[10px] font-bold text-white bg-[var(--accent)] px-4 py-1.5 rounded-full hover:opacity-90 transition-colors shadow-sm inline-flex items-center gap-1.5"
+                            >
                                 🚀 Upgrade Akun
-                            </a>
+                            </button>
                         </div>
                     )}
                 </div>
@@ -379,9 +457,9 @@ export const MembersView: React.FC = () => {
             {familyData && <SubscriptionCountdown family={familyData} />}
 
             {/* Family Profile Card */}
-            <div className="bg-white p-8 rounded-[40px] border border-black/5 shadow-sm flex flex-col md:flex-row gap-8 items-center">
+            <div className="bg-[var(--surface-card)] p-8 rounded-[40px] border border-[var(--border)] shadow-sm flex flex-col md:flex-row gap-8 items-center">
                 <div className="relative group">
-                    <div className="w-32 h-32 rounded-[32px] bg-dagang-gray/5 border-2 border-dashed border-black/10 flex items-center justify-center overflow-hidden">
+                    <div className="w-32 h-32 rounded-[32px] bg-black/5 dark:bg-white/5 border-2 border-dashed border-[var(--border)] flex items-center justify-center overflow-hidden">
                         {familyPhoto ? (
                             <img 
                                 src={familyPhoto.startsWith('blob:') ? familyPhoto : getStorageUrl(familyPhoto)} 
@@ -389,14 +467,14 @@ export const MembersView: React.FC = () => {
                                 alt="Family Profile"
                             />
                         ) : (
-                            <Home className="w-12 h-12 text-dagang-gray/20" />
+                            <Home className="w-12 h-12 text-[var(--text-muted)] opacity-20" />
                         )}
                     </div>
                     <div className="absolute -bottom-2 -right-2 flex flex-col gap-2">
                         {familyRole === 'head_of_family' && (
                             <button 
                                 onClick={() => fileInputRef.current?.click()}
-                                className="w-10 h-10 bg-dagang-dark text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-black transition-all"
+                                className="w-10 h-10 bg-[var(--primary)] text-white rounded-xl flex items-center justify-center shadow-lg hover:opacity-90 transition-all"
                                 title="Ganti Foto"
                             >
                                 <Camera className="w-5 h-5" />
@@ -423,13 +501,13 @@ export const MembersView: React.FC = () => {
 
                 <div className="flex-1 space-y-6 w-full">
                     <div className="space-y-1.5">
-                        <label className="text-[11px] font-black uppercase tracking-widest text-dagang-gray">Nama Keluarga</label>
+                        <label className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-80">Nama Keluarga</label>
                         <input 
                             type="text" 
                             value={familyName}
                             onChange={(e) => setFamilyName(e.target.value)}
                             disabled={familyRole !== 'head_of_family'}
-                            className={`w-full h-14 px-6 rounded-2xl bg-dagang-gray/5 border border-black/5 outline-none focus:ring-2 focus:ring-dagang-green/20 transition-all font-bold text-lg ${familyRole !== 'head_of_family' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            className={`w-full h-14 px-6 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--border)] outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all font-bold text-lg text-[var(--text-main)] ${familyRole !== 'head_of_family' ? 'opacity-70 cursor-not-allowed' : ''}`}
                             placeholder="Contoh: Keluarga Stark"
                         />
                     </div>
@@ -437,7 +515,7 @@ export const MembersView: React.FC = () => {
                         <button 
                             onClick={handleUpdateFamily}
                             disabled={isSavingFamily}
-                            className="flex items-center gap-2 px-8 py-3.5 bg-dagang-green text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-dagang-green-light transition-all shadow-lg shadow-dagang-green/10 disabled:opacity-50"
+                            className="flex items-center gap-2 px-8 py-3.5 bg-[var(--primary)] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all shadow-lg shadow-black/10 disabled:opacity-70"
                         >
                             {isSavingFamily ? (
                                 <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -449,113 +527,126 @@ export const MembersView: React.FC = () => {
                     )}
                 </div>
                 
-                <div className="hidden lg:block w-px h-24 bg-black/5" />
+                <div className="hidden lg:block w-px h-24 bg-[var(--border)]" />
                 
                 <div className="hidden lg:flex flex-col items-center gap-2 px-8">
-                    <div className="text-3xl font-serif text-dagang-dark">
-                        {memberCount} / {effectiveMax}
+                    <div className="text-3xl font-serif text-[var(--text-main)]">
+                        {(memberCount || 0) + (activeInvitationCount || 0)} / {effectiveMax}
                     </div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-dagang-gray">Slot Anggota Terisi</div>
-                    {invitationCount > 0 && (
+                    <div className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-80">Slot Anggota Terisi</div>
+                    {activeInvitationCount > 0 && (
                         <div className="text-[9px] font-bold text-orange-500 uppercase tracking-tighter">
-                            + {invitationCount} Undangan Pending
+                            + {activeInvitationCount} Undangan Pending
                         </div>
                     )}
                 </div>
             </div>
 
             {/* Subscription Status & Upgrade CTA */}
-            <div className="bg-white p-8 md:p-12 rounded-[48px] border border-black/5 shadow-sm overflow-hidden relative">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-dagang-green/5 blur-3xl rounded-full -mr-32 -mt-32" />
+            <div className="bg-[#064E3B] p-8 md:p-12 rounded-[48px] border border-white/5 shadow-2xl relative overflow-hidden text-white">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-3xl rounded-full -mr-32 -mt-32" />
                 <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
                     <div className="flex items-center gap-6">
-                        <div className="w-20 h-20 rounded-[32px] bg-dagang-dark text-dagang-accent flex items-center justify-center">
+                        <div className="w-20 h-20 rounded-[32px] bg-white/10 text-[var(--accent)] flex items-center justify-center border border-white/20 backdrop-blur-md">
                             <Star className="w-10 h-10" />
                         </div>
                         <div>
-                            <div className="text-[10px] font-black text-dagang-gray uppercase tracking-[0.2em] mb-2">Paket Langganan</div>
-                            <h2 className="text-3xl font-serif text-dagang-dark mb-1">
+                            <div className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2 font-bold">Paket Langganan</div>
+                            <h2 className="text-3xl font-serif text-white mb-1">
                                 {familyData?.subscription_plan || 'Trial'}
-                                <span className="ml-3 inline-block px-3 py-1 bg-dagang-green/10 text-dagang-green text-[10px] font-black uppercase tracking-widest rounded-full">Aktif</span>
+                                <span className="ml-3 inline-block px-3 py-1 bg-white/20 text-white text-[10px] font-black uppercase tracking-widest rounded-full">Aktif</span>
                             </h2>
-                            <p className="text-dagang-gray text-sm">
+                            <p className="text-white/60 text-sm font-medium">
                                 {familyStatus === 'trial' 
                                     ? `Masa percobaan Anda mendukung hingga ${trialMaxMembers} anggota.` 
                                     : `Paket ${familyData?.subscription_plan} mendukung hingga ${maxMembers} anggota.`}
                             </p>
                         </div>
                     </div>
-
-                    {familyRole === 'head_of_family' && (
-                        <button 
-                            onClick={handleUpgradePlan}
-                            className="bg-dagang-dark text-white px-10 h-16 rounded-[24px] font-black text-xs uppercase tracking-[0.15em] hover:bg-black transition-all shadow-xl shadow-dagang-dark/10 flex items-center gap-3 group"
-                        >
-                            {familyStatus === 'trial' ? 'Upgrade Sekarang' : 'Perpanjang / Ganti Paket'}
-                            <ArrowUpCircle className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
-                        </button>
-                    )}
                 </div>
             </div>
 
             {/* Members Section Title */}
             <div className="pt-4">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-dagang-gray/5 flex items-center justify-center text-dagang-dark">
+                    <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-[var(--text-main)]">
                         <Users className="w-5 h-5" />
                     </div>
-                    <h2 className="text-h3 font-heading text-dagang-dark">Daftar Anggota</h2>
+                    <h2 className="text-h3 font-heading text-[var(--text-main)]">Daftar Anggota</h2>
                 </div>
 
                 {/* Members Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {members.map((member) => (
-                         <div key={member.id} className="bg-white p-6 rounded-[32px] border border-black/5 shadow-sm hover:shadow-md transition-shadow relative group">
+                         <div key={member.id} className="bg-[var(--surface-card)] p-6 rounded-[32px] border border-[var(--border)] shadow-sm hover:shadow-md transition-shadow relative group">
                             <div className="flex items-start justify-between mb-6">
-                                <div className="w-14 h-14 bg-dagang-gray/5 rounded-2xl flex items-center justify-center border border-black/5 overflow-hidden">
+                                <div className="w-14 h-14 bg-black/5 dark:bg-white/5 rounded-2xl flex items-center justify-center border border-[var(--border)] overflow-hidden">
                                     <img 
-                                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name)}&background=f8f9fa&color=121212&bold=true&font-size=0.33`} 
+                                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.fullName)}&background=10b981&color=ffffff&bold=true&font-size=0.33`} 
                                         className="w-full h-full object-cover"
-                                        alt={member.full_name}
+                                        alt={member.fullName}
                                     />
                                 </div>
                                 <div className="flex flex-col items-end gap-2">
                                     {getRoleBadge(member.role)}
+                                    {getBudgetStatus(member.userId)}
+                                    {member.isVerified === false && (
+                                        <span className="px-2 py-0.5 bg-red-500/10 text-red-500 text-[8px] font-black uppercase tracking-widest rounded-md animate-pulse">
+                                            Pending Verifikasi
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
                             <div className="space-y-1 mb-6">
-                                <h3 className="font-bold text-[18px] text-dagang-dark line-clamp-1">{member.full_name}</h3>
-                                <div className="flex items-center gap-2 text-dagang-gray text-[13px]">
-                                    <Mail className="w-3.5 h-3.5 opacity-50" />
+                                <h3 className="font-bold text-[18px] text-[var(--text-main)] line-clamp-1">{member.fullName}</h3>
+                                <div className="flex items-center gap-2 text-[var(--text-muted)] text-[13px] opacity-70">
+                                    <Mail className="w-3.5 h-3.5 opacity-70" />
                                     <span className="line-clamp-1">{member.email}</span>
                                 </div>
                             </div>
 
-                            <div className="pt-6 border-t border-black/5 flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-dagang-gray text-[11px] font-bold uppercase tracking-wider">
-                                    <Clock className="w-3.5 h-3.5 opacity-40" />
-                                    {new Date(member.joined_at).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}
+                            <div className="pt-6 border-t border-[var(--border)] flex flex-col mobile:flex-row items-start mobile:items-center justify-between gap-3">
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-2 text-[var(--text-muted)] text-[11px] font-bold uppercase tracking-wider opacity-80">
+                                        <Clock className="w-3.5 h-3.5 opacity-60 shrink-0" />
+                                        {new Date(member.joinedAt).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}
+                                    </div>
+                                    
+                                    {member.isVerified === false && (
+                                        <button 
+                                            onClick={() => {
+                                                const inv = invitations.find(i => i.email.toLowerCase() === member.email.toLowerCase());
+                                                if (inv) {
+                                                    const link = `${window.location.origin}/register?invitation_id=${inv.id}`;
+                                                    navigator.clipboard.writeText(link);
+                                                    showAlert('Berhasil', "Link pendaftaran anggota berhasil disalin!", 'alert');
+                                                }
+                                            }}
+                                            className="flex items-center gap-1.5 text-[10px] font-black text-[var(--primary)] uppercase tracking-widest hover:underline text-left"
+                                        >
+                                            <Copy className="w-3 h-3" /> Salin Link Daftar
+                                        </button>
+                                    )}
                                 </div>
 
-                                {user?.id !== member.user_id && (
-                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {user?.id !== member.userId && (
+                                    <div className="flex items-center gap-2 w-full mobile:w-auto justify-between mobile:justify-end">
                                         {familyRole === 'head_of_family' && (
                                             <select 
-                                                className="text-[11px] font-black uppercase tracking-widest bg-dagang-gray/5 border-none rounded-lg px-2 py-1 outline-none cursor-pointer hover:bg-dagang-gray/10"
+                                                className="text-[10px] font-black uppercase tracking-widest bg-black/5 dark:bg-white/5 border-none rounded-lg px-2 py-1.5 outline-none cursor-pointer text-[var(--text-main)] w-full mobile:max-w-[160px]"
                                                 value={member.role}
                                                 onChange={(e) => handleUpdateRole(member.id, e.target.value)}
                                             >
-                                                <option value="head_of_family">Kepala Keluarga</option>
-                                                <option value="treasurer">Bendahara</option>
                                                 <option value="member">Anggota</option>
-                                                <option value="viewer">Pantau</option>
+                                                <option value="treasurer">Bendahara</option>
+                                                <option value="viewer">Pantau Only</option>
                                             </select>
                                         )}
                                         {familyRole === 'head_of_family' && (
                                             <button 
                                                 onClick={() => handleRemoveMember(member.id)}
-                                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -568,115 +659,177 @@ export const MembersView: React.FC = () => {
                 </div>
             </div>
 
+            {/* Pending Invitations Section */}
+            {invitations.length > 0 && (
+                <div className="pt-8 border-t border-[var(--border)]">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+                            <Mail className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h2 className="text-h3 font-heading text-[var(--text-main)]">Undangan Pending</h2>
+                            <p className="text-body-xs text-[var(--text-muted)] opacity-60 uppercase tracking-widest font-black">Menunggu pendaftaran</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {pendingInvitations.map((inv) => (
+                            <div key={inv.id} className="bg-[var(--surface-card)] p-6 rounded-[32px] border border-[var(--border)] shadow-sm relative group">
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className="w-12 h-12 bg-black/5 dark:bg-white/5 rounded-2xl flex items-center justify-center border border-[var(--border)] text-[var(--text-muted)] opacity-40">
+                                        <Mail className="w-6 h-6" />
+                                    </div>
+                                    <div className="flex flex-col items-end gap-2">
+                                        {getRoleBadge(inv.role)}
+                                        <span className="px-2 py-0.5 bg-orange-500/10 text-orange-500 text-[8px] font-black uppercase tracking-widest rounded-md">Pending</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1 mb-4">
+                                    <h4 className="font-bold text-sm text-[var(--text-main)] truncate">{inv.email}</h4>
+                                    <p className="text-[10px] text-[var(--text-muted)] opacity-50 font-bold uppercase tracking-wider">
+                                        Dikirim: {new Date(inv.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </p>
+                                </div>
+                                {familyRole === 'head_of_family' && (
+                                    <div className="flex gap-2 pt-4 border-t border-[var(--border)]">
+                                        <button 
+                                            onClick={() => {
+                                                setInvitationId(inv.id);
+                                                setIsInviteModalOpen(true);
+                                            }}
+                                            className="flex-1 py-2 rounded-xl bg-black/5 dark:bg-white/5 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:bg-black/10 transition-all"
+                                        >
+                                            Lihat Link
+                                        </button>
+                                        <button 
+                                            onClick={() => handleCancelInvitation(inv.id)}
+                                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"
+                                            title="Batalkan Undangan"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Invite Modal */}
             {isInviteModalOpen && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-dagang-dark/40 backdrop-blur-sm" onClick={() => {
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => {
                         setIsInviteModalOpen(false);
                         setInvitationId(null);
                         setInviteEmail('');
                     }} />
-                    <div className="bg-white w-full max-w-md rounded-[40px] p-10 relative z-10 shadow-2xl animate-in zoom-in-95 duration-300">
+                    <div className="bg-[var(--surface-card)] w-full max-w-md max-h-[calc(100vh-40px)] overflow-y-auto rounded-[32px] md:rounded-[40px] p-6 md:p-10 relative z-10 shadow-2xl animate-in zoom-in-95 duration-300 border border-[var(--border)] custom-scrollbar">
                         <button 
                             onClick={() => {
                                 setIsInviteModalOpen(false);
                                 setInvitationId(null);
                                 setInviteEmail('');
                             }}
-                            className="absolute top-8 right-8 p-2 text-dagang-gray hover:text-dagang-dark transition-colors"
+                            className="absolute top-6 right-6 md:top-8 md:right-8 p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors z-20 bg-[var(--surface-card)] rounded-full"
                         >
-                            <X className="w-6 h-6" />
+                            <X className="w-5 h-5 md:w-6 md:h-6" />
                         </button>
 
-                        <div className="w-16 h-16 bg-dagang-green/10 rounded-3xl flex items-center justify-center text-dagang-green mb-8">
-                            <UserPlus className="w-8 h-8" />
+                        <div className="w-12 h-12 md:w-16 md:h-16 bg-[var(--primary)]/10 rounded-2xl md:rounded-3xl flex items-center justify-center text-[var(--primary)] mb-6 md:mb-8">
+                            <UserPlus className="w-6 h-6 md:w-8 md:h-8" />
                         </div>
 
-                        <h2 className="text-2xl font-serif text-dagang-dark mb-2">Undang Anggota</h2>
+                        <h2 className="text-xl md:text-2xl font-serif text-[var(--text-main)] mb-2">Undang Anggota</h2>
                         
                         {!invitationId ? (
                             <>
-                                <p className="text-dagang-gray text-sm mb-8 leading-relaxed">
+                                <p className="text-[var(--text-muted)] text-xs md:text-sm mb-6 md:mb-8 leading-relaxed opacity-70">
                                     Masukkan email anggota keluarga yang ingin kamu ajak kolaborasi.
                                 </p>
 
-                                <form onSubmit={handleInvite} className="space-y-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-dagang-gray/60 px-4">Alamat Email</label>
+                                <form onSubmit={handleInvite} className="space-y-4 md:space-y-6">
+                                    <div className="space-y-1.5 md:space-y-2">
+                                        <label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-80 px-4">Alamat Email</label>
                                         <input 
                                             type="email" 
                                             required
                                             placeholder="contoh@email.com"
-                                            className="w-full h-14 px-6 rounded-full bg-dagang-gray/5 border border-black/5 outline-none focus:border-dagang-green/30 transition-all font-medium text-[15px]"
+                                            className="w-full h-12 md:h-14 px-6 rounded-full bg-black/5 dark:bg-white/5 border border-[var(--border)] outline-none focus:border-[var(--primary)]/30 transition-all font-medium text-sm md:text-[15px] text-[var(--text-main)]"
                                             value={inviteEmail}
                                             onChange={(e) => setInviteEmail(e.target.value)}
                                         />
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-dagang-gray/60 px-4">Peran (Role)</label>
-                                        <select 
-                                            className="w-full h-14 px-6 rounded-full bg-dagang-gray/5 border border-black/5 outline-none focus:border-dagang-green/30 transition-all font-medium text-[15px] appearance-none cursor-pointer"
-                                            value={inviteRole}
-                                            onChange={(e) => setInviteRole(e.target.value)}
-                                        >
-                                            <option value="member">Anggota (Input Saja)</option>
-                                            <option value="treasurer">Bendahara (Akses Penuh)</option>
-                                            <option value="viewer">Pantau Only (Read-Only)</option>
-                                        </select>
+                                    <div className="space-y-1.5 md:space-y-2">
+                                        <label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-80 px-4">Peran (Role)</label>
+                                        <div className="relative">
+                                            <select 
+                                                className="w-full h-12 md:h-14 px-6 rounded-full bg-black/5 dark:bg-white/5 border border-[var(--border)] outline-none focus:border-[var(--primary)]/30 transition-all font-medium text-sm md:text-[15px] appearance-none cursor-pointer text-[var(--text-main)]"
+                                                value={inviteRole}
+                                                onChange={(e) => setInviteRole(e.target.value)}
+                                            >
+                                                <option value="member" className="bg-[var(--surface-card)]">Anggota (Input Saja)</option>
+                                                <option value="treasurer" className="bg-[var(--surface-card)]">Bendahara (Akses Penuh)</option>
+                                                <option value="viewer" className="bg-[var(--surface-card)]">Pantau Only (Read-Only)</option>
+                                            </select>
+                                            <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
+                                                <ChevronDown className="w-4 h-4" />
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <button 
                                         type="submit"
                                         disabled={isSubmitting}
-                                        className="w-full h-16 bg-dagang-dark text-white rounded-full font-bold shadow-xl shadow-dagang-dark/10 hover:bg-black transition-all disabled:opacity-50 mt-4"
+                                        className="w-full h-14 md:h-16 bg-[var(--primary)] text-white rounded-full font-bold shadow-xl shadow-black/10 hover:opacity-90 transition-all disabled:opacity-70 mt-2 md:mt-4 text-sm md:text-base"
                                     >
                                         {isSubmitting ? 'Mengirim...' : 'Kirim Undangan'}
                                     </button>
                                 </form>
                             </>
                         ) : (
-                            <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
-                                <div className="p-6 bg-dagang-green/5 border border-dagang-green/20 rounded-[32px] text-center">
-                                    <div className="w-12 h-12 bg-dagang-green/10 rounded-full flex items-center justify-center text-dagang-green mx-auto mb-4">
-                                        <CheckCircle2 className="w-6 h-6" />
+                            <div className="space-y-6 md:space-y-8 animate-in fade-in zoom-in-95 duration-500">
+                                <div className="p-4 md:p-6 bg-[var(--primary)]/5 border border-[var(--primary)]/20 rounded-[24px] md:rounded-[32px] text-center">
+                                    <div className="w-10 h-10 md:w-12 md:h-12 bg-[var(--primary)]/10 rounded-full flex items-center justify-center text-[var(--primary)] mx-auto mb-3 md:mb-4 text-emerald-500">
+                                        <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" />
                                     </div>
-                                    <p className="text-sm font-bold text-dagang-dark mb-1">Undangan Berhasil Dibuat!</p>
-                                    <p className="text-[13px] text-dagang-gray">Gunakan link di bawah ini jika email tidak terkirim.</p>
+                                    <p className="text-sm font-bold text-[var(--text-main)] mb-1">Undangan Berhasil Dibuat!</p>
+                                    <p className="text-[12px] md:text-[13px] text-[var(--text-muted)] opacity-70">Gunakan link di bawah ini jika email tidak terkirim.</p>
                                 </div>
 
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-dagang-gray/60 px-4">Link Undangan</label>
+                                <div className="space-y-2 md:space-y-3">
+                                    <label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-80 px-4">Link Undangan</label>
                                     <div className="relative group">
                                         <input 
                                             readOnly
                                             value={`${window.location.origin}/register?invitation_id=${invitationId}`}
-                                            className="w-full h-14 pl-6 pr-14 rounded-full bg-dagang-gray/5 border border-black/5 outline-none font-medium text-[13px] text-dagang-gray truncate"
+                                            className="w-full h-12 md:h-14 pl-6 pr-14 rounded-full bg-black/5 dark:bg-white/5 border border-[var(--border)] outline-none font-medium text-[12px] md:text-[13px] text-[var(--text-muted)] truncate"
                                         />
                                         <button 
                                             onClick={copyInviteLink}
-                                            className="absolute right-2 top-2 w-10 h-10 bg-white border border-black/5 rounded-full flex items-center justify-center text-dagang-dark hover:bg-dagang-dark hover:text-white transition-all shadow-sm"
+                                            className="absolute right-1.5 top-1.5 w-9 h-9 md:w-11 md:h-11 bg-[var(--surface-card)] border border-[var(--border)] rounded-full flex items-center justify-center text-[var(--text-main)] hover:bg-[var(--primary)] hover:text-white transition-all shadow-sm"
                                         >
                                             <Copy className="w-4 h-4" />
                                         </button>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-2 gap-3 md:gap-4">
                                     <button 
                                         onClick={shareWhatsApp}
-                                        className="h-14 bg-[#25D366] text-white rounded-full font-bold text-[13px] flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg shadow-[#25D366]/20"
+                                        className="h-12 md:h-14 bg-[#25D366] text-white rounded-full font-bold text-[12px] md:text-[13px] flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg shadow-[#25D366]/20"
                                     >
-                                        <MessageCircle className="w-4 h-4" /> WhatsApp
+                                        <MessageCircle className="w-4 h-4" /> <span className="hidden xs:inline">WhatsApp</span><span className="xs:hidden">WA</span>
                                     </button>
                                     <button 
                                         onClick={() => {
                                             const link = `${window.location.origin}/register?invitation_id=${invitationId}`;
                                             window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}`, '_blank');
                                         }}
-                                        className="h-14 bg-[#0088cc] text-white rounded-full font-bold text-[13px] flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg shadow-[#0088cc]/20"
+                                        className="h-12 md:h-14 bg-[#0088cc] text-white rounded-full font-bold text-[12px] md:text-[13px] flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg shadow-[#0088cc]/20"
                                     >
-                                        <ExternalLink className="w-4 h-4" /> Telegram
+                                        <ExternalLink className="w-4 h-4" /> <span className="hidden xs:inline">Telegram</span><span className="xs:hidden">TG</span>
                                     </button>
                                 </div>
 
@@ -686,7 +839,7 @@ export const MembersView: React.FC = () => {
                                         setInvitationId(null);
                                         setInviteEmail('');
                                     }}
-                                    className="w-full h-16 border-2 border-black/5 text-dagang-gray rounded-full font-bold hover:bg-black/5 transition-all mt-4"
+                                    className="w-full h-14 md:h-16 border-2 border-[var(--border)] text-[var(--text-muted)] rounded-full font-bold hover:bg-black/5 dark:hover:bg-white/5 transition-all mt-2 md:mt-4 text-sm"
                                 >
                                     Tutup
                                 </button>

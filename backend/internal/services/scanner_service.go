@@ -12,10 +12,12 @@ type ParsedReceiptItem struct {
 }
 
 type ParsedReceipt struct {
-	Merchant string              `json:"merchant"`
-	Date     time.Time           `json:"date"`
-	Items    []ParsedReceiptItem `json:"items"`
-	Total    float64             `json:"total"`
+	Merchant     string              `json:"merchant"`
+	Date         string              `json:"date"` // Changed to string for flexibility from AI
+	Items        []ParsedReceiptItem `json:"items"`
+	Total        float64             `json:"total"`
+	IsValid      bool                `json:"is_valid"`
+	ErrorMessage string              `json:"error_message"`
 }
 
 type ScannerService interface {
@@ -27,8 +29,8 @@ type scannerService struct {
 }
 
 func NewScannerService() ScannerService {
-	// We use OpenAI as the primary and only provider now
-	provider := NewOpenAIProvider()
+	// Use local OCR system instead of OpenAI
+	provider := NewLocalOCRProvider()
 
 	return &scannerService{
 		provider: provider,
@@ -40,11 +42,12 @@ func (s *scannerService) ScanReceipt(imageData []byte) (*ParsedReceipt, error) {
 		// Fallback to mock if no provider is configured (for dev)
 		return &ParsedReceipt{
 			Merchant: "MOCK - ALFAMART",
-			Date:     time.Now(),
+			Date:     time.Now().Format("2006-01-02"),
 			Items: []ParsedReceiptItem{
 				{Name: "MOCK ITEM", Quantity: 1, Price: 10000, Total: 10000, Category: "Lainnya"},
 			},
-			Total: 10000,
+			Total:   10000,
+			IsValid: true,
 		}, nil
 	}
 

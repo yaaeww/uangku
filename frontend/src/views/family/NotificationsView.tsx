@@ -5,6 +5,7 @@ import { NotificationController } from '../../controllers/NotificationController
 export const NotificationsView: React.FC = () => {
     const [notifications, setNotifications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     const fetchNotifications = async () => {
         try {
@@ -24,73 +25,204 @@ export const NotificationsView: React.FC = () => {
     const handleMarkAsRead = async (id: string) => {
         try {
             await NotificationController.markAsRead(id);
-            setNotifications((notifications: any[]) => notifications.map((n: any) => n.id === id ? { ...n, is_read: true } : n));
+            setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
         } catch (error) {
             console.error('Failed to mark as read:', error);
+        }
+    };
+
+    const handleMarkAllAsRead = async () => {
+        try {
+            await NotificationController.markAllAsRead();
+            setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+        } catch (error) {
+            console.error('Failed to mark all as read:', error);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!window.confirm('Hapus notifikasi ini?')) return;
+        try {
+            await NotificationController.deleteNotification(id);
+            setNotifications((prev) => prev.filter((n) => n.id !== id));
+            setSelectedIds((prev) => prev.filter((sId) => sId !== id));
+        } catch (error) {
+            console.error('Failed to delete notification:', error);
+        }
+    };
+
+    const handleDeleteAll = async () => {
+        if (!window.confirm('Hapus SEMUA notifikasi? Tindakan ini tidak bisa dibatalkan.')) return;
+        try {
+            await NotificationController.deleteAllNotifications();
+            setNotifications([]);
+            setSelectedIds([]);
+        } catch (error) {
+            console.error('Failed to delete all notifications:', error);
+        }
+    };
+
+    const handleDeleteSelected = async () => {
+        if (selectedIds.length === 0) return;
+        if (!window.confirm(`Hapus ${selectedIds.length} notifikasi terpilih?`)) return;
+        try {
+            await NotificationController.deleteBulkNotifications(selectedIds);
+            setNotifications((prev) => prev.filter((n) => !selectedIds.includes(n.id)));
+            setSelectedIds([]);
+        } catch (error) {
+            console.error('Failed to delete selected notifications:', error);
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => prev.includes(id) 
+            ? prev.filter(i => i !== id) 
+            : [...prev, id]
+        );
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.length === notifications.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(notifications.map(n => n.id));
         }
     };
 
     const getIcon = (type: string) => {
         switch (type) {
             case 'reminder':
-                return <Clock className="w-5 h-5 text-orange-500" />;
+                return <Clock className="w-5 h-5 text-amber-500" />;
             case 'alert':
-                return <Trash2 className="w-5 h-5 text-red-500" />;
+                return <Bell className="w-5 h-5 text-red-500" />;
             case 'info':
                 return <Info className="w-5 h-5 text-blue-500" />;
             default:
-                return <Bell className="w-5 h-5 text-dagang-green" />;
+                return <Bell className="w-5 h-5 text-emerald-500" />;
         }
     };
 
     const getBgColor = (type: string) => {
         switch (type) {
             case 'reminder':
-                return 'bg-orange-50';
+                return 'bg-amber-500/10';
             case 'alert':
-                return 'bg-red-50';
+                return 'bg-red-500/10';
             case 'info':
-                return 'bg-blue-50';
+                return 'bg-blue-500/10';
             default:
-                return 'bg-green-50';
+                return 'bg-emerald-500/10';
         }
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h2 className="text-[32px] font-serif leading-tight text-dagang-dark">Notifikasi</h2>
-                    <p className="text-dagang-gray text-sm mt-1">Pantau aktivitas dan pengingat harianmu.</p>
+                    <h2 className="text-[32px] font-serif leading-tight text-[var(--text-main)]">Notifikasi</h2>
+                    <p className="text-[var(--text-muted)] opacity-80 text-sm mt-1">Pantau aktivitas dan pengingat harianmu.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    {notifications.some(n => !n.is_read) && (
+                        <button 
+                            onClick={handleMarkAllAsRead}
+                            className="px-5 py-3 text-[10px] font-black uppercase tracking-wider text-[var(--text-main)] bg-[var(--surface-card)] border border-[var(--border)] rounded-xl hover:bg-black/5 flex items-center gap-2 transition-all"
+                        >
+                            <CheckCircle2 className="w-4 h-4" /> Baca Semua
+                        </button>
+                    )}
+                    {notifications.length > 0 && (
+                        <button 
+                            onClick={handleDeleteAll}
+                            className="px-5 py-3 text-[10px] font-black uppercase tracking-wider text-red-500 bg-red-500/5 border border-red-500/20 rounded-xl hover:bg-red-500/10 flex items-center gap-2 transition-all"
+                        >
+                            <Trash2 className="w-4 h-4" /> Hapus Semua
+                        </button>
+                    )}
                 </div>
             </div>
 
-            <div className="bg-white rounded-[32px] border border-black/5 shadow-sm overflow-hidden">
-                <div className="divide-y divide-black/5">
+            {/* Selection Toolbar (Floating if items selected) */}
+            {selectedIds.length > 0 && (
+                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-white dark:bg-black border border-[var(--border)] rounded-2xl shadow-2xl px-6 py-4 flex items-center gap-8 animate-in slide-in-from-bottom-10 fade-in duration-300">
+                    <div className="flex items-center gap-4 border-r border-[var(--border)] pr-8">
+                        <span className="text-sm font-bold text-[var(--text-main)]">{selectedIds.length} terpilih</span>
+                        <button 
+                            onClick={() => setSelectedIds([])}
+                            className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                        >
+                            Batal
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={handleDeleteSelected}
+                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors flex items-center gap-2 text-[11px] font-black uppercase"
+                        >
+                            <Trash2 className="w-4 h-4" /> Hapus terpilih
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <div className="bg-[var(--surface-card)] rounded-[32px] border border-[var(--border)] shadow-sm overflow-hidden">
+                {/* Header row with Select All */}
+                {notifications.length > 0 && (
+                    <div className="px-6 py-4 bg-[var(--primary)]/5 border-b border-[var(--border)] flex items-center gap-4">
+                        <input 
+                            type="checkbox" 
+                            className="w-5 h-5 rounded-md border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)]/30 cursor-pointer"
+                            checked={selectedIds.length === notifications.length && notifications.length > 0}
+                            onChange={toggleSelectAll}
+                        />
+                        <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Pilih Semua</span>
+                    </div>
+                )}
+
+                <div className="divide-y divide-[var(--border)]">
                     {loading ? (
-                        <div className="p-20 text-center text-dagang-gray animate-pulse">Memuat notifikasi...</div>
+                        <div className="p-20 text-center text-[var(--text-muted)] opacity-80 animate-pulse">Memuat notifikasi...</div>
                     ) : notifications.length === 0 ? (
-                        <div className="p-20 text-center text-dagang-gray italic">Belum ada notifikasi baru.</div>
+                        <div className="p-20 text-center text-[var(--text-muted)] opacity-80 italic">Belum ada notifikasi baru.</div>
                     ) : (
                         notifications.map((n: any) => (
                             <div 
                                 key={n.id} 
-                                className={`p-6 flex items-start gap-5 transition-all hover:bg-dagang-cream/10 ${!n.is_read ? 'bg-dagang-green/5' : ''}`}
+                                className={`p-6 flex items-start gap-4 transition-all hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer ${!n.is_read ? 'bg-[var(--primary)]/5 border-l-4 border-l-[var(--primary)]' : 'border-l-4 border-l-transparent'}`}
                                 onClick={() => !n.is_read && handleMarkAsRead(n.id)}
                             >
-                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${getBgColor(n.type)}`}>
+                                <div className="pt-3 pr-2" onClick={(e) => e.stopPropagation()}>
+                                    <input 
+                                        type="checkbox" 
+                                        className="w-5 h-5 rounded-md border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)]/30 cursor-pointer"
+                                        checked={selectedIds.includes(n.id)}
+                                        onChange={() => toggleSelect(n.id)}
+                                    />
+                                </div>
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border border-[var(--border)] ${getBgColor(n.type)}`}>
                                     {getIcon(n.type)}
                                 </div>
                                 <div className="flex-1 space-y-1">
                                     <div className="flex items-center justify-between">
-                                        <h4 className={`text-[15px] ${!n.is_read ? 'font-black' : 'font-bold'} text-dagang-dark`}>
+                                        <h4 className={`text-[15px] ${!n.is_read ? 'font-black' : 'font-bold'} text-[var(--text-main)]`}>
                                             {n.title}
                                         </h4>
-                                        <span className="text-[10px] font-bold text-dagang-gray opacity-40 uppercase tracking-widest">
-                                            {new Date(n.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} • {new Date(n.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[10px] font-bold text-[var(--text-muted)] opacity-60 uppercase tracking-widest whitespace-nowrap">
+                                                {new Date(n.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} • {new Date(n.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(n.id);
+                                                }}
+                                                className="p-2 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/5 rounded-lg transition-colors"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <p className="text-sm text-dagang-gray leading-relaxed max-w-2xl">
+                                    <p className="text-sm text-[var(--text-main)] opacity-70 leading-relaxed max-w-2xl font-medium">
                                         {n.message}
                                     </p>
                                     {!n.is_read && (
@@ -100,7 +232,7 @@ export const NotificationsView: React.FC = () => {
                                                     e.stopPropagation();
                                                     handleMarkAsRead(n.id);
                                                 }}
-                                                className="text-[11px] font-black text-dagang-green uppercase tracking-widest flex items-center gap-1.5 hover:underline"
+                                                className="text-[11px] font-black text-[var(--primary)] uppercase tracking-widest flex items-center gap-1.5 hover:underline"
                                             >
                                                 <CheckCircle2 className="w-3 h-3" /> Tandai Terbaca
                                             </button>

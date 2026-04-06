@@ -1,108 +1,282 @@
-import { useState, useEffect, useMemo, Fragment } from 'react';
-import {
-    Shield,
-    Settings,
-    Edit3,
-    Plus,
-    Trash2,
-    UserCircle,
-    XCircle,
-    LayoutDashboard,
-    History,
-    Users2,
-    Package,
-    Users,
-    Ban,
-    ChevronDown,
-    ChevronUp
-} from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AdminController } from '../controllers/AdminController';
-import { useAuthStore } from '../store/authStore';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { PlanFormModal } from '../components/PlanFormModal';
 import { UserFormModal } from '../components/UserFormModal';
 import { SettingFormModal } from '../components/SettingFormModal';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { TablePagination } from '../components/common/TablePagination';
+import { SupportReplyModal } from '../components/SupportReplyModal';
+import { CategoryFormModal } from '../components/CategoryFormModal';
+import { PlatformExpenseModal } from '../components/PlatformExpenseModal';
+import { ManualVerificationModal } from '../components/ManualVerificationModal';
+import toast from 'react-hot-toast';
+import { useThemeStore } from '../store/themeStore';
+import { useAuthStore } from '../store/authStore';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { DashboardLayout } from './admin/DashboardLayout';
+import { OverviewTab } from './admin/OverviewTab';
+import { ReportsTab } from './admin/ReportsTab';
+import { UsersTab } from './admin/UsersTab';
+import { FamiliesTab } from './admin/FamiliesTab';
+import { PlansTab } from './admin/PlansTab';
+import { TransactionsTab } from './admin/TransactionsTab';
+import { SettingsTab } from './admin/SettingsTab';
+import { SupportTab } from './admin/SupportTab';
+import { PaymentSettings } from './admin/PaymentSettings';
+import { TaxReportsTab } from './admin/TaxReportsTab';
 
-interface AdminDashboardProps {
-    activeSection?: 'overview' | 'users' | 'families' | 'settings' | 'plans' | 'transactions';
-}
-
-export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashboardProps) => {
-    const user = useAuthStore(state => state.user);
+export const AdminDashboard: React.FC = () => {
+    const { theme, toggleTheme } = useThemeStore();
     const logout = useAuthStore(state => state.logout);
-    const navigate = useNavigate();
     const location = useLocation();
+    const navigate = useNavigate();
+
+    const activeTab = useMemo(() => {
+        const segments = location.pathname.split('/').filter(Boolean);
+        const lastSegment = segments[segments.length - 1];
+        const validTabs = ['overview', 'users', 'families', 'plans', 'transactions', 'reports', 'tax-reports', 'support', 'settings', 'payment-channels'];
+        return validTabs.includes(lastSegment) ? lastSegment : 'overview';
+    }, [location]);
+
+    const [loading, setLoading] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [stats, setStats] = useState<any>(null);
+    const [userStats, setUserStats] = useState<any>(null);
     const [users, setUsers] = useState<any[]>([]);
-    const [totalUsers, setTotalUsers] = useState(0);
-    const [currentPage, setCurrentPage] = useState(1);
     const [families, setFamilies] = useState<any[]>([]);
-    const [settings, setSettings] = useState<any[]>([]);
+    const [familyStats, setFamilyStats] = useState<any>(null);
+    const [totalFamilies, setTotalFamilies] = useState(0);
     const [plans, setPlans] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [totalTransactions, setTotalTransactions] = useState(0);
+    const [settings, setSettings] = useState<any[]>([]);
+    const [supportTickets, setSupportTickets] = useState<any[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
+    const [financialSummary, setFinancialSummary] = useState<any>(null);
+    const [reportPeriod, setReportPeriod] = useState<'day' | 'week' | 'month' | 'year'>('month');
+    const [chartDays, setChartDays] = useState<number>(7);
+
+    // UI States
+    const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
+    const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchQueryInput, setSearchQueryInput] = useState(''); // For real-time input
     const [statusFilter, setStatusFilter] = useState('');
-    const usersPerPage = 10;
+    const [periodFilter, setPeriodFilter] = useState('');
+    const [supportPeriodFilter, setSupportPeriodFilter] = useState('');
+    const [revPage, setRevPage] = useState(1);
+    const [expPage, setExpPage] = useState(1);
+    const [allocPage, setAllocPage] = useState(1);
+    const [profitPage, setProfitPage] = useState(1);
+    const usersPerPage = 5;
+    const transPerPage = 10;
 
     // Modal States
-    const [confirmModal, setConfirmModal] = useState<{
-        isOpen: boolean,
-        title: string,
-        message: string,
-        type: 'confirm' | 'alert' | 'danger',
-        onConfirm: () => void,
-        confirmText?: string,
-        cancelText?: string
-    }>({
+    const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
+        onConfirm: () => { },
         title: '',
         message: '',
-        type: 'confirm',
-        onConfirm: () => {}
+        type: 'danger' as any
     });
+    const [planModal, setPlanModal] = useState({ isOpen: false, onSubmit: (data: any) => { }, initialData: null as any, title: '' });
+    const [userModal, setUserModal] = useState({ isOpen: false, onSubmit: (data: any) => { }, initialData: null as any, title: '' });
+    const [settingModal, setSettingModal] = useState({ isOpen: false, onSubmit: (data: any) => { }, initialValue: '', settingKey: '', title: '' });
+    const [supportModal, setSupportModal] = useState({ isOpen: false, ticket: null as any });
+    const [expenseModal, setExpenseModal] = useState({ isOpen: false, initialData: null as any });
+    const [categoryModal, setCategoryModal] = useState({ isOpen: false, onSubmit: (data: any) => { }, initialData: null as any, title: '' });
+    const [verificationModal, setVerificationModal] = useState({ isOpen: false, transaction: null as any });
 
-    const [planModal, setPlanModal] = useState<{
-        isOpen: boolean,
-        title: string,
-        initialData: any | null,
-        onSubmit: (data: any) => void
-    }>({
-        isOpen: false,
-        title: '',
-        initialData: null,
-        onSubmit: () => {}
-    });
+    // Debounce search input
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setSearchQuery(searchQueryInput);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQueryInput]);
 
-    const [userModal, setUserModal] = useState<{
-        isOpen: boolean,
-        title: string,
-        initialData: any | null,
-        onSubmit: (data: any) => void
-    }>({
-        isOpen: false,
-        title: '',
-        initialData: null,
-        onSubmit: () => {}
-    });
+    useEffect(() => {
+        // Use silent refresh if only updating Search, Status, or Period to avoid flickering
+        const isBackgroundRefresh = searchQuery !== '' || statusFilter !== '' || periodFilter !== '';
+        fetchData(isBackgroundRefresh);
+        fetchFinancialSummary();
+        fetchCategories();
+    }, [reportPeriod, currentPage, searchQuery, statusFilter, periodFilter, chartDays]);
 
-    const [settingModal, setSettingModal] = useState<{
-        isOpen: boolean,
-        title: string,
-        settingKey: string,
-        initialValue: string,
-        onSubmit: (value: string) => void
-    }>({
-        isOpen: false,
-        title: '',
-        settingKey: '',
-        initialValue: '',
-        onSubmit: () => {}
-    });
+    useEffect(() => {
+        setCurrentPage(1);
+        setSearchQuery('');
+        setStatusFilter('');
+        setPeriodFilter('');
+        setSupportPeriodFilter('');
+    }, [activeTab]);
 
-    const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
+    const fetchData = async (silent = false) => {
+        try {
+            if (!silent) setLoading(true);
+            const [statsRes, usersRes, familiesRes, plansRes, transRes, settingsRes, supportRes] = await Promise.all([
+                AdminController.getStats(chartDays),
+                AdminController.getUsers(currentPage, usersPerPage, searchQuery, statusFilter),
+                AdminController.getFamilies(currentPage, usersPerPage, searchQuery, statusFilter),
+                AdminController.getPlans(),
+                AdminController.getTransactions(currentPage, transPerPage, searchQuery, statusFilter, periodFilter),
+                AdminController.getSettings(),
+                AdminController.getSupportTickets()
+            ]);
+
+            setStats(statsRes || null);
+            setUsers(usersRes?.data || []);
+            setUserStats(usersRes?.stats || null);
+            setFamilies(familiesRes?.data || []);
+            setTotalFamilies(familiesRes?.total || 0);
+            setFamilyStats(familiesRes?.stats || null);
+            setPlans(plansRes || []);
+            setTransactions(transRes?.data || []);
+            setTotalTransactions(transRes?.total || 0);
+            setSettings(settingsRes || []);
+            setSupportTickets(supportRes || []);
+        } catch (error) {
+            toast.error('Gagal mengambil data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchFinancialSummary = async () => {
+        try {
+            const res = await AdminController.getFinancialSummary(reportPeriod);
+            setFinancialSummary(res || {});
+        } catch (error) {
+            console.error('Failed to fetch financial summary:', error);
+            setFinancialSummary({});
+        }
+    };
+
+    const fetchCategories = async () => {
+        try {
+            const res = await AdminController.getCategories();
+            setCategories(res || []);
+        } catch (error) {
+            console.error('Failed to fetch categories:', error);
+            setCategories([]);
+        }
+    };
+
+    // User Handlers
+    const handleToggleBlock = async (userId: string, currentStatus: boolean) => {
+        setConfirmModal({
+            isOpen: true,
+            title: currentStatus ? 'Aktifkan Pengguna' : 'Blokir Pengguna',
+            message: `Apakah Anda yakin ingin ${currentStatus ? 'mengaktifkan' : 'memblokir'} pengguna ini?`,
+            type: currentStatus ? 'warning' : 'danger',
+            onConfirm: async () => {
+                try {
+                    await AdminController.toggleUserBlock(userId);
+                    toast.success('Status pengguna diperbarui');
+                    fetchData();
+                } catch (error) {
+                    toast.error('Gagal memperbarui status');
+                }
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            }
+        });
+    };
+
+    const handleEditUser = (user: any) => {
+        setUserModal({
+            isOpen: true,
+            title: 'Edit Pengguna',
+            initialData: user,
+            onSubmit: async (data: any) => {
+                try {
+                    await AdminController.updateUserAdmin(user.id, data);
+                    toast.success('Data pengguna diperbarui');
+                    fetchData();
+                    setUserModal(prev => ({ ...prev, isOpen: false }));
+                } catch (error: any) {
+                    toast.error(error.response?.data?.error || 'Gagal memperbarui data pengguna');
+                }
+            }
+        });
+    };
+
+    const handleAddUser = () => {
+        setUserModal({
+            isOpen: true,
+            title: 'Tambah Pengguna Baru',
+            initialData: null,
+            onSubmit: async (data: any) => {
+                try {
+                    await AdminController.createUser(data);
+                    toast.success('Pengguna berhasil ditambahkan');
+                    fetchData();
+                    setUserModal(prev => ({ ...prev, isOpen: false }));
+                } catch (error: any) {
+                    toast.error(error.response?.data?.error || 'Gagal menambahkan pengguna');
+                }
+            }
+        });
+    };
+
+    const handleDeleteUser = (user: any) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Hapus Pengguna',
+            message: `Apakah Anda yakin ingin menghapus pengguna ${user.full_name}?`,
+            type: 'danger',
+            onConfirm: async () => {
+                try {
+                    await AdminController.deleteUserAdmin(user.id);
+                    toast.success('Pengguna berhasil dihapus');
+                    fetchData();
+                } catch (error: any) {
+                    toast.error(error.response?.data?.error || 'Gagal menghapus pengguna');
+                }
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            }
+        });
+    };
+
+    // Family Handlers
+    const handleToggleFamilyBlock = async (familyId: string, currentStatus: boolean) => {
+        setConfirmModal({
+            isOpen: true,
+            title: currentStatus ? 'Aktifkan Keluarga' : 'Nonaktifkan Keluarga',
+            message: `Apakah Anda yakin ingin ${currentStatus ? 'mengaktifkan' : 'menonaktifkan'} keluarga ini?`,
+            type: currentStatus ? 'warning' : 'danger',
+            onConfirm: async () => {
+                try {
+                    await AdminController.toggleFamilyBlock(familyId);
+                    toast.success('Status keluarga diperbarui');
+                    fetchData();
+                } catch (error) {
+                    toast.error('Gagal memperbarui status');
+                }
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            }
+        });
+    };
+
+    const handleDeleteFamily = async (familyId: string, familyName: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Hapus Keluarga',
+            message: `Apakah Anda yakin ingin menghapus keluarga "${familyName}"? Tindakan ini akan menghapus semua data keuangan dan akun pengguna (anggota) di dalam keluarga tersebut secara permanen.`,
+            type: 'danger',
+            onConfirm: async () => {
+                try {
+                    await AdminController.deleteFamily(familyId);
+                    toast.success('Keluarga dan anggotanya berhasil dihapus');
+                    fetchData();
+                } catch (error: any) {
+                    toast.error(error.response?.data?.error || 'Gagal menghapus keluarga');
+                }
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            }
+        });
+    };
 
     const toggleFamily = (id: string) => {
         const next = new Set(expandedFamilies);
@@ -110,160 +284,9 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
         else next.add(id);
         setExpandedFamilies(next);
     };
-    
-    const activeTab = useMemo(() => {
-        if (propActiveSection) return propActiveSection;
-        const path = location.pathname;
-        if (path.includes('/admin/overview')) return 'overview';
-        if (path.includes('/admin/users')) return 'users';
-        if (path.includes('/admin/families')) return 'families';
-        if (path.includes('/admin/settings')) return 'settings';
-        if (path.includes('/admin/plans')) return 'plans';
-        if (path.includes('/admin/transactions')) return 'transactions';
-        return 'overview'; // Default to overview
-    }, [location.pathname, propActiveSection]);
 
-    useEffect(() => {
-        if (user && user.role !== 'super_admin') {
-            navigate('/');
-        }
-    }, [user, navigate]);
-
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const [statsData, familiesData, settingsData, plansData, txsData] = await Promise.all([
-                AdminController.getStats(),
-                AdminController.getFamilies(),
-                AdminController.getSettings(),
-                AdminController.getPlans(),
-                AdminController.getTransactions()
-            ]);
-            setStats(statsData);
-            setFamilies(familiesData || []);
-            setSettings(settingsData || []);
-            setPlans(plansData || []);
-            setTransactions(txsData || []);
-            setLoading(false);
-            // Fetch users separately for the current page
-            await fetchUsers(currentPage);
-        } catch (error) {
-            console.error("Failed to fetch admin data", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchUsers = async (page: number) => {
-        try {
-            const usersData = await AdminController.getUsers(page, usersPerPage, searchQuery, statusFilter);
-            setUsers(usersData?.data || []);
-            setTotalUsers(usersData?.total || 0);
-        } catch (error) {
-            console.error("Failed to fetch users", error);
-            setUsers([]);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [activeTab]);
-
-    useEffect(() => {
-        if (activeTab === 'users') {
-            const timer = setTimeout(() => {
-                fetchUsers(currentPage);
-            }, 300); // Simple debounce
-            return () => clearTimeout(timer);
-        }
-    }, [currentPage, activeTab, searchQuery, statusFilter]);
-
-    // Local pagination for other tabs
-    const paginatedFamilies = useMemo(() => {
-        const start = (currentPage - 1) * usersPerPage;
-        return families.slice(start, start + usersPerPage);
-    }, [families, currentPage, activeTab]);
-
-    const paginatedPlans = useMemo(() => {
-        const start = (currentPage - 1) * usersPerPage;
-        return plans.slice(start, start + usersPerPage);
-    }, [plans, currentPage, activeTab]);
-
-    const paginatedTransactions = useMemo(() => {
-        const start = (currentPage - 1) * usersPerPage;
-        return transactions.slice(start, start + usersPerPage);
-    }, [transactions, currentPage, activeTab]);
-
-    const paginatedSettings = useMemo(() => {
-        const start = (currentPage - 1) * usersPerPage;
-        return settings.slice(start, start + usersPerPage);
-    }, [settings, currentPage, activeTab]);
-
-    const handleToggleBlock = async (id: string, currentlyBlocked: boolean) => {
-        setConfirmModal({
-            isOpen: true,
-            title: currentlyBlocked ? 'Unblock User?' : 'Blokir User?',
-            message: currentlyBlocked 
-                ? 'User ini akan dapat kembali mengakses akun mereka.' 
-                : 'Akses user ini ke platform akan segera dihentikan.',
-            type: currentlyBlocked ? 'confirm' : 'danger',
-            confirmText: currentlyBlocked ? 'Unblock' : 'Blokir',
-            onConfirm: async () => {
-                try {
-                    await AdminController.toggleUserBlock(id);
-                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
-                    fetchUsers(currentPage);
-                } catch (error) {
-                    console.error('Failed to toggle block status', error);
-                }
-            }
-        });
-    };
-
-    const handleEditUser = (u: any) => {
-        setUserModal({
-            isOpen: true,
-            title: 'Edit Informasi User',
-            initialData: u,
-            onSubmit: async (data: any) => {
-                try {
-                    await AdminController.updateUser({ 
-                        ...u, 
-                        ...data
-                    });
-                    setUserModal(prev => ({ ...prev, isOpen: false }));
-                    fetchUsers(currentPage);
-                } catch (error) {
-                    console.error('Failed to update user', error);
-                }
-            }
-        });
-    };
-
-    const handleUpdateSetting = async (key: string) => {
-        const setting = settings?.find(s => s.key === key);
-        setSettingModal({
-            isOpen: true,
-            title: `Update ${key.replace(/_/g, ' ')}`,
-            settingKey: key,
-            initialValue: setting?.value || '',
-            onSubmit: async (newValue: string) => {
-                try {
-                    await AdminController.updateSetting(key, newValue);
-                    setSettingModal(prev => ({ ...prev, isOpen: false }));
-                    fetchData();
-                } catch (error) {
-                    console.error('Failed to update setting', error);
-                }
-            }
-        });
-    };
-
-    const handleCreatePlan = () => {
+    // Plan Handlers
+    const handleAddPlan = () => {
         setPlanModal({
             isOpen: true,
             title: 'Tambah Paket Baru',
@@ -271,10 +294,11 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
             onSubmit: async (data: any) => {
                 try {
                     await AdminController.createPlan(data);
-                    setPlanModal(prev => ({ ...prev, isOpen: false }));
+                    toast.success('Paket berhasil ditambahkan');
                     fetchData();
+                    setPlanModal(prev => ({ ...prev, isOpen: false }));
                 } catch (error) {
-                    console.error('Failed to create plan', error);
+                    toast.error('Gagal menambahkan paket');
                 }
             }
         });
@@ -288,531 +312,612 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
             onSubmit: async (data: any) => {
                 try {
                     await AdminController.updatePlan({ ...plan, ...data });
-                    setPlanModal(prev => ({ ...prev, isOpen: false }));
+                    toast.success('Paket berhasil diperbarui');
                     fetchData();
+                    setPlanModal(prev => ({ ...prev, isOpen: false }));
                 } catch (error) {
-                    console.error('Failed to update plan', error);
+                    toast.error('Gagal memperbarui paket');
                 }
             }
         });
     };
 
-    const handleDeletePlan = async (id: string) => {
+    const handleDeletePlan = (id: number) => {
         setConfirmModal({
             isOpen: true,
-            title: 'Hapus Paket?',
-            message: 'Paket ini tidak akan tersedia lagi untuk pelanggan baru.',
+            title: 'Hapus Paket',
+            message: 'Apakah Anda yakin ingin menghapus paket ini? Tindakan ini tidak dapat dibatalkan.',
             type: 'danger',
-            confirmText: 'Hapus',
             onConfirm: async () => {
                 try {
-                    await AdminController.deletePlan(id);
-                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                    await AdminController.deletePlan(String(id));
+                    toast.success('Paket berhasil dihapus');
                     fetchData();
                 } catch (error) {
-                    console.error('Failed to delete plan', error);
+                    toast.error('Gagal menghapus paket');
                 }
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
             }
-        } as any);
+        });
     };
 
-    const handleDeleteFamily = async (id: string) => {
-        setConfirmModal({
+    // Setting Handlers
+    const handleUpdateSetting = (key: string) => {
+        const setting = settings.find(s => s.key === key);
+        setSettingModal({
             isOpen: true,
-            title: 'Hapus Keluarga?',
-            message: 'Semua data transaksi dan wallet keluarga ini akan dihapus permanen.',
-            type: 'danger',
-            confirmText: 'Hapus',
-            onConfirm: async () => {
+            title: `Update ${key.replace(/_/g, ' ').toUpperCase()}`,
+            settingKey: key,
+            initialValue: setting?.value || '',
+            onSubmit: async (value: string) => {
                 try {
-                    await AdminController.deleteFamily(id);
-                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                    await AdminController.updateSetting(key, value);
+                    toast.success('Pengaturan berhasil diperbarui');
                     fetchData();
+                    setSettingModal(prev => ({ ...prev, isOpen: false }));
                 } catch (error) {
-                    console.error('Failed to delete family', error);
+                    toast.error('Gagal memperbarui pengaturan');
                 }
             }
-        } as any);
+        });
+    };
+
+    // Support Handlers
+    const handleReplyTicket = (ticket: any) => {
+        setSupportModal({ isOpen: true, ticket });
+    };
+
+    const handleSubmitReply = async (message: string) => {
+        try {
+            await AdminController.replyTicket(supportModal.ticket.id, message);
+            toast.success('Balasan berhasil dikirim');
+            fetchData();
+            setSupportModal({ isOpen: false, ticket: null });
+        } catch (error) {
+            toast.error('Gagal mengirim balasan');
+        }
+    };
+
+    // Expense Handlers
+    const handleRecordExpense = async (data: any) => {
+        try {
+            if (expenseModal.initialData) {
+                await AdminController.updatePlatformExpense(expenseModal.initialData.id, data);
+                toast.success('Biaya operasional diperbarui');
+            } else {
+                await AdminController.addPlatformExpense(data);
+                toast.success('Biaya operasional dicatat');
+            }
+            fetchFinancialSummary();
+            setExpenseModal({ isOpen: false, initialData: null });
+        } catch (error) {
+            toast.error('Gagal menyimpan biaya');
+        }
+    };
+
+    const handleEditExpense = (expense: any) => {
+        setExpenseModal({ isOpen: true, initialData: expense });
+    };
+
+    const handleDeleteExpense = (id: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Hapus Biaya',
+            message: 'Apakah Anda yakin ingin menghapus catatan biaya ini?',
+            type: 'danger',
+            onConfirm: async () => {
+                try {
+                    await AdminController.deletePlatformExpense(id);
+                    toast.success('Biaya dihapus');
+                    fetchFinancialSummary();
+                } catch (error) {
+                    toast.error('Gagal menghapus biaya');
+                }
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            }
+        });
+    };
+
+    // Category Handlers
+    const handleAddCategory = () => {
+        setCategoryModal({
+            isOpen: true,
+            title: 'Tambah Kategori Anggaran',
+            initialData: null,
+            onSubmit: async (data: any) => {
+                try {
+                    await AdminController.addCategory(data);
+                    toast.success('Kategori ditambahkan');
+                    fetchCategories();
+                    fetchFinancialSummary();
+                    setCategoryModal(prev => ({ ...prev, isOpen: false }));
+                } catch (error) {
+                    toast.error('Gagal menambahkan kategori');
+                }
+            }
+        });
+    };
+
+    const handleUpdateCategory = (cat: any) => {
+        setCategoryModal({
+            isOpen: true,
+            title: 'Edit Kategori Anggaran',
+            initialData: cat,
+            onSubmit: async (data: any) => {
+                try {
+                    await AdminController.updateCategory({ ...cat, ...data });
+                    toast.success('Kategori diperbarui');
+                    fetchCategories();
+                    fetchFinancialSummary();
+                    setCategoryModal(prev => ({ ...prev, isOpen: false }));
+                } catch (error) {
+                    toast.error('Gagal memperbarui kategori');
+                }
+            }
+        });
+    };
+
+    const handleDeleteCategory = (id: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Hapus Kategori',
+            message: 'Apakah Anda yakin ingin menghapus kategori ini? Data alokasi anggaran untuk kategori ini akan hilang.',
+            type: 'danger',
+            onConfirm: async () => {
+                try {
+                    await AdminController.deleteCategory(id);
+                    toast.success('Kategori dihapus');
+                    fetchCategories();
+                    fetchFinancialSummary();
+                } catch (error) {
+                    toast.error('Gagal menghapus kategori');
+                }
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            }
+        });
+    };
+
+    // Local pagination for other tabs
+    const paginatedFamilies = useMemo(() => {
+        const start = (currentPage - 1) * usersPerPage;
+        return (families || []).slice(start, start + usersPerPage);
+    }, [families, currentPage]);
+
+    const paginatedPlans = useMemo(() => {
+        const start = (currentPage - 1) * usersPerPage;
+        return (plans || []).slice(start, start + usersPerPage);
+    }, [plans, currentPage]);
+
+
+    const paginatedSettings = useMemo(() => {
+        const start = (currentPage - 1) * usersPerPage;
+        return (settings || []).slice(start, start + usersPerPage);
+    }, [settings, currentPage]);
+
+    const paginatedRevDetails = useMemo(() => {
+        const itemsPerPage = 5;
+        const start = (revPage - 1) * itemsPerPage;
+        return financialSummary?.revenue_details?.slice(start, start + itemsPerPage) || [];
+    }, [financialSummary?.revenue_details, revPage]);
+
+    const paginatedExpDetails = useMemo(() => {
+        const start = (expPage - 1) * usersPerPage;
+        return financialSummary?.expense_details?.slice(start, start + usersPerPage) || [];
+    }, [financialSummary?.expense_details, expPage]);
+
+    const filteredSupportTickets = useMemo(() => {
+        let filtered = supportTickets || [];
+        if (supportPeriodFilter) {
+            const now = new Date();
+            const pastDate = new Date();
+            pastDate.setDate(now.getDate() - parseInt(supportPeriodFilter));
+            filtered = filtered.filter(t => new Date(t.created_at) >= pastDate);
+        }
+        return filtered;
+    }, [supportTickets, supportPeriodFilter]);
+
+    const paginatedSupportTickets = useMemo(() => {
+        const start = (currentPage - 1) * usersPerPage;
+        return filteredSupportTickets.slice(start, start + usersPerPage);
+    }, [filteredSupportTickets, currentPage]);
+
+    const exportToExcel = () => {
+        if (!financialSummary) return;
+
+        // 1. Prepare Summary & Category Breakdown (merged like the website)
+        const summaryRows = [
+            ["Pusat Laporan Komprehensif Platform", ""],
+            ["Periode", `${new Date(financialSummary.period_start).toLocaleDateString('id-ID')} - ${new Date(financialSummary.period_end).toLocaleDateString('id-ID')}`],
+            ["Dicetak Pada", new Date().toLocaleString('id-ID')],
+            ["", ""],
+            ["1. RINGKASAN FINANSIAL", ""],
+            ["Total Pendapatan Kotor (Gross)", financialSummary.total_revenue],
+            ["Potongan Pajak/Fee (COGS)", financialSummary.total_fees],
+            ["Pendapatan Bersih (Net Revenue)", financialSummary.net_revenue],
+            ["Total Biaya Operasional", financialSummary.total_expenses - financialSummary.total_fees],
+            ["Laba Bersih Aktual", financialSummary.net_profit],
+            ["", ""],
+            ["2. KONFIGURASI ANGGARAN", ""],
+            ["Target Pengeluaran (%)", `${financialSummary.allocation_pct}%`],
+            ["Target Laba Bersih (%)", `${100 - financialSummary.allocation_pct}%`],
+            ["Budget Pengeluaran (Rp)", financialSummary.expense_target],
+            ["Target Laba Bersih (Rp)", financialSummary.net_profit_target],
+            ["", ""],
+            ["3. ALOKASI PER KATEGORI (REALISASI VS TARGET)", ""],
+            ["KATEGORI", "PORSI (%)", "TARGET (Rp)", "AMBIL", "HUTANG", "LENT", "REALISASI (Rp)", "SELISIH (Rp)", "LENT DETAILS"]
+        ];
+
+        // Add all allocations (Expense & Profit)
+        const allAllocations = [
+            ...(financialSummary.expense_allocations || []),
+            ...(financialSummary.profit_allocations || [])
+        ];
+
+        allAllocations.forEach((a: any) => {
+            summaryRows.push([
+                a.category_name,
+                `${a.percentage}%`,
+                a.target_amount,
+                a.taken_amount || 0,
+                a.remaining_debt || 0,
+                a.lent_amount || 0,
+                a.actual_amount,
+                a.target_amount - a.actual_amount,
+                a.lent_details || '-'
+            ]);
+        });
+
+        summaryRows.push(["", ""]);
+        summaryRows.push(["4. ANALISIS AKHIR", ""]);
+        const labaDiff = financialSummary.net_profit - (financialSummary.total_revenue * ((100 - financialSummary.allocation_pct) / 100));
+        summaryRows.push(["Status", labaDiff >= 0 ? "SURPLUS (Hemat Pengeluaran)" : "DEFISIT (Overbudget)"]);
+        summaryRows.push(["Selisih dari Target Laba", labaDiff]);
+
+        // 2. Prepare Detailed Transaction Sheets
+        const revenueData = financialSummary.revenue_details.map((r: any) => ({
+            "No. Ref": r.reference,
+            "Keluarga": r.family?.name || 'Tanpa Keluarga',
+            "Paket": r.plan_name,
+            "Jumlah Kotor": r.total_amount,
+            "PPN (11%)": -(r.total_amount * 0.11),
+            "Setelah PPN": r.total_amount * 0.89,
+            "Fee Merchant": -(r.fee_merchant || 0),
+            "Fee Customer": r.fee_customer || 0,
+            "Total Fee Gateway": -(r.fee || 0),
+            "Diterima Bersih": r.amount || 0,
+            "Tanggal": new Date(r.created_at).toLocaleDateString('id-ID')
+        }));
+
+        const expenseData = financialSummary.expense_details.map((e: any) => ({
+            "Kategori": e.category,
+            "Keterangan": e.description,
+            "Jumlah": e.amount,
+            "Tanggal": new Date(e.expense_date).toLocaleDateString('id-ID')
+        }));
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryRows), "Ringkasan Laporan");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(revenueData), "Riwayat Pendapatan");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(expenseData), "Riwayat Biaya Operasional");
+        
+        XLSX.writeFile(wb, `Laporan_Komprehensif_${reportPeriod}_${new Date().getTime()}.xlsx`);
+    };
+
+    const exportToPDF = () => {
+        if (!financialSummary) return;
+        const doc = new jsPDF() as any;
+        const primaryColor: [number, number, number] = [16, 185, 129]; // emerald-500
+
+        // Page 1: Summary Header
+        doc.setFillColor(...primaryColor);
+        doc.rect(0, 0, 210, 45, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(24);
+        doc.setFont(undefined, 'bold');
+        doc.text("PUSAT LAPORAN KOMPREHENSIF", 14, 25);
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Periode: ${new Date(financialSummary.period_start).toLocaleDateString('id-ID')} - ${new Date(financialSummary.period_end).toLocaleDateString('id-ID')}`, 14, 34);
+        doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 39);
+
+        // 1. RINGKASAN FINANSIAL
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text("1. RINGKASAN FINANSIAL", 14, 60);
+        
+        autoTable(doc, {
+            startY: 65,
+            head: [['KETERANGAN', 'PERSENTASE', 'NOMINAL']],
+            body: [
+                ['Total Pendapatan Kotor (Gross)', '-', `Rp ${financialSummary.total_revenue.toLocaleString('id-ID')}`],
+                ['Potongan Pajak/Fee (COGS/Gateway)', '-', `Rp ${financialSummary.total_fees.toLocaleString('id-ID')}`],
+                ['Pendapatan Bersih (Net Revenue)', '-', `Rp ${(financialSummary.total_revenue - financialSummary.total_fees).toLocaleString('id-ID')}`],
+                ['Target Pengeluaran Operasional', `${financialSummary.allocation_pct}%`, `Rp ${financialSummary.expense_target.toLocaleString('id-ID')}`],
+                ['Realisasi Biaya Operasional', '-', `Rp ${(financialSummary.total_expenses - financialSummary.total_fees).toLocaleString('id-ID')}`],
+                ['Target Laba Bersih', `${100 - financialSummary.allocation_pct}%`, `Rp ${financialSummary.net_profit_target.toLocaleString('id-ID')}`],
+                ['Laba Bersih Aktual', '-', `Rp ${financialSummary.net_profit.toLocaleString('id-ID')}`],
+            ],
+            theme: 'grid',
+            headStyles: { fillColor: primaryColor, fontStyle: 'bold' },
+            styles: { fontSize: 9, cellPadding: 4 }
+        });
+
+        // 2. ANALISIS AKHIR
+        const labaDiff = financialSummary.net_profit - (financialSummary.total_revenue * ((100 - financialSummary.allocation_pct) / 100));
+        const status = labaDiff >= 0 ? "SURPLUS (Hemat Pengeluaran)" : "DEFISIT (Overbudget)";
+        
+        doc.setFontSize(14);
+        doc.text("2. ANALISIS AKHIR", 14, (doc as any).lastAutoTable.finalY + 15);
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(labaDiff >= 0 ? 16 : 239, labaDiff >= 0 ? 185 : 68, labaDiff >= 0 ? 129 : 68);
+        doc.text(`STATUS: ${status}`, 14, (doc as any).lastAutoTable.finalY + 22);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont(undefined, 'normal');
+        doc.text(`${labaDiff >= 0 ? 'Penghematan' : 'Kelebihan'} dari Target Laba: Rp ${Math.abs(labaDiff).toLocaleString('id-ID')}`, 14, (doc as any).lastAutoTable.finalY + 28);
+
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text("3. ALOKASI PER KATEGORI (TARGET VS REALISASI)", 14, (doc as any).lastAutoTable.finalY + 45);
+        
+        const allPdfAllocations = [
+            ...(financialSummary.expense_allocations || []),
+            ...(financialSummary.profit_allocations || [])
+        ];
+
+        autoTable(doc, {
+            startY: (doc as any).lastAutoTable.finalY + 50,
+            head: [['KATEGORI', 'PORSI', 'TARGET', 'AMBIL', 'LENT', 'REALISASI', 'SELISIH']],
+            body: allPdfAllocations?.map((a: any) => [
+                a.category_name,
+                `${a.percentage}%`,
+                `Rp ${a.target_amount.toLocaleString('id-ID')}`,
+                `Rp ${(a.taken_amount || 0).toLocaleString('id-ID')}`,
+                `Rp ${(a.lent_amount || 0).toLocaleString('id-ID')}`,
+                `Rp ${a.actual_amount.toLocaleString('id-ID')}`,
+                `Rp ${(a.target_amount - a.actual_amount).toLocaleString('id-ID')}`
+            ]) || [['Belum ada data alokasi', '', '', '', '', '', '']],
+            theme: 'striped',
+            headStyles: { fillColor: [52, 211, 153] }, // emerald-400
+            styles: { fontSize: 7 }
+        });
+
+        // Page 2: Revenue Details
+        doc.addPage();
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text("RIWAYAT PENDAPATAN", 14, 20);
+        autoTable(doc, {
+            startY: 28,
+            head: [['REFERENCE', 'KELUARGA', 'PAKET', 'GROSS', 'PPN (11%)', 'NETT (PPN)', 'FEE GW', 'TERIMA', 'TANGGAL']],
+            body: financialSummary.revenue_details.map((r: any) => [
+                r.reference,
+                r.family?.name || '-',
+                r.plan_name,
+                `Rp ${r.total_amount.toLocaleString('id-ID')}`,
+                `Rp -${(r.total_amount * 0.11).toLocaleString('id-ID')}`,
+                `Rp ${(r.total_amount * 0.89).toLocaleString('id-ID')}`,
+                `Rp -${(r.fee || 0).toLocaleString('id-ID')}`,
+                `Rp ${(r.amount || 0).toLocaleString('id-ID')}`,
+                new Date(r.created_at).toLocaleDateString('id-ID')
+            ]),
+            styles: { fontSize: 7 }
+        });
+
+        // Page 3: Expense Details
+        if (financialSummary.expense_details?.length > 0) {
+            doc.addPage();
+            doc.setFontSize(16);
+            doc.setFont(undefined, 'bold');
+            doc.text("RIWAYAT BIAYA OPERASIONAL", 14, 20);
+            autoTable(doc, {
+                startY: 28,
+                head: [['KATEGORI', 'KETERANGAN', 'JUMLAH', 'TANGGAL']],
+                body: financialSummary.expense_details.map((e: any) => [
+                    e.category,
+                    e.description || '-',
+                    `Rp ${e.amount.toLocaleString('id-ID')}`,
+                    new Date(e.expense_date).toLocaleDateString('id-ID')
+                ]),
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [239, 68, 68] } // red-500
+            });
+        }
+
+        doc.save(`Laporan_Komprehensif_${reportPeriod}_${new Date().getTime()}.pdf`);
+    };
+
+    const handleVerifyManualPayment = async (id: string, status: string, notes: string) => {
+        try {
+            await AdminController.verifyManualPayment({ id, status, notes });
+            toast.success(`Pembayaran ${status === 'APPROVED' ? 'disetujui' : 'ditolak'}`);
+            fetchData(true);
+            fetchFinancialSummary();
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || 'Gagal memproses verifikasi');
+            throw error;
+        }
+    };
+
+    const renderTabContent = () => {
+        if (loading && activeTab !== 'reports' && activeTab !== 'overview') {
+            return (
+                <div className="p-12 text-center text-[var(--text-muted)] animate-pulse">
+                    Memuat data...
+                </div>
+            );
+        }
+
+        switch (activeTab) {
+            case 'overview':
+                return <OverviewTab stats={stats} theme={theme} plans={plans} financialSummary={financialSummary} chartDays={chartDays} setChartDays={setChartDays} />;
+            case 'reports':
+                return (
+                    <ReportsTab
+                        reportPeriod={reportPeriod}
+                        setReportPeriod={setReportPeriod}
+                        financialSummary={financialSummary}
+                        exportToExcel={exportToExcel}
+                        exportToPDF={exportToPDF}
+                        setExpenseModal={setExpenseModal}
+                        categories={categories}
+                        handleAddCategory={handleAddCategory}
+                        handleUpdateCategory={handleUpdateCategory}
+                        handleDeleteCategory={handleDeleteCategory}
+                        handleEditExpense={handleEditExpense}
+                        handleDeleteExpense={handleDeleteExpense}
+                        revPage={revPage}
+                        setRevPage={setRevPage}
+                        expPage={expPage}
+                        setExpPage={setExpPage}
+                        allocPage={allocPage}
+                        setAllocPage={setAllocPage}
+                        profitPage={profitPage}
+                        setProfitPage={setProfitPage}
+                        paginatedRevDetails={paginatedRevDetails}
+                        paginatedExpDetails={paginatedExpDetails}
+                        paginatedAllocDetails={(financialSummary?.expense_allocations || []).slice((allocPage - 1) * 5, allocPage * 5)}
+                        paginatedProfitDetails={(financialSummary?.profit_allocations || []).slice((profitPage - 1) * 5, profitPage * 5)}
+                        usersPerPage={usersPerPage}
+                        refreshFinancialSummary={fetchFinancialSummary}
+                        onUpdateAllocationPct={async (pct: number) => {
+                            try {
+                                await AdminController.updateSetting('platform_expense_allocation_pct', String(pct));
+                                toast.success(`Alokasi pengeluaran diubah ke ${pct}% (Laba Bersih: ${100 - pct}%)`);
+                                fetchFinancialSummary();
+                            } catch (error) {
+                                toast.error('Gagal menyimpan persentase');
+                            }
+                        }}
+                    />
+                );
+            case 'tax-reports':
+                return (
+                    <TaxReportsTab 
+                        reportPeriod={reportPeriod}
+                        setReportPeriod={setReportPeriod}
+                        financialSummary={financialSummary}
+                        exportToExcel={exportToExcel}
+                        exportToPDF={exportToPDF}
+                    />
+                );
+            case 'users':
+                return (
+                    <UsersTab
+                        userStats={userStats}
+                        users={users}
+                        totalUsers={userStats?.total || 0}
+                        currentPage={currentPage}
+                        usersPerPage={usersPerPage}
+                        searchQuery={searchQuery}
+                        setSearchQuery={setSearchQuery}
+                        statusFilter={statusFilter}
+                        setStatusFilter={setStatusFilter}
+                        handleEditUser={handleEditUser}
+                        handleDeleteUser={handleDeleteUser}
+                        handleToggleBlock={handleToggleBlock}
+                        onPageChange={setCurrentPage}
+                        handleAddUser={handleAddUser}
+                    />
+                );
+            case 'families':
+                return (
+                    <FamiliesTab
+                        paginatedFamilies={families}
+                        familyStats={familyStats}
+                        expandedFamilies={expandedFamilies}
+                        toggleFamily={toggleFamily}
+                        settings={settings}
+                        handleToggleFamilyBlock={handleToggleFamilyBlock}
+                        handleDeleteFamily={handleDeleteFamily}
+                        currentPage={currentPage}
+                        totalFamilies={totalFamilies}
+                        usersPerPage={usersPerPage}
+                        onPageChange={setCurrentPage}
+                        searchQuery={searchQuery}
+                        setSearchQuery={setSearchQuery}
+                        statusFilter={statusFilter}
+                        setStatusFilter={setStatusFilter}
+                    />
+                );
+            case 'plans':
+                return (
+                    <PlansTab
+                        paginatedPlans={paginatedPlans}
+                        handleAddPlan={handleAddPlan}
+                        handleUpdatePlan={handleUpdatePlan}
+                        handleDeletePlan={handleDeletePlan}
+                        currentPage={currentPage}
+                        totalPlans={(plans || []).length}
+                        usersPerPage={usersPerPage}
+                        onPageChange={setCurrentPage}
+                    />
+                );
+            case 'transactions':
+                return (
+                    <TransactionsTab 
+                        paginatedTransactions={transactions}
+                        currentPage={currentPage}
+                        totalTransactions={totalTransactions}
+                        usersPerPage={transPerPage}
+                        onPageChange={setCurrentPage}
+                        searchQuery={searchQueryInput}
+                        onSearchChange={setSearchQueryInput}
+                        statusFilter={statusFilter}
+                        onStatusChange={setStatusFilter}
+                        periodFilter={periodFilter}
+                        onPeriodChange={setPeriodFilter}
+                        onVerify={(transaction) => setVerificationModal({ isOpen: true, transaction })}
+                    />
+                );
+            case 'settings':
+                return (
+                    <SettingsTab
+                        settings={settings}
+                        handleUpdateSetting={handleUpdateSetting}
+                        usersPerPage={usersPerPage}
+                    />
+                );
+            case 'support':
+                return (
+                    <SupportTab
+                        paginatedSupportTickets={paginatedSupportTickets}
+                        handleReplyTicket={handleReplyTicket}
+                        currentPage={currentPage}
+                        totalTickets={filteredSupportTickets.length}
+                        usersPerPage={usersPerPage}
+                        onPageChange={setCurrentPage}
+                        periodFilter={supportPeriodFilter}
+                        onPeriodChange={(val: string) => {
+                            setSupportPeriodFilter(val);
+                            setCurrentPage(1);
+                        }}
+                    />
+                );
+            case 'payment-channels':
+                return <PaymentSettings />;
+            default:
+                return null;
+        }
     };
 
     return (
-        <div className="flex min-h-screen bg-[#F8FAFC]">
-            <aside className="w-72 bg-dagang-dark text-white p-8 flex flex-col fixed h-full z-10 shadow-2xl">
-                <div className="logo font-serif text-2xl mb-12 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-dagang-accent rounded-xl flex items-center justify-center text-dagang-dark">
-                        <Shield className="w-6 h-6" />
-                    </div>
-                    <span>Super<span className="text-dagang-accent">Admin</span></span>
-                </div>
+        <DashboardLayout
+            activeTab={activeTab}
+            isSidebarOpen={isSidebarOpen}
+            setIsSidebarOpen={setIsSidebarOpen}
+            theme={theme}
+            toggleTheme={toggleTheme}
+            logout={logout}
+            stats={stats}
+            totalUsers={stats?.total_users || 0}
+            plans={plans}
+            loading={loading}
+        >
+            {renderTabContent()}
 
-                <nav className="flex-1 space-y-2">
-                    <Link to="/admin" className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'overview' ? 'bg-dagang-accent text-dagang-dark font-bold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
-                        <LayoutDashboard className="w-5 h-5" />
-                        Dashboard
-                    </Link>
-                    <Link to="/admin/users" className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'users' ? 'bg-dagang-accent text-dagang-dark font-bold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
-                        <Users className="w-5 h-5" />
-                        Daftar Pengguna
-                    </Link>
-                    <Link to="/admin/families" className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'families' ? 'bg-dagang-accent text-dagang-dark font-bold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
-                        <Users2 className="w-5 h-5" />
-                        Daftar Keluarga
-                    </Link>
-                    <Link to="/admin/plans" className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'plans' ? 'bg-dagang-accent text-dagang-dark font-bold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
-                        <Package className="w-5 h-5" />
-                        Paket & Harga
-                    </Link>
-                    <Link to="/admin/transactions" className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'transactions' ? 'bg-dagang-accent text-dagang-dark font-bold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
-                        <History className="w-5 h-5" />
-                        Riwayat Transaksi
-                    </Link>
-                    <Link to="/admin/settings" className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'settings' ? 'bg-dagang-accent text-dagang-dark font-bold' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
-                        <Settings className="w-5 h-5" />
-                        Konfigurasi
-                    </Link>
-                </nav>
-
-                <div className="mt-auto pt-8 border-t border-white/10">
-                    <button onClick={() => logout()} className="flex items-center gap-3 text-white/40 hover:text-red-400 transition-colors">
-                        <XCircle className="w-5 h-5" />
-                        <span>Logout Admin</span>
-                    </button>
-                </div>
-            </aside>
-
-            <main className="flex-1 ml-72 p-12">
-                <header className="flex items-center justify-between mb-12">
-                    <div>
-                        <h1 className="text-3xl font-serif text-dagang-dark mb-2">Pusat Kendali DagangFinance</h1>
-                        <p className="text-dagang-gray">Mengelola ekosistem finansial keluarga Indonesia.</p>
-                    </div>
-                </header>
-
-                {loading && (
-                    <div className="fixed inset-0 bg-white/50 backdrop-blur-sm z-50 flex items-center justify-center">
-                        <div className="w-12 h-12 border-4 border-dagang-accent border-t-transparent rounded-full animate-spin" />
-                    </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-                    <div className="bg-white p-8 rounded-[32px] border border-black/5 shadow-sm">
-                        <div className="text-dagang-gray text-sm font-bold uppercase tracking-wider mb-2">Total Keluarga</div>
-                        <div className="text-4xl font-serif text-dagang-dark">{stats?.total_families || 0}</div>
-                    </div>
-                    <div className="bg-white p-8 rounded-[32px] border border-black/5 shadow-sm">
-                        <div className="text-dagang-gray text-sm font-bold uppercase tracking-wider mb-2">Total Pengguna</div>
-                        <div className="text-4xl font-serif text-dagang-dark text-dagang-accent">{totalUsers || 0}</div>
-                    </div>
-                    <div className="bg-white p-8 rounded-[32px] border border-black/5 shadow-sm">
-                        <div className="text-dagang-gray text-sm font-bold uppercase tracking-wider mb-2">Paket Aktif</div>
-                        <div className="text-4xl font-serif text-dagang-dark text-green-600">{plans?.length || 0}</div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-[40px] shadow-sm border border-black/5 overflow-hidden">
-                    <div className="p-8 border-b border-black/5 flex flex-col md:flex-row md:items-center justify-between bg-dagang-cream/10 gap-4">
-                        <div>
-                            <h3 className="text-xl font-bold text-dagang-dark">
-                                {activeTab === 'overview' ? 'Ringkasan Ekosistem DagangFinance' :
-                                 activeTab === 'users' ? 'Database Pengguna Sistem' : 
-                                 activeTab === 'families' ? 'Database Keluarga' : 
-                                 activeTab === 'plans' ? 'Manajemen Paket Berlangganan' :
-                                 activeTab === 'transactions' ? 'Riwayat Transaksi Tripay' :
-                                 'Pengaturan Parameter Sistem'}
-                            </h3>
-                        </div>
-                        
-                        {activeTab === 'users' && (
-                            <div className="flex flex-wrap items-center gap-3">
-                                <div className="relative">
-                                    <Users className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-dagang-gray/40" />
-                                    <input 
-                                        type="text"
-                                        placeholder="Cari Nama/Email..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="pl-10 pr-4 py-2 bg-white border border-black/5 rounded-xl text-sm focus:ring-2 focus:ring-dagang-accent outline-none transition-all w-64"
-                                    />
-                                </div>
-                                <select 
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="px-4 py-2 bg-white border border-black/5 rounded-xl text-sm focus:ring-2 focus:ring-dagang-accent outline-none transition-all cursor-pointer"
-                                >
-                                    <option value="">Semua Status</option>
-                                    <option value="trial">Masa Trial</option>
-                                    <option value="subscribed">Berlangganan</option>
-                                    <option value="blocked">Terblokir</option>
-                                    <option value="active">Aktif (Tidak Blokir)</option>
-                                </select>
-                            </div>
-                        )}
-
-                        {activeTab === 'plans' && (
-                            <button onClick={handleCreatePlan} className="flex items-center gap-2 px-6 py-3 bg-dagang-dark text-white rounded-2xl hover:bg-dagang-accent hover:text-dagang-dark transition-all shadow-lg font-bold">
-                                <Plus className="w-5 h-5" />
-                                Tambah Paket
-                            </button>
-                        )}
-                    </div>
-
-                    {activeTab === 'overview' ? (
-                        <div className="p-12">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <div className="bg-[#FBFCFD] p-6 rounded-3xl border border-black/5">
-                                    <div className="text-dagang-gray text-[10px] font-bold uppercase tracking-widest mb-4">Distribusi Pengguna</div>
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between items-end">
-                                            <span className="text-sm text-dagang-gray">Aktif</span>
-                                            <span className="text-xl font-bold text-dagang-dark">{(stats?.total_users || 0) - (stats?.blocked_users || 0)}</span>
-                                        </div>
-                                        <div className="w-full h-1.5 bg-black/5 rounded-full overflow-hidden">
-                                            <div className="h-full bg-green-500 rounded-full" style={{ width: `${((stats?.total_users - stats?.blocked_users) / stats?.total_users) * 100}%` }} />
-                                        </div>
-                                        <div className="flex justify-between items-end">
-                                            <span className="text-sm text-dagang-gray">Terblokir</span>
-                                            <span className="text-xl font-bold text-red-500">{stats?.blocked_users || 0}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-[#FBFCFD] p-6 rounded-3xl border border-black/5">
-                                    <div className="text-dagang-gray text-[10px] font-bold uppercase tracking-widest mb-4">Status Keluarga</div>
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-dagang-gray">Masa Trial</span>
-                                            <span className="font-bold text-amber-500">{stats?.trial_families || 0}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-dagang-gray">Berlangganan</span>
-                                            <span className="font-bold text-dagang-orange">{stats?.active_families || 0}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm pt-2 border-t border-black/5">
-                                            <span className="text-dagang-gray font-bold">Total</span>
-                                            <span className="font-bold text-dagang-dark">{stats?.total_families || 0}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-[#FBFCFD] p-6 rounded-3xl border border-black/5">
-                                    <div className="text-dagang-gray text-[10px] font-bold uppercase tracking-widest mb-4">Administrasi</div>
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-dagang-gray">Aplikasi Pending</span>
-                                            <span className="bg-dagang-accent/20 text-dagang-dark px-2 py-1 rounded-lg font-bold">{stats?.pending_applications || 0}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-dagang-gray">Paket Tersedia</span>
-                                            <span className="font-bold text-dagang-dark">{plans?.length || 0}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="bg-dagang-dark p-6 rounded-3xl text-white">
-                                    <div className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-4">Kesehatan Sistem</div>
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
-                                        <span className="font-bold">Backend Online</span>
-                                    </div>
-                                    <div className="text-xs text-white/60">
-                                        Database Terhubung (GORM/Postgres)
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-[#FBFCFD]">
-                                <tr className="text-[11px] font-bold text-dagang-gray/60 uppercase tracking-widest border-b border-black/5 text-center">
-                                     {activeTab === 'plans' ? (
-                                        <>
-                                            <th className="px-8 py-5">Nama Paket</th>
-                                            <th className="px-8 py-5">Harga</th>
-                                            <th className="px-8 py-5">Slot Member</th>
-                                            <th className="px-8 py-5">Durasi</th>
-                                            <th className="px-8 py-5 text-right">Aksi</th>
-                                        </>
-                                    ) : activeTab === 'transactions' ? (
-                                        <>
-                                            <th className="px-8 py-5">Referensi</th>
-                                            <th className="px-8 py-5">Keluarga & Paket</th>
-                                            <th className="px-8 py-5">Nominal</th>
-                                            <th className="px-8 py-5">Status</th>
-                                            <th className="px-8 py-5 text-right">Tanggal</th>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <th className="px-8 py-5">Informasi Pengguna</th>
-                                            <th className="px-8 py-5">Keluarga & Paket</th>
-                                            <th className="px-8 py-5">Status Akun</th>
-                                            <th className="px-8 py-5 text-right font-black">AKSI</th>
-                                        </>
-                                    )}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-black/5">
-                                {activeTab === 'users' && users?.map((u) => (
-                                    <tr key={u.id} className="hover:bg-dagang-cream/5 transition-colors">
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-dagang-dark/5 rounded-full flex items-center justify-center text-dagang-dark/40">
-                                                    <UserCircle className="w-6 h-6" />
-                                                </div>
-                                                <div>
-                                                    <div className="font-bold text-dagang-dark">{u.full_name}</div>
-                                                    <div className="text-xs text-dagang-gray">{u.email}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <div className="font-medium text-dagang-dark">{u.family_name || 'Tanpa Keluarga'}</div>
-                                            <div className="flex gap-2 mt-1">
-                                                 <span className="bg-dagang-accent/20 text-dagang-dark px-2 py-0.5 rounded text-[9px] font-bold">{u.plan || 'Free'}</span>
-                                                {u.status === 'trial' && (
-                                                    <span className="bg-amber-100 text-amber-600 px-2 py-0.5 rounded text-[9px] font-bold uppercase">{u.days_remaining} Hari Trial</span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6 text-center">
-                                            {u.is_blocked ? (
-                                                <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase ring-1 ring-red-200">Terblokir</span>
-                                            ) : (
-                                                <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase ring-1 ring-green-200">Aktif</span>
-                                            )}
-                                        </td>
-                                        <td className="px-8 py-6 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <button 
-                                                    onClick={() => handleToggleBlock(u.id, u.is_blocked)} 
-                                                    className={`p-2 rounded-lg transition-all ${u.is_blocked ? 'bg-green-50 text-green-600 hover:bg-green-600 hover:text-white' : 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white'}`}
-                                                    title={u.is_blocked ? "Unblock" : "Block"}
-                                                >
-                                                    <Ban className="w-5 h-5" />
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleEditUser(u)} 
-                                                    className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all"
-                                                >
-                                                    <Edit3 className="w-5 h-5" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {activeTab === 'families' && paginatedFamilies?.map((fam) => (
-                                    <Fragment key={fam.id}>
-                                        <tr className="hover:bg-dagang-cream/5 transition-colors border-b border-black/5">
-                                            <td className="px-8 py-6">
-                                                <div className="flex items-center gap-3">
-                                                    <button 
-                                                        onClick={() => toggleFamily(fam.id)}
-                                                        className="p-1 hover:bg-dagang-cream rounded-lg transition-colors"
-                                                    >
-                                                        {expandedFamilies.has(fam.id) ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                                                    </button>
-                                                    <div>
-                                                        <div className="font-bold text-dagang-dark text-lg leading-tight">{fam.name}</div>
-                                                        <div className="text-[10px] text-dagang-gray font-mono opacity-50">{fam.id}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <div className="flex flex-col gap-1">
-                                                    {fam.status === 'trial' ? (
-                                                        <span className="w-fit bg-amber-500/10 text-amber-600 px-3 py-1 rounded-full text-[10px] font-black uppercase ring-1 ring-amber-500/20 animate-pulse">
-                                                            Masa Trial ({settings.find(s => s.key === 'trial_duration_days')?.value || '10'} Hari)
-                                                        </span>
-                                                    ) : (
-                                                        <span className="w-fit bg-green-500/10 text-green-600 px-3 py-1 rounded-full text-[10px] font-black uppercase ring-1 green-500/20">
-                                                            Pencatatan Aktif
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <span className="bg-dagang-dark text-white px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm">
-                                                    {fam.subscription_plan}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-6 text-right">
-                                                <button onClick={() => handleDeleteFamily(fam.id)} className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
-                                                    <Trash2 className="w-5 h-5" />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        {expandedFamilies.has(fam.id) && (
-                                            <tr className="bg-dagang-cream/10 border-b border-black/5 shadow-inner">
-                                                <td colSpan={4} className="px-12 py-8">
-                                                    <div className="bg-white rounded-[24px] border border-black/5 overflow-hidden shadow-2xl">
-                                                        <div className="px-6 py-4 bg-dagang-dark/5 border-b border-black/5 flex items-center justify-between">
-                                                            <div className="text-xs font-black text-dagang-dark uppercase tracking-widest flex items-center gap-2">
-                                                                <Users className="w-4 h-4" />
-                                                                Daftar Anggota Keluarga ({fam.members?.length || 0})
-                                                            </div>
-                                                        </div>
-                                                        <table className="w-full text-left">
-                                                            <thead className="bg-dagang-cream/5 border-b border-black/5">
-                                                                <tr className="text-[10px] font-black text-dagang-gray/40 uppercase tracking-widest">
-                                                                    <th className="px-6 py-3">Nama Lengkap</th>
-                                                                    <th className="px-6 py-3">Email Rekening</th>
-                                                                    <th className="px-6 py-3">Wewenang</th>
-                                                                    <th className="px-6 py-3 text-right">Status</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody className="divide-y divide-black/5">
-                                                                {fam.members && fam.members.length > 0 ? fam.members.map((m: any) => (
-                                                                    <tr key={m.id} className="hover:bg-dagang-cream/5 transition-colors">
-                                                                        <td className="px-6 py-4">
-                                                                            <div className="font-bold text-dagang-dark text-sm">{m.user?.full_name || 'Tanpa Nama'}</div>
-                                                                        </td>
-                                                                        <td className="px-6 py-4 text-xs font-medium text-dagang-gray italic">
-                                                                            {m.user?.email}
-                                                                        </td>
-                                                                        <td className="px-6 py-4">
-                                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                                                                m.role === 'admin' ? 'bg-indigo-100 text-indigo-700' :
-                                                                                m.role === 'treasurer' ? 'bg-emerald-100 text-emerald-700' :
-                                                                                'bg-gray-100 text-gray-700'
-                                                                            }`}>
-                                                                                {m.role}
-                                                                            </span>
-                                                                        </td>
-                                                                        <td className="px-6 py-4 text-right">
-                                                                            <span className="flex items-center justify-end gap-1.5 text-[10px] font-black text-green-600 uppercase">
-                                                                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping" />
-                                                                                Online
-                                                                            </span>
-                                                                        </td>
-                                                                    </tr>
-                                                                )) : (
-                                                                    <tr>
-                                                                        <td colSpan={4} className="px-6 py-10 text-center text-dagang-gray italic text-sm">
-                                                                            Belum ada anggota keluarga terdaftar.
-                                                                        </td>
-                                                                    </tr>
-                                                                )}
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </Fragment>
-                                ))}
-                                {activeTab === 'settings' && paginatedSettings?.map((s) => (
-                                    <tr key={s.key} className="hover:bg-dagang-cream/5 transition-colors">
-                                        <td className="px-8 py-6 font-black text-dagang-dark uppercase tracking-tighter" colSpan={2}>
-                                            {s.key === 'trial_duration_days' ? 'DURASI MASA TRIAL (HARI)' : 
-                                             s.key === 'allow_registration' ? 'IZINKAN PENDAFTARAN' :
-                                             s.key === 'trial_max_members' ? 'LIMIT ANGGOTA TRIAL' :
-                                             s.key.replace(/_/g, ' ')}
-                                        </td>
-                                        <td className="px-8 py-6 font-bold text-dagang-accent" colSpan={2}>{s.value}</td>
-                                        <td className="px-8 py-6 text-right">
-                                            <button onClick={() => handleUpdateSetting(s.key)} className="text-dagang-green text-[12px] font-bold hover:underline">UBAH</button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                 {activeTab === 'plans' && paginatedPlans?.map((p) => (
-                                    <tr key={p.id} className="hover:bg-dagang-cream/5 transition-colors">
-                                        <td className="px-8 py-6">
-                                            <div className="font-bold text-dagang-dark">{p.name}</div>
-                                            <div className="text-xs text-dagang-gray truncate max-w-[200px]">{p.description}</div>
-                                        </td>
-                                        <td className="px-8 py-6 text-center font-bold text-dagang-dark">Rp {p.price.toLocaleString()}</td>
-                                        <td className="px-8 py-6 text-center">
-                                            <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-xs font-bold">{p.max_members} Member</span>
-                                        </td>
-                                        <td className="px-8 py-6 text-center font-medium text-dagang-gray">{p.duration_days} Hari</td>
-                                        <td className="px-8 py-6 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <button onClick={() => handleUpdatePlan(p)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit3 className="w-5 h-5" /></button>
-                                                <button onClick={() => handleDeletePlan(p.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-5 h-5" /></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {activeTab === 'transactions' && paginatedTransactions?.map((t) => (
-                                    <tr key={t.id} className="hover:bg-dagang-cream/5 transition-colors">
-                                        <td className="px-8 py-6">
-                                            <div className="font-black text-dagang-dark text-xs">{t.reference}</div>
-                                            <div className="text-[10px] text-dagang-gray opacity-50 font-mono mt-1">{t.merchant_ref}</div>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <div className="font-bold text-dagang-dark">{t.family?.name || 'Loading...'}</div>
-                                            <div className="flex gap-2 mt-1">
-                                                <span className="bg-dagang-accent/20 text-dagang-dark px-2 py-0.5 rounded text-[9px] font-bold uppercase">{t.plan_name}</span>
-                                                <span className="bg-dagang-dark text-white px-2 py-0.5 rounded text-[9px] font-bold uppercase">{t.payment_name || t.payment_method}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <div className="font-black text-dagang-dark">Rp {t.total_amount.toLocaleString()}</div>
-                                            <div className="text-[10px] text-dagang-gray">Fee: Rp {t.fee.toLocaleString()}</div>
-                                        </td>
-                                        <td className="px-8 py-6 text-center">
-                                            {t.status === 'PAID' ? (
-                                                <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase ring-1 ring-green-200">SUCCES</span>
-                                            ) : t.status === 'UNPAID' ? (
-                                                <span className="bg-amber-100 text-amber-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase ring-1 ring-amber-200">PENDING</span>
-                                            ) : (
-                                                <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase ring-1 ring-red-200">FAILED</span>
-                                            )}
-                                        </td>
-                                        <td className="px-8 py-6 text-right">
-                                            <div className="text-[11px] font-bold text-dagang-dark">{new Date(t.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                                            <div className="text-[10px] text-dagang-gray opacity-50">{new Date(t.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    )}
-                </div>
-
-                {activeTab === 'users' && (
-                    <TablePagination 
-                        currentPage={currentPage}
-                        totalItems={totalUsers}
-                        itemsPerPage={usersPerPage}
-                        onPageChange={setCurrentPage}
-                    />
-                )}
-                {activeTab === 'families' && (
-                    <TablePagination 
-                        currentPage={currentPage}
-                        totalItems={families.length}
-                        itemsPerPage={usersPerPage}
-                        onPageChange={setCurrentPage}
-                    />
-                )}
-                {activeTab === 'plans' && (
-                    <TablePagination 
-                        currentPage={currentPage}
-                        totalItems={plans.length}
-                        itemsPerPage={usersPerPage}
-                        onPageChange={setCurrentPage}
-                    />
-                )}
-                {activeTab === 'transactions' && (
-                    <TablePagination 
-                        currentPage={currentPage}
-                        totalItems={transactions.length}
-                        itemsPerPage={usersPerPage}
-                        onPageChange={setCurrentPage}
-                    />
-                )}
-                {activeTab === 'settings' && (
-                    <TablePagination 
-                        currentPage={currentPage}
-                        totalItems={settings.length}
-                        itemsPerPage={usersPerPage}
-                        onPageChange={setCurrentPage}
-                    />
-                )}
-            </main>
-            {/* Modals */}
+            {/* Global Modals */}
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
@@ -820,8 +925,6 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
                 title={confirmModal.title}
                 message={confirmModal.message}
                 type={confirmModal.type}
-                confirmText={(confirmModal as any).confirmText}
-                cancelText={(confirmModal as any).cancelText}
             />
 
             <PlanFormModal
@@ -831,6 +934,7 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
                 initialData={planModal.initialData}
                 title={planModal.title}
             />
+
             <UserFormModal
                 isOpen={userModal.isOpen}
                 onClose={() => setUserModal(prev => ({ ...prev, isOpen: false }))}
@@ -838,14 +942,48 @@ export const AdminDashboard = ({ activeSection: propActiveSection }: AdminDashbo
                 initialData={userModal.initialData}
                 title={userModal.title}
             />
+
             <SettingFormModal
                 isOpen={settingModal.isOpen}
                 onClose={() => setSettingModal(prev => ({ ...prev, isOpen: false }))}
                 onSubmit={settingModal.onSubmit}
+                onUpload={AdminController.uploadLogo}
                 initialValue={settingModal.initialValue}
                 settingKey={settingModal.settingKey}
                 title={settingModal.title}
             />
-        </div>
+
+            <CategoryFormModal
+                isOpen={categoryModal.isOpen}
+                onClose={() => setCategoryModal(prev => ({ ...prev, isOpen: false }))}
+                onSubmit={categoryModal.onSubmit}
+                initialData={categoryModal.initialData}
+                title={categoryModal.title}
+            />
+
+            <SupportReplyModal
+                isOpen={supportModal.isOpen}
+                onClose={() => setSupportModal(prev => ({ ...prev, isOpen: false, ticket: null }))}
+                onSubmit={handleSubmitReply}
+                ticket={supportModal.ticket}
+            />
+
+            <PlatformExpenseModal
+                isOpen={expenseModal.isOpen}
+                onClose={() => setExpenseModal({ isOpen: false, initialData: null })}
+                onSubmit={handleRecordExpense}
+                initialData={expenseModal.initialData}
+                categories={categories}
+                allocations={[...(financialSummary?.expense_allocations || []), ...(financialSummary?.profit_allocations || [])]}
+                expenseTarget={financialSummary?.expense_target}
+            />
+
+            <ManualVerificationModal 
+                isOpen={verificationModal.isOpen}
+                onClose={() => setVerificationModal({ isOpen: false, transaction: null })}
+                transaction={verificationModal.transaction}
+                onSubmit={handleVerifyManualPayment}
+            />
+        </DashboardLayout>
     );
 };

@@ -7,6 +7,7 @@ import (
 
 	"keuangan-keluarga/internal/models"
 	"github.com/google/uuid"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -21,7 +22,7 @@ func ConnectDatabase() {
 
 	log.Printf("Connecting to database %s on %s:%s...", AppConfig.DBName, AppConfig.DBHost, AppConfig.DBPort)
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Error),
+		Logger: logger.Default.LogMode(logger.Silent),
 	})
 
 	if err != nil {
@@ -53,14 +54,23 @@ func ConnectDatabase() {
 		&models.Saving{},
 		&models.Debt{},
 		&models.DebtPayment{},
+		&models.DebtPenalty{},
 		&models.Notification{},
 		&models.SystemSetting{},
 		&models.SubscriptionPlan{},
 		&models.PaymentTransaction{},
+		&models.PaymentChannel{},
 		&models.FamilyChallenge{},
 		&models.BlogCategory{},
 		&models.BlogPost{},
 		&models.SitemapConfig{},
+		&models.PlatformExpense{},
+		&models.PlatformExpenseCategory{},
+		&models.PlatformBudgetTransfer{},
+		&models.Asset{},
+		&models.Goal{},
+		&models.SupportReport{},
+		&models.BudgetPlan{},
 	)
 	if err != nil {
 		log.Fatal("Failed to run migrations:", err)
@@ -110,7 +120,15 @@ func applyFinancialConstraints() {
 	// Transactions
 	DB.Exec(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'transactions_amount_positive') THEN ALTER TABLE transactions ADD CONSTRAINT transactions_amount_positive CHECK (amount > 0); END IF; END $$;`)
 
-	log.Println("Financial integrity constraints (CHECK) applied")
+	// Platform Expenses
+	DB.Exec(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'platform_expenses_amount_positive') THEN ALTER TABLE platform_expenses ADD CONSTRAINT platform_expenses_amount_positive CHECK (amount > 0); END IF; END $$;`)
+
+	// Performance Indexes (Anti-Kejebol)
+	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_debt_payments_debt_date ON debt_payments (debt_id, date);`)
+	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_debts_status_due ON debts (status, next_installment_due_date);`)
+	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_debt_penalties_debt_date ON debt_penalties (debt_id, date);`)
+
+	log.Println("Financial integrity constraints and performance indexes applied")
 }
 
 func setupPartitionedTransactions() {
@@ -168,6 +186,7 @@ func setupPartitionedTransactions() {
 			date TIMESTAMP WITH TIME ZONE NOT NULL,
 			description TEXT,
 			saving_id UUID,
+			goal_id UUID,
 			created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY (id, family_id, date)
 		) PARTITION BY RANGE (date);
@@ -179,42 +198,53 @@ func setupPartitionedTransactions() {
 	DB.Exec(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS fee DECIMAL(12,2) DEFAULT 0;`)
 	DB.Exec(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS category VARCHAR(255);`)
 	DB.Exec(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS saving_id UUID;`)
+	DB.Exec(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS goal_id UUID;`)
 
 	// 2. Create indices for faster lookups (SAS Method Indexing)
 	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_transactions_family_date ON transactions (family_id, date DESC);`)
 	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions (user_id);`)
 	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_transactions_wallet_id ON transactions (wallet_id);`)
 	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_transactions_saving_id ON transactions (saving_id);`)
+	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_transactions_goal_id ON transactions (goal_id);`)
 
-	// 3. Create monthly partitions for 2026
-	months := []string{
-		"01", "02", "03", "04", "05", "06",
-		"07", "08", "09", "10", "11", "12",
-	}
-
-	for i, m := range months {
-		tableName := fmt.Sprintf("transactions_2026_%s", m)
-		startDate := fmt.Sprintf("2026-%s-01", m)
-
-		// End date is first day of next month
-		var endDate string
-		if i == 11 {
-			endDate = "2027-01-01"
-		} else {
-			endDate = fmt.Sprintf("2026-%s-01", months[i+1])
-		}
-
-		query := fmt.Sprintf(`
-			CREATE TABLE IF NOT EXISTS %s 
-			PARTITION OF transactions 
-			FOR VALUES FROM ('%s') TO ('%s');
-		`, tableName, startDate, endDate)
-
-		if err := DB.Exec(query).Error; err != nil {
-			log.Printf("Warning: Could not create partition %s: %v", tableName, err)
+	// 3. Create dynamic monthly partitions
+	log.Println("Ensuring initial partitions exist (Jan 2024 - Future)...")
+	// Seed from 2024 to current month + 12
+	startSeed := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	endSeed := time.Now().AddDate(0, 13, 0)
+	
+	for t := startSeed; t.Before(endSeed); t = t.AddDate(0, 1, 0) {
+		if err := EnsurePartitionForDate(DB, t); err != nil {
+			log.Printf("Warning during initial seeding: %v", err)
 		}
 	}
+	
 	log.Println("Database partitioning (SAS Method) verified")
+}
+
+// EnsurePartitionForDate checks and creates a partition for the given date if it doesn't exist.
+// This allows on-demand partition creation for any date (past or future).
+func EnsurePartitionForDate(db *gorm.DB, date time.Time) error {
+	year := date.Year()
+	month := int(date.Month())
+
+	tableName := fmt.Sprintf("transactions_%d_%02d", year, month)
+	startDate := fmt.Sprintf("%d-%02d-01", year, month)
+
+	// End date is first day of next month
+	endTarget := time.Date(year, date.Month()+1, 1, 0, 0, 0, 0, time.UTC)
+	endDate := endTarget.Format("2006-01-02")
+
+	query := fmt.Sprintf(`
+		CREATE TABLE IF NOT EXISTS %s 
+		PARTITION OF transactions 
+		FOR VALUES FROM ('%s') TO ('%s');
+	`, tableName, startDate, endDate)
+
+	if err := db.Exec(query).Error; err != nil {
+		return fmt.Errorf("could not ensure partition %s: %w", tableName, err)
+	}
+	return nil
 }
 
 func seedDefaultSettings() {
@@ -227,6 +257,86 @@ func seedDefaultSettings() {
 			Key:   "trial_max_members",
 			Value: "2",
 		},
+		{
+			Key:   "website_name",
+			Value: "Uangku",
+		},
+		{
+			Key:   "logo_url_light",
+			Value: "",
+		},
+		{
+			Key:   "logo_url_dark",
+			Value: "",
+		},
+		{
+			Key:   "platform_expense_allocation_pct",
+			Value: "60",
+		},
+		{
+			Key:   "otp_expiry_duration",
+			Value: "15",
+		},
+		{
+			Key:   "resend_otp_duration",
+			Value: "60",
+		},
+		{
+			Key:   "contact_address",
+			Value: "Jl. Cigadung Raya Tengah No.52, RT.2, Cigadung, Kec. Cibeunying Kaler, Kota Bandung, Jawa Barat 40191",
+		},
+		{
+			Key:   "contact_building",
+			Value: "Jasaweb Pro / AplikasiDagang Center",
+		},
+		{
+			Key:   "contact_email_support",
+			Value: "info@aplikasidagang.co.id",
+		},
+		{
+			Key:   "contact_email_admin",
+			Value: "admin@aplikasidagang.co.id",
+		},
+		{
+			Key:   "contact_phone_primary",
+			Value: "0812 2242 9289",
+		},
+		{
+			Key:   "contact_phone_secondary",
+			Value: "0813 8486 8040",
+		},
+		{
+			Key:   "social_instagram_1",
+			Value: "https://www.instagram.com/jasaweb_pro/",
+		},
+		{
+			Key:   "social_instagram_2",
+			Value: "https://www.instagram.com/aplikasidagang/",
+		},
+		{
+			Key:   "social_youtube",
+			Value: "https://www.youtube.com/@aplikasidagang",
+		},
+		{
+			Key:   "social_facebook",
+			Value: "https://www.facebook.com/aplikasidagang?_rdc=1&_rdr#",
+		},
+		{
+			Key:   "social_tiktok",
+			Value: "https://www.tiktok.com/@aplikasidagang",
+		},
+		{
+			Key:   "social_twitter",
+			Value: "https://x.com/aplikasidagang",
+		},
+		{
+			Key:   "whatsapp_number",
+			Value: "6281222429289",
+		},
+		{
+			Key:   "whatsapp_link",
+			Value: "https://wa.me/6281222429289",
+		},
 	}
 
 	for _, s := range defaultSettings {
@@ -236,9 +346,16 @@ func seedDefaultSettings() {
 			Where("key = ?", s.Key).
 			Scan(&exists)
 
+		// For contact and social keys, we want to ensure they are synced/updated if they are defaults
+		isContactKey := len(s.Key) > 8 && (s.Key[:8] == "contact_" || s.Key[:7] == "social_" || s.Key[:9] == "whatsapp_")
+		
 		if !exists {
 			log.Printf("Seeding default setting: %s = %s", s.Key, s.Value)
 			DB.Create(&s)
+		} else if isContactKey {
+			// Optional: Only update if it's a known "old" default or if we want to force sync
+			// For this task, we force update to ensure the user's new address is applied
+			DB.Model(&models.SystemSetting{}).Where("key = ?", s.Key).Update("value", s.Value)
 		}
 	}
 }
@@ -284,11 +401,12 @@ func seedBlogCategories() {
 		{Name: "Investasi", Slug: "investasi", Description: "Panduan investasi cerdas untuk masa depan"},
 		{Name: "Gaya Hidup", Slug: "gaya-hidup", Description: "Keseimbangan antara gaya hidup dan finansial"},
 		{Name: "Berita", Slug: "berita", Description: "Berita terbaru seputar ekonomi dan finansial"},
+		{Name: "Edukasi", Slug: "edukasi", Description: "Materi edukasi finansial untuk keluarga"},
 	}
 
-	for _, cat := range categories {
-		if err := DB.Where("slug = ?", cat.Slug).FirstOrCreate(&cat).Error; err != nil {
-			log.Printf("Warning: failed to seed blog category %s: %v\n", cat.Name, err)
+	for i := range categories {
+		if err := DB.Where("slug = ?", categories[i].Slug).FirstOrCreate(&categories[i]).Error; err != nil {
+			log.Printf("Warning: failed to seed blog category %s: %v\n", categories[i].Name, err)
 		}
 	}
 }
@@ -313,14 +431,14 @@ func seedMissingBudgets() {
 				{FamilyID: family.ID, Name: "Dana Darurat", Percentage: 10, Description: "Cadangan dana untuk keadaan tak terduga", Icon: "ShieldCheck", Color: "text-red-500", BgColor: "bg-red-50", Order: 4},
 			}
 
-			for _, cat := range categories {
-				if err := DB.Create(&cat).Error; err != nil {
-					log.Printf("[ERROR] Failed to create budget category %s for family %s: %v", cat.Name, family.ID, err)
+			for i := range categories {
+				if err := DB.Create(&categories[i]).Error; err != nil {
+					log.Printf("[ERROR] Failed to create budget category %s for family %s: %v", categories[i].Name, family.ID, err)
 					continue
 				}
 
 				var items []models.Saving
-				switch cat.Name {
+				switch categories[i].Name {
 				case "Kebutuhan":
 					items = []models.Saving{
 						{Name: "Makan", Emoji: "🍲", TargetAmount: 1000000, DueDate: 1},
@@ -353,12 +471,12 @@ func seedMissingBudgets() {
 					}
 				}
 
-				for _, item := range items {
-					item.ID = uuid.New()
-					item.FamilyID = family.ID
-					item.BudgetCategoryID = &cat.ID
-					if err := DB.Create(&item).Error; err != nil {
-						log.Printf("[ERROR] Failed to create item %s for category %s: %v", item.Name, cat.Name, err)
+				for j := range items {
+					items[j].ID = uuid.New()
+					items[j].FamilyID = family.ID
+					items[j].BudgetCategoryID = &categories[i].ID
+					if err := DB.Create(&items[j]).Error; err != nil {
+						log.Printf("[ERROR] Failed to create item %s for category %s: %v", items[j].Name, categories[i].Name, err)
 					}
 				}
 			}

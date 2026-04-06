@@ -26,6 +26,8 @@ type CreateWalletRequest struct {
 func (ctrl *WalletController) Create(c *gin.Context) {
 	familyIDRaw, _ := c.Get("family_id")
 	familyID, _ := uuid.Parse(familyIDRaw.(string))
+	userIDRaw, _ := c.Get("user_id")
+	userID, _ := uuid.Parse(userIDRaw.(string))
 
 	var req CreateWalletRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -33,7 +35,7 @@ func (ctrl *WalletController) Create(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.service.CreateWallet(familyID, req.Name, req.WalletType, req.AccountNumber, req.InitialBalance); err != nil {
+	if err := ctrl.service.CreateWallet(familyID, userID, req.Name, req.WalletType, req.AccountNumber, req.InitialBalance); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -44,8 +46,11 @@ func (ctrl *WalletController) Create(c *gin.Context) {
 func (ctrl *WalletController) List(c *gin.Context) {
 	familyIDRaw, _ := c.Get("family_id")
 	familyID, _ := uuid.Parse(familyIDRaw.(string))
+	userIDRaw, _ := c.Get("user_id")
+	userID, _ := uuid.Parse(userIDRaw.(string))
+	role := c.GetString("family_role")
 
-	wallets, err := ctrl.service.GetFamilyWallets(familyID)
+	wallets, err := ctrl.service.GetFamilyWallets(familyID, userID, role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -78,13 +83,22 @@ func (ctrl *WalletController) Update(c *gin.Context) {
 		return
 	}
 
+	// 2. Ownership check: ONLY the original creator can edit
+	userIDRaw, _ := c.Get("user_id")
+	userID, _ := uuid.Parse(userIDRaw.(string))
+
+	if existing.UserID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Anda tidak memiliki izin untuk mengubah dompet ini. Hanya pembuat dompet yang diperbolehkan."})
+		return
+	}
+
 	// 2. Update fields
 	existing.Name = req.Name
 	existing.WalletType = req.WalletType
 	existing.AccountNumber = req.AccountNumber
 	existing.Balance = req.Balance
 
-	if err := ctrl.service.UpdateWallet(existing); err != nil {
+	if err := ctrl.service.UpdateWallet(userID, existing); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -100,7 +114,22 @@ func (ctrl *WalletController) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.service.DeleteWallet(id); err != nil {
+	// Ownership check
+	existing, err := ctrl.service.GetWalletByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Wallet not found"})
+		return
+	}
+	// Ownership check: ONLY the original creator can delete
+	userIDRaw, _ := c.Get("user_id")
+	userID, _ := uuid.Parse(userIDRaw.(string))
+
+	if existing.UserID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Anda tidak memiliki izin untuk menghapus dompet ini. Hanya pembuat dompet yang diperbolehkan."})
+		return
+	}
+
+	if err := ctrl.service.DeleteWallet(userID, id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

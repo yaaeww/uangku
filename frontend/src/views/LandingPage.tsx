@@ -38,11 +38,11 @@ export const LandingPage = () => {
 
 
     const formatPrice = (price: number) => {
-        if (price === 0) return "Gratis";
+        if (price === 0) return t('pricingSection.free');
         return `Rp ${(price / 1000).toFixed(0)}rb`;
     };
 
-    const trialDuration = settings.trial_duration || "10";
+    const trialDuration = settings.trial_duration_days || "7";
 
     return (
         <div className="bg-dagang-cream text-dagang-dark font-sans selection:bg-dagang-green-pale selection:text-dagang-green">
@@ -106,14 +106,14 @@ export const LandingPage = () => {
                     <div className="lg:w-[480px] relative z-10 w-full animate-float">
                         <div className="bg-white rounded-[24px] shadow-[0_32px_80px_rgba(0,0,0,0.12),0_4px_16px_rgba(0,0,0,0.06)] p-7 overflow-hidden">
                             <div className="flex justify-between items-center mb-5">
-                                <div className="text-[13px] font-semibold text-dagang-dark">🏠 Keluarga Budi</div>
-                                <div className="bg-dagang-accent text-white text-[11px] font-bold px-2.5 py-1 rounded-full">Trial: {trialDuration} hari</div>
+                                <div className="text-[13px] font-semibold text-dagang-dark">{t('appPreview.familyBudi')}</div>
+                                <div className="bg-dagang-accent text-white text-[11px] font-bold px-2.5 py-1 rounded-full">{t('appPreview.trialBadge', { days: trialDuration })}</div>
                             </div>
 
                             <div className="bg-gradient-to-br from-dagang-green to-dagang-green-light rounded-[16px] p-5 mb-4 text-white">
-                                <div className="text-[12px] opacity-80 mb-1.5">Saldo Bersih Bulan Ini</div>
+                                <div className="text-[12px] opacity-80 mb-1.5">{t('appPreview.netBalance')}</div>
                                 <div className="font-serif text-[32px]">Rp 8.450.000</div>
-                                <div className="text-[12px] opacity-70 mt-1">↑ 12% dari bulan lalu</div>
+                                <div className="text-[12px] opacity-70 mt-1">{t('appPreview.balanceChange')}</div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-2.5 mb-4">
@@ -121,14 +121,14 @@ export const LandingPage = () => {
                                     <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center text-sm">💚</div>
                                     <div>
                                         <div className="text-[13px] font-semibold">Rp 12,5 jt</div>
-                                        <div className="text-[11px] text-dagang-gray">Pemasukan</div>
+                                        <div className="text-[11px] text-dagang-gray">{t('appPreview.income')}</div>
                                     </div>
                                 </div>
                                 <div className="bg-dagang-cream rounded-[12px] p-3 flex items-center gap-2.5">
                                     <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center text-sm">❤️</div>
                                     <div>
                                         <div className="text-[13px] font-semibold">Rp 4,05 jt</div>
-                                        <div className="text-[11px] text-dagang-gray">Pengeluaran</div>
+                                        <div className="text-[11px] text-dagang-gray">{t('appPreview.expense')}</div>
                                     </div>
                                 </div>
                             </div>
@@ -138,8 +138,8 @@ export const LandingPage = () => {
                                     <div className="flex items-center gap-2.5">
                                         <div className="w-[28px] h-[28px] rounded-lg bg-dagang-green-pale flex items-center justify-center text-[12px]">🛒</div>
                                         <div>
-                                            <div className="text-[12px] font-medium">Belanja Bulanan</div>
-                                            <div className="text-[11px] text-dagang-gray">Hari ini</div>
+                                            <div className="text-[12px] font-medium">{t('appPreview.groceries')}</div>
+                                            <div className="text-[11px] text-dagang-gray">{t('appPreview.today')}</div>
                                         </div>
                                     </div>
                                     <div className="text-[12px] font-semibold text-red-500">- Rp 450k</div>
@@ -148,7 +148,7 @@ export const LandingPage = () => {
                                     <div className="flex items-center gap-2.5">
                                         <div className="w-[28px] h-[28px] rounded-lg bg-dagang-green-pale flex items-center justify-center text-[12px]">💰</div>
                                         <div>
-                                            <div className="text-[12px] font-medium">Gaji Suami</div>
+                                            <div className="text-[12px] font-medium">{t('appPreview.salary')}</div>
                                             <div className="text-[11px] text-dagang-gray">1 Mar</div>
                                         </div>
                                     </div>
@@ -161,8 +161,8 @@ export const LandingPage = () => {
                         <div className="absolute bottom-[-20px] left-[-60px] bg-white rounded-[14px] shadow-[0_8px_32px_rgba(0,0,0,0.1)] p-3 px-4 flex items-center gap-2.5">
                             <div className="w-9 h-9 bg-amber-100 rounded-[10px] flex items-center justify-center text-base">📊</div>
                             <div className="text-[12px]">
-                                <strong className="block font-semibold">Budget Makan</strong>
-                                <span className="text-dagang-gray">78% terpakai</span>
+                                <strong className="block font-semibold">{t('appPreview.groceryBudget')}</strong>
+                                <span className="text-dagang-gray">{t('appPreview.budgetUsed')}</span>
                             </div>
                         </div>
                     </div>
@@ -173,21 +173,21 @@ export const LandingPage = () => {
             <section id="features" className="px-6 md:px-[60px] py-20">
                 <div className="max-w-[1280px] mx-auto">
                     <div className="mb-16">
-                        <div className="text-xs font-bold text-dagang-green tracking-[0.08em] uppercase mb-3">Fitur Unggulan</div>
-                        <h2 className="font-serif text-5xl leading-[1.1] mb-4">Semua yang Keluarga Butuhkan</h2>
+                        <div className="text-xs font-bold text-dagang-green tracking-[0.08em] uppercase mb-3">{t('featuresSection.label')}</div>
+                        <h2 className="font-serif text-5xl leading-[1.1] mb-4">{t('featuresSection.title')}</h2>
                         <p className="text-dagang-gray text-lg max-w-[520px] leading-relaxed">
-                            Dari pencatatan harian hingga laporan bulanan — semua tersedia dalam satu platform yang mudah digunakan bersama.
+                            {t('featuresSection.subtitle')}
                         </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
                         {[
-                            { icon: '📝', title: 'Catat Transaksi Bersama', desc: 'Semua anggota keluarga bisa mencatat pemasukan dan pengeluaran secara real-time. Tidak ada yang terlewat.' },
-                            { icon: '🎯', title: 'Budget Planning', desc: 'Buat anggaran per kategori, pantau pemakaian, dan dapatkan notifikasi saat mendekati batas budget.' },
-                            { icon: '🏦', title: 'Tabungan Tujuan', desc: 'Rencanakan tabungan untuk liburan, pendidikan, atau dana darurat. Lacak progres bersama keluarga.' },
-                            { icon: '📊', title: 'Laporan Visual', desc: 'Grafik dan laporan keuangan yang mudah dipahami. Pahami pola pengeluaran keluarga setiap bulan.' },
-                            { icon: '👨‍👩‍👧‍👦', title: 'Multi Anggota', desc: 'Undang suami, istri, atau anak ke workspace keluarga. Atur peran dan akses setiap anggota.' },
-                            { icon: '🔔', title: 'Pengingat Tagihan', desc: 'Jangan sampai lupa bayar tagihan. Atur jadwal pembayaran dan terima notifikasi tepat waktu.' }
+                            { icon: '📝', title: t('featuresSection.items.0.title'), desc: t('featuresSection.items.0.desc') },
+                            { icon: '🎯', title: t('featuresSection.items.1.title'), desc: t('featuresSection.items.1.desc') },
+                            { icon: '🏦', title: t('featuresSection.items.2.title'), desc: t('featuresSection.items.2.desc') },
+                            { icon: '📊', title: t('featuresSection.items.3.title'), desc: t('featuresSection.items.3.desc') },
+                            { icon: '👨‍👩‍👧‍👦', title: t('featuresSection.items.4.title'), desc: t('featuresSection.items.4.desc') },
+                            { icon: '🔔', title: t('featuresSection.items.5.title'), desc: t('featuresSection.items.5.desc') }
                         ].map((f, i) => (
                             <div key={i} className="group bg-white rounded-[20px] p-8 border border-black/5 transition-all hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(0,0,0,0.08)] relative overflow-hidden">
                                 <div className="w-[52px] h-[52px] rounded-[14px] bg-dagang-green-pale flex items-center justify-center text-[22px] mb-5">{f.icon}</div>
@@ -203,17 +203,17 @@ export const LandingPage = () => {
             {/* HOW IT WORKS */}
             <section id="how-it-works" className="mx-10 mb-20 px-6 md:px-[60px] py-20 bg-dagang-dark text-white rounded-[32px]">
                 <div className="max-w-[1280px] mx-auto text-center">
-                    <div className="text-xs font-bold text-dagang-accent tracking-[0.08em] uppercase mb-3">Cara Kerja</div>
-                    <h2 className="font-serif text-5xl text-white mb-4">Mulai dalam 3 Menit</h2>
-                    <p className="text-white/60 text-lg mb-16 mx-auto max-w-[500px]">Setup cepat, langsung bisa digunakan oleh seluruh anggota keluarga.</p>
+                    <div className="text-xs font-bold text-dagang-accent tracking-[0.08em] uppercase mb-3">{t('howItWorksSection.label')}</div>
+                    <h2 className="font-serif text-5xl text-white mb-4">{t('howItWorksSection.title')}</h2>
+                    <p className="text-white/60 text-lg mb-16 mx-auto max-w-[500px]">{t('howItWorksSection.subtitle')}</p>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 relative">
                         <div className="hidden lg:block absolute top-7 left-[60px] right-[60px] h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
                         {[
-                            { num: '1', title: 'Daftar Akun', desc: 'Buat akun gratis dengan email dan password. Tidak perlu kartu kredit.' },
-                            { num: '2', title: 'Buat Workspace', desc: 'Beri nama workspace keluarga dan undang anggota dengan link atau email.' },
-                            { num: '3', title: 'Catat Keuangan', desc: 'Mulai catat pemasukan, pengeluaran, dan buat budget bersama keluarga.' },
-                            { num: '4', title: 'Pantau & Evaluasi', desc: 'Lihat laporan, analisis kebiasaan, dan buat keputusan finansial yang lebih baik.' }
+                            { num: '1', title: t('howItWorksSection.items.0.title'), desc: t('howItWorksSection.items.0.desc') },
+                            { num: '2', title: t('howItWorksSection.items.1.title'), desc: t('howItWorksSection.items.1.desc') },
+                            { num: '3', title: t('howItWorksSection.items.2.title'), desc: t('howItWorksSection.items.2.desc') },
+                            { num: '4', title: t('howItWorksSection.items.3.title'), desc: t('howItWorksSection.items.3.desc') }
                         ].map((s, i) => (
                             <div key={i} className="flex flex-col items-center">
                                 <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center font-serif text-[22px] text-dagang-accent mb-5 relative z-10">
@@ -231,9 +231,9 @@ export const LandingPage = () => {
             <section id="pricing" className="px-6 md:px-[60px] py-20">
                 <div className="max-w-[1280px] mx-auto">
                     <div className="text-center mb-14">
-                        <div className="text-xs font-bold text-dagang-green tracking-[0.08em] uppercase mb-3">Harga Terjangkau</div>
-                        <h2 className="font-serif text-5xl mb-4">Pilih Paket Keluarga Anda</h2>
-                        <p className="text-dagang-gray text-lg">Mulai gratis {trialDuration} hari, lanjutkan dengan paket yang sesuai kebutuhan keluarga.</p>
+                        <div className="text-xs font-bold text-dagang-green tracking-[0.08em] uppercase mb-3">{t('pricingSection.label')}</div>
+                        <h2 className="font-serif text-5xl mb-4">{t('pricingSection.title')}</h2>
+                        <p className="text-dagang-gray text-lg">{t('pricingSection.subtitle', { days: trialDuration })}</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-[1100px] mx-auto items-stretch">
@@ -253,7 +253,7 @@ export const LandingPage = () => {
                                     >
                                         {isPopular && (
                                             <div className="absolute top-[-12px] left-1/2 -translate-x-1/2 bg-dagang-accent text-white text-[11px] font-bold px-4 py-1 rounded-full whitespace-nowrap z-10">
-                                                ⭐ Paling Populer
+                                                {t('pricingSection.popular')}
                                             </div>
                                         )}
                                         <div className={`text-xs font-bold ${isPopular ? 'text-white/70' : 'opacity-70'} mb-4 tracking-wider uppercase`}>
@@ -263,7 +263,7 @@ export const LandingPage = () => {
                                             {formatPrice(plan.price)}
                                         </div>
                                         <div className={`text-[13px] ${isPopular ? 'text-white/60' : 'text-dagang-gray'} mb-7`}>
-                                            per {plan.duration_days === 30 ? 'bulan' : `${plan.duration_days} hari`}
+                                            {t('pricingSection.perDays', { days: plan.duration_days })}
                                         </div>
                                         
                                         <ul className="w-full list-none space-y-4 mb-10 flex-1">
@@ -283,14 +283,14 @@ export const LandingPage = () => {
                                                 : 'border-[1.5px] border-black/15 hover:border-dagang-green hover:text-dagang-green'
                                             }`}
                                         >
-                                            Pilih {plan.name}
+                                            {t('pricingSection.choosePlan')} {plan.name}
                                         </a>
                                     </div>
                                 );
                             })
                         ) : (
                             <div className="col-span-full text-center py-20 bg-white rounded-3xl border border-black/5">
-                                <p className="text-dagang-gray">Paket langganan belum tersedia.</p>
+                                <p className="text-dagang-gray">{t('pricingSection.unavailable')}</p>
                             </div>
                         )}
                     </div>
@@ -301,8 +301,8 @@ export const LandingPage = () => {
             <section className="mx-10 mb-20 px-6 md:px-[60px] py-24 bg-gradient-to-br from-dagang-dark to-[#2d4a38] text-white text-center rounded-[32px] relative overflow-hidden">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-dagang-green/40 blur-[100px] rounded-full" />
                 <div className="relative z-10">
-                    <h2 className="font-serif text-[54px] mb-4">Mulai Perjalanan Finansial Keluarga Anda</h2>
-                    <p className="text-white/60 text-lg mb-10 max-w-[600px] mx-auto">Gratis {trialDuration} hari. Setup 3 menit. Tidak perlu kartu kredit.</p>
+                    <h2 className="font-serif text-[54px] mb-4">{t('ctaSection.title')}</h2>
+                    <p className="text-white/60 text-lg mb-10 max-w-[600px] mx-auto">{t('ctaSection.subtitle', { days: trialDuration })}</p>
                     <a
                         href={
                             token 
@@ -315,9 +315,9 @@ export const LandingPage = () => {
                         }
                         className="inline-block bg-dagang-accent text-white px-11 py-4.5 rounded-full text-base font-bold shadow-[0_8px_32px_rgba(245,158,11,0.4)] hover:-translate-y-px hover:shadow-[0_16px_48px_rgba(245,158,11,0.5)] transition-all"
                     >
-                        {token ? '🚀 Masuk ke Dashboard' : '🚀 Mulai Trial Gratis Sekarang'}
+                        {token ? t('ctaSection.buttonDashboard') : t('ctaSection.buttonTrial')}
                     </a>
-                    <p className="text-[13px] text-white/40 mt-4">Sudah 2.400+ keluarga bergabung • Batalkan kapan saja</p>
+                    <p className="text-[13px] text-white/40 mt-4">{t('ctaSection.trust')}</p>
                 </div>
             </section>
 

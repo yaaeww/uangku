@@ -21,6 +21,7 @@ type User struct {
 	ResetExpires time.Time `json:"-"`
 	IsBlocked    bool      `gorm:"default:false" json:"is_blocked"`
 	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 
 	FamilyMember *FamilyMember `gorm:"foreignKey:UserID" json:"family_member"`
 }

@@ -48,8 +48,8 @@ export const PlanPricingView = () => {
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center py-20">
-                <Loader2 className="w-12 h-12 text-dagang-green animate-spin mb-4" />
-                <p className="font-medium text-dagang-gray">Memuat paket pilihan...</p>
+                <Loader2 className="w-12 h-12 text-[var(--primary)] animate-spin mb-4" />
+                <p className="font-medium text-[var(--text-muted)] opacity-60">Memuat paket pilihan...</p>
             </div>
         );
     }
@@ -63,21 +63,21 @@ export const PlanPricingView = () => {
                 <div>
                     <Link 
                         to={`/${encodeURIComponent(familyName)}/dashboard/family`}
-                        className="inline-flex items-center gap-2 text-dagang-gray hover:text-dagang-dark transition-colors mb-4 group font-bold text-xs uppercase tracking-widest"
+                        className="inline-flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors mb-4 group font-bold text-xs uppercase tracking-widest"
                     >
                         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Kembali ke Daftar Anggota
                     </Link>
-                    <h1 className="text-h2 font-heading text-dagang-dark">Pilih Paket Langganan</h1>
-                    <p className="text-dagang-gray font-medium">Investasi terbaik untuk manajemen keuangan keluarga Anda.</p>
+                    <h1 className="text-h2 font-heading text-[var(--text-main)]">Pilih Paket Langganan</h1>
+                    <p className="text-[var(--text-muted)] opacity-70 font-medium">Investasi terbaik untuk manajemen keuangan keluarga Anda.</p>
                 </div>
 
-                <div className="flex items-center gap-4 bg-white p-4 rounded-[24px] border border-black/5 shadow-sm">
-                    <div className="w-12 h-12 rounded-2xl bg-dagang-green/10 flex items-center justify-center text-dagang-green">
+                <div className="flex items-center gap-4 bg-[var(--surface-card)] p-4 rounded-[24px] border border-[var(--border)] shadow-sm">
+                    <div className="w-12 h-12 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)]">
                         <ShieldCheck className="w-6 h-6" />
                     </div>
                     <div>
-                        <div className="text-[10px] font-black text-dagang-gray uppercase tracking-widest">Status Keamanan</div>
-                        <div className="text-sm font-bold text-dagang-dark uppercase leading-tight">Pembayaran Aman TriPay</div>
+                        <div className="text-[10px] font-black text-[var(--text-muted)] opacity-50 uppercase tracking-widest">Status Keamanan</div>
+                        <div className="text-sm font-bold text-[var(--text-main)] uppercase leading-tight">Pembayaran Aman TriPay</div>
                     </div>
                 </div>
             </div>
@@ -93,37 +93,37 @@ export const PlanPricingView = () => {
                     const canAction = isHigher || isCurrent;
 
                     return (
-                        <div key={plan.id} className={`bg-white p-10 rounded-[48px] border-2 transition-all relative overflow-hidden group flex flex-col ${isCurrent ? 'border-dagang-green bg-dagang-green/[0.02]' : 'border-black/5 hover:border-black/10'}`}>
+                        <div key={plan.id} className={`bg-[var(--surface-card)] p-10 rounded-[48px] border-2 transition-all relative overflow-hidden group flex flex-col ${isCurrent ? 'border-[var(--primary)] bg-[var(--primary)]/[0.02]' : 'border-[var(--border)] hover:border-[var(--primary)]/30'}`}>
                             {isCurrent && (
-                                <div className="absolute top-10 right-10 bg-dagang-green text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-dagang-green/20">
+                                <div className="absolute top-10 right-10 bg-[var(--primary)] text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-[var(--primary)]/20">
                                     <CheckCircle2 className="w-3.5 h-3.5" /> Paket Aktif
                                 </div>
                             )}
                             
                             <div className="space-y-6 flex-1">
-                                <div className={`w-16 h-16 rounded-[24px] flex items-center justify-center ${plan.name === 'Premium' ? 'bg-dagang-dark text-dagang-accent' : plan.name === 'Family' ? 'bg-dagang-accent/10 text-dagang-accent' : 'bg-dagang-gray/10 text-dagang-gray'}`}>
+                                <div className={`w-16 h-16 rounded-[24px] flex items-center justify-center ${plan.name === 'Premium' ? 'bg-dagang-dark text-[var(--accent)]' : plan.name === 'Family' ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'bg-black/5 dark:bg-white/5 text-[var(--text-muted)]'}`}>
                                     {plan.name === 'Premium' ? <Star className="w-8 h-8" /> : plan.name === 'Family' ? <Award className="w-8 h-8" /> : <Zap className="w-8 h-8" />}
                                 </div>
                                 
                                 <div>
-                                    <h3 className="text-2xl font-serif text-dagang-dark mb-1">{plan.name}</h3>
+                                    <h3 className="text-2xl font-serif text-[var(--text-main)] mb-1">{plan.name}</h3>
                                     <div className="flex items-baseline gap-1.5">
-                                        <span className="text-3xl font-black text-dagang-dark">Rp {plan.price?.toLocaleString('id-ID')}</span>
-                                        <span className="text-sm font-bold text-dagang-gray">/ {plan.duration_days} hari</span>
+                                        <span className="text-3xl font-black text-[var(--text-main)]">Rp {plan.price?.toLocaleString('id-ID')}</span>
+                                        <span className="text-sm font-bold text-[var(--text-muted)] opacity-60">/ {plan.duration_days} hari</span>
                                     </div>
                                 </div>
 
-                                <ul className="space-y-4 pt-6 border-t border-black/5">
-                                    <li className="flex items-center gap-3 text-[14px] text-dagang-dark font-medium leading-relaxed">
-                                        <div className="w-6 h-6 rounded-full bg-dagang-green/10 flex items-center justify-center shrink-0">
-                                            <CheckCircle2 className="w-3.5 h-3.5 text-dagang-green" />
+                                <ul className="space-y-4 pt-6 border-t border-[var(--border)]">
+                                    <li className="flex items-center gap-3 text-[14px] text-[var(--text-main)] font-medium leading-relaxed">
+                                        <div className="w-6 h-6 rounded-full bg-[var(--primary)]/10 flex items-center justify-center shrink-0">
+                                            <CheckCircle2 className="w-3.5 h-3.5 text-[var(--primary)]" />
                                         </div>
                                         <span>Hingga <strong>{plan.max_members} Anggota</strong> Keluarga</span>
                                     </li>
                                     {plan.features?.split(';').map((feature: string) => (
-                                        <li key={feature} className="flex items-center gap-3 text-[14px] text-dagang-dark font-medium leading-relaxed">
-                                            <div className="w-6 h-6 rounded-full bg-dagang-green/10 flex items-center justify-center shrink-0">
-                                                <CheckCircle2 className="w-3.5 h-3.5 text-dagang-green" />
+                                        <li key={feature} className="flex items-center gap-3 text-[14px] text-[var(--text-main)] font-medium leading-relaxed">
+                                            <div className="w-6 h-6 rounded-full bg-[var(--primary)]/10 flex items-center justify-center shrink-0">
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-[var(--primary)]" />
                                             </div>
                                             {feature.trim()}
                                         </li>
@@ -132,14 +132,13 @@ export const PlanPricingView = () => {
                             </div>
 
                             <button 
-                                disabled={!canAction || familyRole !== 'head_of_family'}
                                 onClick={() => handleSelectPlan(plan)}
-                                className={`w-full h-16 rounded-[24px] font-black text-xs uppercase tracking-widest transition-all mt-10 flex items-center justify-center gap-3 ${
+                                className={`w-full h-14 md:h-16 rounded-[20px] md:rounded-[24px] font-black text-[10px] md:text-xs uppercase tracking-widest transition-all mt-8 md:mt-10 flex items-center justify-center gap-3 ${
                                     isCurrent 
-                                    ? 'bg-dagang-green text-white hover:bg-dagang-green-light shadow-xl shadow-dagang-green/30' 
+                                    ? 'bg-[var(--primary)] text-white hover:opacity-90 shadow-xl shadow-[var(--primary)]/30' 
                                     : canAction 
-                                        ? 'bg-dagang-dark text-white hover:bg-black shadow-xl shadow-dagang-dark/20' 
-                                        : 'bg-dagang-gray/10 text-dagang-gray cursor-not-allowed'
+                                        ? 'bg-dagang-dark text-white hover:opacity-90 shadow-xl shadow-black/20' 
+                                        : 'bg-black/5 dark:bg-white/5 text-[var(--text-muted)] opacity-50 cursor-not-allowed'
                                 }`}
                             >
                                 {isCurrent ? 'Perpanjang Paket' : canAction ? 'Upgrade Sekarang' : 'Sudah Maksimal'}
@@ -149,12 +148,15 @@ export const PlanPricingView = () => {
                 })}
             </div>
 
-            <div className="bg-dagang-cream/50 rounded-[40px] p-8 md:p-12 border border-black/5 text-center max-w-4xl mx-auto mt-20">
-                <h3 className="text-2xl font-serif text-dagang-dark mb-4">Butuh bantuan memilih paket?</h3>
-                <p className="text-dagang-gray mb-8 max-w-xl mx-auto leading-relaxed">
+            <div className="bg-dagang-cream/10 dark:bg-white/5 rounded-[40px] p-8 md:p-12 border border-[var(--border)] text-center max-w-4xl mx-auto mt-20">
+                <h3 className="text-2xl font-serif text-[var(--text-main)] mb-4">Butuh bantuan memilih paket?</h3>
+                <p className="text-[var(--text-muted)] opacity-70 mb-8 max-w-xl mx-auto leading-relaxed">
                     Tim dukungan kami siap membantu Anda menemukan paket yang paling sesuai dengan kebutuhan finansial keluarga Anda.
                 </p>
-                <button className="h-14 px-10 bg-white border border-black/10 rounded-full font-bold hover:bg-dagang-cream transition-all shadow-sm">
+                <button 
+                    onClick={() => navigate(`/${encodeURIComponent(familyName)}/dashboard/support`)}
+                    className="h-14 px-10 bg-[var(--surface-card)] border border-[var(--border)] text-[var(--text-main)] rounded-full font-bold hover:bg-black/5 dark:hover:bg-white/5 transition-all shadow-sm cursor-pointer"
+                >
                     Hubungi Customer Service
                 </button>
             </div>

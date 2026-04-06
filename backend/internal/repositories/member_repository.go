@@ -9,8 +9,9 @@ import (
 
 type MemberWithUser struct {
 	models.FamilyMember
-	FullName string `json:"full_name"`
-	Email    string `json:"email"`
+	FullName   string `json:"full_name"`
+	Email      string `json:"email"`
+	IsVerified bool   `json:"is_verified"`
 }
 
 type MemberRepository interface {
@@ -18,6 +19,7 @@ type MemberRepository interface {
 	UpdateRole(memberID uuid.UUID, familyID uuid.UUID, role string) error
 	RemoveMember(memberID uuid.UUID, familyID uuid.UUID) error
 	CreateInvitation(invitation *models.FamilyInvitation) error
+	GetInvitations(familyID uuid.UUID) ([]models.FamilyInvitation, error)
 	DeleteInvitation(id uuid.UUID) error
 }
 
@@ -30,9 +32,9 @@ func NewMemberRepository() MemberRepository {
 func (r *memberRepository) GetMembers(familyID uuid.UUID) ([]MemberWithUser, error) {
 	var results []MemberWithUser
 	err := config.DB.Table("family_members").
-		Select("family_members.*, users.full_name, users.email").
+		Select("family_members.*, users.full_name, users.email, users.is_verified").
 		Joins("JOIN users ON users.id = family_members.user_id").
-		Where("family_members.family_id = ? AND users.is_verified = ?", familyID, true).
+		Where("family_members.family_id = ?", familyID).
 		Scan(&results).Error
 	return results, err
 }
@@ -49,6 +51,12 @@ func (r *memberRepository) RemoveMember(memberID uuid.UUID, familyID uuid.UUID) 
 
 func (r *memberRepository) CreateInvitation(invitation *models.FamilyInvitation) error {
 	return config.DB.Create(invitation).Error
+}
+
+func (r *memberRepository) GetInvitations(familyID uuid.UUID) ([]models.FamilyInvitation, error) {
+	var results []models.FamilyInvitation
+	err := config.DB.Where("family_id = ?", familyID).Order("created_at desc").Find(&results).Error
+	return results, err
 }
 
 func (r *memberRepository) DeleteInvitation(id uuid.UUID) error {

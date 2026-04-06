@@ -33,19 +33,21 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
                 
                 // Map the backend plans to the internal PricingPlan interface
                 const mappedPlans = plansData.map((p: any) => ({
-                    id: p.name, // Using name as ID for selection consistency
+                    id: p.id, // Using actual UUID from database
                     name: p.name.toUpperCase(),
                     price: `${(p.price / 1000)}rb`,
-                    period: 'tahun',
-                    description: `Nikmati semua fitur premium gratis selama ${settingsData.trial_duration_days || '7'} hari pertama.`,
-                    features: typeof p.features === 'string' ? p.features.split(';') : (p.features || [
-                        'Anggota keluarga tak terbatas',
-                        'Semua fitur premium terbuka',
-                        'Analitik & laporan mendalam',
-                        'Lansiran anggaran real-time',
-                        'Sinkronisasi antar perangkat'
-                    ]),
-                    isPopular: true,
+                    period: `${p.duration_days} hari`,
+                    description: p.description || `Nikmati semua fitur premium gratis selama ${settingsData.trial_duration_days || '7'} hari pertama.`,
+                    features: p.features && typeof p.features === 'string' && p.features.trim() !== "" 
+                        ? p.features.split(';').map((f: string) => f.trim()).filter((f: string) => f !== "")
+                        : [
+                            'Anggota keluarga tak terbatas',
+                            'Semua fitur premium terbuka',
+                            'Analitik & laporan mendalam',
+                            'Lansiran anggaran real-time',
+                            'Sinkronisasi antar perangkat'
+                        ],
+                    isPopular: p.name.toLowerCase() === 'premium', // Only "Premium" is popular by default
                     color: 'bg-dagang-accent'
                 }));
 

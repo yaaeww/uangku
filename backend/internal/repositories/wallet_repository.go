@@ -10,6 +10,7 @@ import (
 type WalletRepository interface {
 	Create(wallet *models.Wallet) error
 	GetByFamilyID(familyID uuid.UUID) ([]models.Wallet, error)
+	GetByUserID(familyID, userID uuid.UUID) ([]models.Wallet, error)
 	GetByID(id uuid.UUID) (*models.Wallet, error)
 	Update(wallet *models.Wallet) error
 	Delete(id uuid.UUID) error
@@ -27,7 +28,13 @@ func (r *walletRepository) Create(wallet *models.Wallet) error {
 
 func (r *walletRepository) GetByFamilyID(familyID uuid.UUID) ([]models.Wallet, error) {
 	var wallets []models.Wallet
-	err := config.DB.Where("family_id = ?", familyID).Find(&wallets).Error
+	err := config.DB.Preload("User").Where("family_id = ?", familyID).Find(&wallets).Error
+	return wallets, err
+}
+
+func (r *walletRepository) GetByUserID(familyID, userID uuid.UUID) ([]models.Wallet, error) {
+	var wallets []models.Wallet
+	err := config.DB.Preload("User").Where("family_id = ? AND user_id = ?", familyID, userID).Find(&wallets).Error
 	return wallets, err
 }
 

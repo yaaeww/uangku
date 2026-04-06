@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
     Plus,
     TrendingUp,
     Info,
+    Bell,
+    Check,
     Edit3,
     Trash2,
     X,
@@ -13,163 +15,63 @@ import {
     ShoppingCart,
     Coins,
     ShieldCheck,
-    AlertCircle
+    AlertCircle,
+    Settings2,
+    Eraser,
+    Calculator
 } from 'lucide-react';
 import { FinanceController } from '../../controllers/FinanceController';
+import { BudgetController } from '../../controllers/BudgetController';
+import { useModal } from '../../providers/ModalProvider';
+import { formatRupiah, parseRupiah } from '../../utils/formatters';
 
-export const BudgetView = () => {
-    const context = useOutletContext<any>() || {};
-    const {
-        wallets = [],
-        budgetCategories = [],
-        summary = {},
-        handleCreateBudgetCategory,
-        handleUpdateBudgetCategory,
-        handleDeleteBudgetCategory,
-        handleCreateSaving,
-        handleUpdateSaving,
-        handleDeleteSaving,
-        handleAllocateToSaving,
-        refreshDashboard
-    } = context;
-
-    const initialBudget = summary?.family?.monthly_budget || 10000000;
-    const [totalBudget, setTotalBudget] = useState<number>(initialBudget);
-    const [isEditingBudget, setIsEditingBudget] = useState(false);
-    const [tempBudget, setTempBudget] = useState<number>(initialBudget);
-
-    // Sync state when summary updates (e.g. after refresh)
-    React.useEffect(() => {
-        if (summary?.family?.monthly_budget) {
-            setTotalBudget(summary.family.monthly_budget);
-            setTempBudget(summary.family.monthly_budget);
-        }
-    }, [summary?.family?.monthly_budget]);
-
-    const [isEditingPercentages, setIsEditingPercentages] = useState(false);
-    const [tempPercentages, setTempPercentages] = useState<any>({});
-    const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-    const [editingCategory, setEditingCategory] = useState<any>(null);
-    const [catName, setCatName] = useState('');
-    const [catPercent, setCatPercent] = useState(0);
-    const [catIcon, setCatIcon] = useState('ShoppingCart');
-    const [catColor, setCatColor] = useState('text-blue-500');
-    const [catBg, setCatBg] = useState('bg-blue-50');
-    const [catDesc, setCatDesc] = useState('');
-
-    const totalPercentage = budgetCategories.reduce((acc: number, cat: any) => acc + cat.percentage, 0);
-    const isAllocationComplete = totalPercentage === 100;
-
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isAllocateOpen, setIsAllocateOpen] = useState(false);
-    const [selectedGoal, setSelectedGoal] = useState<any>(null);
-    const [selectedCategory, setSelectedCategory] = useState<string>('needs');
-    const [editSaving, setEditSaving] = useState<any>(null);
-
-    // Form states
-    const [name, setName] = useState('');
-    const [target, setTarget] = useState<number>(0);
-    const [initial, setInitial] = useState<number>(0);
-    const [sourceWalletId, setSourceWalletId] = useState('');
-    const [allocateAmount, setAllocateAmount] = useState<number>(0);
-    const [allocateWalletId, setAllocateWalletId] = useState('');
-
-    // New fields
-    const [emoji, setEmoji] = useState('💰');
-    const [dueDate, setDueDate] = useState<number>(0);
-
-    const openCreateModal = (catId?: string) => {
-        setEditSaving(null);
-        setName('');
-        setTarget(0);
-        setInitial(0);
-        setSelectedCategory(catId || 'needs');
-        setEmoji('💰');
-        setDueDate(0);
-        setIsModalOpen(true);
-    };
-
-    const openEditModal = (saving: any) => {
-        setEditSaving(saving);
-        setName(saving.name);
-        setTarget(saving.targetAmount);
-        setInitial(saving.currentBalance);
-        setSelectedCategory(saving.category || 'savings');
-        setEmoji(saving.emoji || '💰');
-        setDueDate(saving.dueDate || 0);
-        setIsModalOpen(true);
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (editSaving) {
-            handleUpdateSaving({
-                ...editSaving,
-                name,
-                targetAmount: target,
-                category: selectedCategory,
-                emoji,
-                dueDate: dueDate
-            });
-        } else {
-            handleCreateSaving(name, target, initial, sourceWalletId, selectedCategory, emoji, dueDate);
-        }
-        setIsModalOpen(false);
-    };
-
-    const handleAllocateSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (selectedGoal && allocateWalletId && allocateAmount > 0) {
-            handleAllocateToSaving(allocateWalletId, selectedGoal.id, allocateAmount);
-            setIsAllocateOpen(false);
-            setAllocateAmount(0);
-        }
-    };
-
-    const confirmDeleteCategory = async (id: string) => {
-        const cat = budgetCategories.find((c: any) => c.id === id);
-        const itemCount = cat?.items?.length || 0;
-        const message = itemCount > 0 
-            ? `Hapus kategori "${cat.name}"? Ada ${itemCount} item di dalamnya yang juga akan terhapus permanen.`
-            : `Hapus kategori "${cat.name}"?`;
-
-        if (window.confirm(message)) {
-            try {
-                await handleDeleteBudgetCategory(id);
-            } catch (err) {
-                console.error(`[ERROR] Delete failed for ID: ${id}`, err);
-            }
-        }
-    };
-
-    const confirmDeleteSaving = (id: string) => {
-        if (window.confirm('Yakin kamu akan menghapus item budget ini?')) {
-            handleDeleteSaving(id);
-        }
-    };
-
-const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDeleteSaving, setSelectedGoal, setIsAllocateOpen, totalBudget, openEditCategoryModal }: any) => {
+const CategoryRow = ({
+    cat,
+    totalBudget,
+    currentUserId,
+    activeMemberId,
+    familyRole,
+    context,
+    openCreateModal,
+    openEditModal,
+    handleDeleteSaving,
+    setSelectedGoal,
+    setIsAllocateOpen,
+    openEditCategoryModal,
+    handleClearCategoryItems,
+    handleDeleteBudgetCategory,
+    canManageBudget,
+    canInputBudget,
+    canDeleteBudget,
+    isAdmin
+}: any) => {
     const [showInfo, setShowInfo] = useState(false);
-    const catSavings = [...(cat.items || [])].sort((a, b) => a.name.localeCompare(b.name));
+
+    // Filter items to show only those belonging to the active member's tab
+    const catSavings = (cat.items || []).filter((s: any) => (s.userId || s.user_id) === activeMemberId);
+
     const allocationPercent = cat.percentage;
     const categoryBudget = (totalBudget * allocationPercent) / 100;
-    const catTransactions = (context.transactions || []).filter((tx: any) =>
-        tx.type === 'expense' && catSavings.some((s: any) => s.id === tx.savingId)
-    );
-    const totalTarget = catSavings.reduce((acc: number, s: any) => acc + s.targetAmount, 0);
-    const totalUsed = catTransactions.reduce((acc: number, tx: any) => acc + tx.amount, 0);
+
+    // Calculate total target and total used based on monthly transactions
+    const totalTarget = catSavings.reduce((acc: number, s: any) => acc + (s.targetAmount || s.target_amount || 0), 0);
+    const totalUsed = catSavings.reduce((acc: number, s: any) => {
+        const sSpent = (context.transactions || [])
+            .filter((tx: any) => (tx.type === 'expense' || tx.type === 'saving' || tx.type === 'goal_allocation') && (tx.savingId === s.id || tx.saving_id === s.id))
+            .reduce((tAcc: number, tx: any) => tAcc + tx.amount, 0);
+        return acc + sSpent;
+    }, 0);
 
     const progress = categoryBudget > 0 ? (totalTarget / categoryBudget) * 100 : 0;
     const usedProgress = categoryBudget > 0 ? (totalUsed / categoryBudget) * 100 : 0;
 
-    // Map string icon name to Lucide component
-    const IconComponent = (cat.icon === 'ShoppingCart' ? ShoppingCart : 
-                          cat.icon === 'Coffee' ? Coffee : 
-                          cat.icon === 'Coins' ? Coins : 
-                          cat.icon === 'ShieldCheck' ? ShieldCheck : Wallet);
+    const IconComponent = (cat.icon === 'ShoppingCart' ? ShoppingCart :
+        cat.icon === 'Coffee' ? Coffee :
+            cat.icon === 'Coins' ? Coins :
+                cat.icon === 'ShieldCheck' ? ShieldCheck : Wallet);
 
     return (
-        <div className="space-y-6 bg-white/50 backdrop-blur-sm p-4 sm:p-8 rounded-[32px] sm:rounded-[40px] border border-black/5 shadow-sm transition-all hover:shadow-xl hover:shadow-black/[0.02]">
+        <div className="space-y-6 bg-[var(--surface-card)] backdrop-blur-sm p-4 sm:p-8 rounded-[32px] sm:rounded-[40px] border border-[var(--border)] shadow-sm transition-all hover:shadow-xl hover:shadow-black/[0.02]">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div className="flex items-center gap-4 sm:gap-5">
                     <div className={`p-3 sm:p-4 ${cat.bgColor} ${cat.color} rounded-2xl shadow-sm relative group shrink-0`}>
@@ -177,65 +79,94 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                     </div>
                     <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
-                            <h3 className="font-serif text-xl sm:text-2xl text-dagang-dark truncate">
+                            <h3 className="font-serif text-xl sm:text-2xl text-[var(--text-main)] truncate">
                                 {cat.name}
                             </h3>
                             <span className={`text-[10px] sm:text-[12px] px-2 sm:px-3 py-0.5 sm:py-1 rounded-full ${cat.bgColor} ${cat.color} font-black`}>
                                 {allocationPercent}%
                             </span>
+                            <span className={`text-[9px] sm:text-[10px] px-2 py-0.5 rounded-lg border font-black uppercase tracking-wider ${cat.type === 'keinginan' ? 'bg-pink-50 text-pink-500 border-pink-100' : 'bg-emerald-50 text-emerald-500 border-emerald-100'}`}>
+                                {cat.type || 'kebutuhan'}
+                            </span>
                             <button
                                 onClick={() => setShowInfo(!showInfo)}
-                                className={`p-1.5 rounded-full transition-all ${showInfo ? 'bg-dagang-dark text-white' : 'text-dagang-gray/40 hover:text-dagang-dark hover:bg-black/5'}`}
+                                className={`p-1.5 rounded-full transition-all ${showInfo ? 'bg-[var(--sidebar-bg)] text-[var(--sidebar-text)]' : 'text-[var(--text-muted)] opacity-60 hover:text-[var(--text-main)] hover:bg-black/5 dark:hover:bg-white/5'}`}
                             >
                                 <Info className="w-4 h-4" />
                             </button>
                         </div>
                         {showInfo ? (
-                            <div className="text-[11px] sm:text-[12px] text-dagang-dark font-bold bg-dagang-cream/50 px-3 py-1.5 rounded-lg animate-in fade-in slide-in-from-left-2 duration-300 border border-black/5">
+                            <div className="text-[11px] sm:text-[12px] text-[var(--text-main)] font-bold bg-black/5 dark:bg-white/5 px-3 py-1.5 rounded-lg animate-in fade-in slide-in-from-left-2 duration-300 border border-[var(--border)]">
                                 {cat.description}
                             </div>
                         ) : (
-                            <p className="text-[11px] sm:text-[13px] text-dagang-gray/60 font-medium truncate">Klik ikon "i" untuk penjelasan</p>
+                            <p className="text-[11px] sm:text-[13px] text-[var(--text-muted)] opacity-80 font-medium truncate">Klik ikon "i" untuk penjelasan</p>
                         )}
                     </div>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between sm:justify-end gap-4 sm:gap-6">
-                    {totalTarget > categoryBudget && (
-                        <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-50 border border-red-100 rounded-xl text-red-600 animate-pulse">
+                    {Math.abs(totalTarget - categoryBudget) > 1 && (
+                        <div className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 border rounded-xl animate-pulse ${totalTarget > categoryBudget ? 'bg-red-50 border-red-100 text-red-600' : 'bg-orange-50 border-orange-100 text-orange-600'}`}>
                             <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                             <div className="text-left">
-                                <div className="text-[8px] sm:text-[10px] font-black uppercase tracking-tighter">⚠️ Alokasi Lebih!</div>
-                                <div className="text-[10px] sm:text-[12px] font-bold">Rp {(totalTarget - categoryBudget).toLocaleString()}</div>
+                                <div className="text-[8px] sm:text-[10px] font-black uppercase tracking-tighter">
+                                    {totalTarget > categoryBudget ? '⚠️ Alokasi Lebih!' : 'ℹ️ Belum Terisi'}
+                                </div>
+                                <div className="text-[10px] sm:text-[12px] font-bold">
+                                    {totalTarget > categoryBudget ? `Lebih Rp ${(totalTarget - categoryBudget).toLocaleString('id-ID')}` : `Sisa Rp ${(categoryBudget - totalTarget).toLocaleString('id-ID')}`}
+                                </div>
                             </div>
                         </div>
                     )}
-                    <div className="text-right flex-1 sm:flex-none">
-                        <div className="text-[9px] sm:text-[11px] font-black text-dagang-gray/30 uppercase tracking-widest mb-0.5 sm:mb-1">Budget Baris</div>
-                        <div className="text-lg sm:text-xl font-serif text-dagang-dark font-bold">Rp {categoryBudget.toLocaleString()}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => openEditCategoryModal(cat)}
-                            className="w-9 h-9 sm:w-10 sm:h-10 bg-white border border-black/5 text-dagang-gray hover:text-dagang-green rounded-xl flex items-center justify-center hover:bg-dagang-green/5 transition-all shadow-sm"
-                            title="Edit Kategori"
-                        >
-                            <Edit3 className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </button>
-                        <button
-                            onClick={() => confirmDeleteCategory(cat.id)}
-                            className="w-9 h-9 sm:w-10 sm:h-10 bg-white border border-black/5 text-dagang-gray hover:text-red-500 rounded-xl flex items-center justify-center hover:bg-red-50 transition-all shadow-sm"
-                            title="Hapus Kategori"
-                        >
-                            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </button>
-                        <button
-                            onClick={() => openCreateModal(cat.id)}
-                            className="w-10 h-10 sm:w-12 sm:h-12 bg-dagang-dark text-white rounded-2xl flex items-center justify-center hover:bg-dagang-dark/90 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/10"
-                            title="Tambah Item"
-                        >
-                            <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
-                        </button>
+                    <div className="flex items-center gap-4">
+                        <div className="text-right flex-1 sm:flex-none">
+                            <div className="text-[9px] sm:text-[11px] font-black text-[var(--text-muted)] opacity-50 uppercase tracking-widest mb-0.5 sm:mb-1">Budget Baris</div>
+                            <div className="flex items-center gap-2 justify-end">
+                                <div className="text-lg sm:text-xl font-serif text-[var(--text-main)] font-bold">Rp {categoryBudget.toLocaleString('id-ID')}</div>
+                            </div>
+                        </div>
+
+                        {(canManageBudget && (activeMemberId === currentUserId || isAdmin)) && (
+                            <div className="flex flex-row sm:flex-row gap-2 bg-black/5 dark:bg-white/5 p-1.5 rounded-2xl border border-[var(--border)]">
+                                <button
+                                    onClick={() => openEditCategoryModal(cat)}
+                                    className="p-2 sm:p-2.5 bg-[var(--surface-card)] border border-[var(--border)] text-[var(--text-muted)] rounded-xl flex items-center justify-center hover:bg-dagang-blue hover:text-white transition-all group relative shadow-sm"
+                                    title="Edit Kategori"
+                                >
+                                    <Settings2 className="w-4 h-4" />
+                                    <span className="absolute bottom-full mb-3 right-1/2 translate-x-1/2 bg-black text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-bold uppercase tracking-widest shadow-xl pointer-events-none">Edit Kategori</span>
+                                </button>
+                                <button
+                                    onClick={() => handleClearCategoryItems(cat.id)}
+                                    className="p-2 sm:p-2.5 bg-[var(--surface-card)] border border-[var(--border)] text-orange-500 rounded-xl flex items-center justify-center hover:bg-orange-500 hover:text-white transition-all group relative shadow-sm"
+                                    title="Hapus Semua Subkategori"
+                                >
+                                    <Eraser className="w-4 h-4" />
+                                    <span className="absolute bottom-full mb-3 right-1/2 translate-x-1/2 bg-black text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-bold uppercase tracking-widest shadow-xl pointer-events-none">Hapus Semua Subkategori</span>
+                                </button>
+                                {canDeleteBudget && (
+                                    <button
+                                        onClick={() => handleDeleteBudgetCategory(cat.id)}
+                                        className="p-2 sm:p-2.5 bg-[var(--surface-card)] border border-[var(--border)] text-red-500 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all group relative shadow-sm"
+                                        title="Hapus Kategori Permanen"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                        <span className="absolute bottom-full mb-3 right-1/2 translate-x-1/2 bg-black text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-bold uppercase tracking-widest shadow-xl pointer-events-none">Hapus Kategori Permanen</span>
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {(canInputBudget && (activeMemberId === currentUserId || isAdmin)) && (
+                            <button
+                                onClick={() => openCreateModal(cat.id)}
+                                className="w-10 h-10 sm:w-14 sm:h-14 bg-[var(--text-main)] text-[var(--background)] rounded-2xl flex items-center justify-center hover:opacity-90 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/20"
+                                title="Tambah Item"
+                            >
+                                <Plus className="w-6 h-6 sm:w-7 sm:h-7" />
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -251,74 +182,100 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                         style={{ width: `${Math.min(usedProgress, 100)}%` }}
                     />
                 </div>
-                <div className="flex justify-between items-center text-[11px] font-black text-dagang-gray/40 uppercase tracking-[0.2em] px-1">
+                <div className="flex justify-between items-center text-[11px] font-black text-[var(--text-muted)] opacity-60 uppercase tracking-[0.2em] px-1">
                     <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${cat.color.replace('text', 'bg')}`} />
-                        Terpakai: Rp {totalUsed.toLocaleString()}
+                        Terpakai: Rp {totalUsed.toLocaleString('id-ID')}
                     </div>
-                    <span>Sisa: Rp {(categoryBudget - totalUsed).toLocaleString()}</span>
+                    <span>Sisa: Rp {(categoryBudget - totalUsed).toLocaleString('id-ID')}</span>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {catSavings.map((s: any) => {
                     const sSpent = (context.transactions || [])
-                        .filter((tx: any) => tx.type === 'expense' && tx.savingId === s.id)
+                        .filter((tx: any) => (tx.type === 'expense' || tx.type === 'saving' || tx.type === 'goal_allocation') && (tx.savingId === s.id || tx.saving_id === s.id))
                         .reduce((acc: number, tx: any) => acc + tx.amount, 0);
-                    
-                    const sProgress = s.targetAmount > 0 ? (s.currentBalance / s.targetAmount) * 100 : 0;
-                    const sSpentProgress = s.targetAmount > 0 ? (sSpent / s.targetAmount) * 100 : 0;
 
-                return (
-                        <div key={s.id} className="bg-white border border-black/5 rounded-3xl p-4 sm:p-5 hover:shadow-xl hover:shadow-black/[0.03] transition-all group relative overflow-hidden">
+                    const targetVal = s.targetAmount || s.target_amount || 0;
+                    const sProgress = targetVal > 0 ? (s.currentBalance / targetVal) * 100 : 0;
+                    const sSpentProgress = targetVal > 0 ? (sSpent / targetVal) * 100 : 0;
+
+                    const isCreator = (s.userId || s.user_id) === currentUserId;
+                    const canEditItem = (canInputBudget && (isCreator || isAdmin));
+                    const canDeleteItem = (canDeleteBudget && (isCreator || isAdmin));
+
+                    return (
+                        <div key={s.id} className="bg-[var(--surface-card)] border border-[var(--border)] rounded-3xl p-4 sm:p-5 hover:shadow-xl hover:shadow-black/[0.03] transition-all group relative overflow-hidden">
                             <div className="flex items-center gap-2 sm:gap-3 mb-4">
-                                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-dagang-cream/50 rounded-xl flex items-center justify-center text-lg sm:text-xl shadow-inner group-hover:scale-110 transition-transform">
+                                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-black/5 dark:bg-white/5 rounded-xl flex items-center justify-center text-lg sm:text-xl shadow-inner group-hover:scale-110 transition-transform">
                                     {s.emoji || '💰'}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-bold text-[13px] sm:text-[14px] text-dagang-dark truncate">{s.name}</h4>
-                                    <div className="text-[9px] sm:text-[10px] text-dagang-gray/40 font-black uppercase tracking-wider flex items-center gap-1">
-                                        <Info className="w-2.5 h-2.5" /> Tgl {s.dueDate || '-'}
+                                    <h4 className="font-bold text-[13px] sm:text-[14px] text-[var(--text-main)] truncate">{s.name}</h4>
+                                    <div className="text-[9px] sm:text-[10px] text-[var(--text-muted)] opacity-60 font-black uppercase tracking-wider flex items-center gap-2 flex-wrap">
+                                        {s.user?.full_name && (
+                                            <span className="text-[var(--primary)] font-black">Oleh: {s.user.full_name}</span>
+                                        )}
+                                        {s.target_user?.full_name && (
+                                            <span className="px-1.5 py-0.5 bg-dagang-blue/10 text-dagang-blue rounded-md border border-dagang-blue/20">
+                                                Untuk: {s.target_user.full_name}
+                                            </span>
+                                        )}
+                                        {!s.user?.full_name && !s.target_user?.full_name && (
+                                            <>
+                                                <AlertCircle className="w-2.5 h-2.5" /> Tgl {s.dueDate || s.due_date || '-'}
+                                            </>
+                                        )}
                                     </div>
                                 </div>
-                                <div className="flex gap-1 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => openEditModal(s)} className="p-1.5 text-dagang-gray hover:text-dagang-green hover:bg-dagang-green/5 rounded-lg">
-                                        <Edit3 className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button onClick={() => handleDeleteSaving(s.id)} className="p-1.5 text-dagang-gray hover:text-red-500 hover:bg-red-50 rounded-lg">
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
+                                <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                    {canEditItem && (
+                                        <button 
+                                            onClick={() => openEditModal(s)} 
+                                            className="p-2 text-[var(--text-muted)] hover:text-dagang-blue hover:bg-dagang-blue/10 rounded-xl transition-all shadow-sm bg-[var(--surface-card)] border border-[var(--border)]"
+                                            title="Edit Item"
+                                        >
+                                            <Edit3 className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
+                                    {canDeleteItem && (
+                                        <button 
+                                            onClick={() => handleDeleteSaving(s.id)} 
+                                            className="p-2 text-red-400 hover:text-white hover:bg-red-500 rounded-xl transition-all shadow-sm bg-[var(--surface-card)] border border-[var(--border)]"
+                                            title="Hapus Item"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex justify-between items-end mb-3">
                                 <div className="text-left flex-1 min-w-0">
-                                    <div className="text-[8px] sm:text-[9px] font-black text-dagang-gray/30 uppercase tracking-widest truncate">Saldo (Limit)</div>
-                                    <div className="text-[12px] sm:text-[13px] font-serif font-bold truncate">Rp {s.targetAmount.toLocaleString()}</div>
+                                    <div className="text-[8px] sm:text-[9px] font-black text-[var(--text-muted)] opacity-50 uppercase tracking-widest truncate">Saldo (Limit)</div>
+                                    <div className="text-[12px] sm:text-[13px] font-serif font-bold text-[var(--text-main)] truncate">Rp {targetVal.toLocaleString('id-ID')}</div>
                                 </div>
                                 <div className="text-right flex-1 min-w-0">
                                     <div className="text-[8px] sm:text-[9px] font-black text-red-400/50 uppercase tracking-widest truncate">Terpakai</div>
-                                    <div className="text-[11px] font-serif font-bold text-red-500 truncate">Rp {sSpent.toLocaleString()}</div>
+                                    <div className="text-[11px] font-serif font-bold text-red-500 truncate">Rp {sSpent.toLocaleString('id-ID')}</div>
                                 </div>
                             </div>
-                            <div className="h-2 bg-black/5 rounded-full overflow-hidden mb-4 relative">
+                            <div className="h-2 bg-black/5 rounded-full overflow-hidden mb-2 relative">
                                 <div className={`h-full ${cat.color.replace('text', 'bg')} opacity-20 absolute inset-0 transition-all duration-1000`} style={{ width: `${Math.min(sProgress, 100)}%` }} />
                                 <div className={`h-full bg-red-500 transition-all duration-1000 absolute inset-0`} style={{ width: `${Math.min(sSpentProgress, 100)}%` }} />
                             </div>
-                            <button
-                                onClick={() => {
-                                    setSelectedGoal(s);
-                                    setIsAllocateOpen(true);
-                                }}
-                                className={`w-full py-2.5 ${cat.bg} ${cat.color} opacity-80 hover:opacity-100 text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest`}
-                            >
-                                <Plus className="w-3.5 h-3.5" /> Isi Saldo
-                            </button>
+                            {sSpent > targetVal && (
+                                <div className="mb-4 flex items-start gap-1.5 text-[9px] font-black text-red-500 uppercase tracking-tighter animate-pulse">
+                                    <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                                    <span>pengeluaran anda terlalu banyak di "{s.name}" Kategori Pengeluaran</span>
+                                </div>
+                            )}
                         </div>
                     );
                 })}
                 {catSavings.length === 0 && (
-                    <div className="col-span-full py-6 border-2 border-dashed border-black/5 rounded-3xl flex flex-col items-center justify-center text-dagang-gray/30 hover:bg-black/[0.01] transition-colors cursor-pointer" onClick={() => openCreateModal(cat.id)}>
-                        <Plus className="w-5 h-5 mb-2 opacity-50" />
+                    <div className="col-span-full py-6 border-2 border-dashed border-[var(--border)] rounded-3xl flex flex-col items-center justify-center text-[var(--text-muted)] opacity-50 hover:bg-black/[0.01] transition-colors cursor-pointer" onClick={() => openCreateModal(cat.id)}>
+                        <Plus className="w-5 h-5 mb-2 opacity-70" />
                         <p className="text-[10px] font-black uppercase tracking-[0.2em]">Tambah Item Baru</p>
                     </div>
                 )}
@@ -327,243 +284,542 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
     );
 };
 
+export const BudgetView = () => {
+    const context = useOutletContext<any>() || {};
+    const { showAlert, showConfirm } = useModal();
+    const {
+        selectedMonth,
+        setSelectedMonth,
+        selectedYear,
+        setSelectedYear,
+        wallets = [],
+        budgetCategories = [],
+        summary = {},
+        familyRole,
+        currentUserId,
+        handleCreateBudgetCategory,
+        handleUpdateBudgetCategory,
+        handleDeleteBudgetCategory,
+        handleClearAllCategories,
+        handleCreateSaving,
+        handleUpdateSaving,
+        handleDeleteSaving,
+        handleAllocateToSaving,
+        refreshDashboard,
+        familyMembers = []
+    } = context;
+
+    const [totalBudget, setTotalBudget] = useState<number>(0);
+    const [isEditingBudget, setIsEditingBudget] = useState(false);
+    const [tempBudget, setTempBudget] = useState<number>(0);
+
+    const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+    const [editingCategory, setEditingCategory] = useState<any>(null);
+    const [catName, setCatName] = useState('');
+    const [catPercent, setCatPercent] = useState(0);
+    const [catIcon, setCatIcon] = useState('ShoppingCart');
+    const [catColor, setCatColor] = useState('text-blue-500');
+    const [catBg, setCatBg] = useState('bg-blue-50');
+    const [catDesc, setCatDesc] = useState('');
+    const [catType, setCatType] = useState<'kebutuhan' | 'keinginan'>('kebutuhan');
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isAllocateOpen, setIsAllocateOpen] = useState(false);
+    const [selectedGoal, setSelectedGoal] = useState<any>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string>('');
+    const [editSaving, setEditSaving] = useState<any>(null);
+
+    const [name, setName] = useState('');
+    const [target, setTarget] = useState<number>(0);
+    const [emoji, setEmoji] = useState('💰');
+    const [dueDate, setDueDate] = useState<number>(0);
+    const [activeMemberId, setActiveMemberId] = useState<string>(currentUserId);
+
+    const myWallets = wallets.filter((w: any) => w.user_id === currentUserId);
+    const totalCategoryPercent = budgetCategories.reduce((acc: number, cat: any) => acc + (cat.percentage || 0), 0);
+    const isOwner = !!currentUserId && !!activeMemberId && String(activeMemberId) === String(currentUserId);
+    const canManageBudget = isOwner;
+    const canInputBudget = isOwner;
+    const canDeleteBudget = isOwner;
+
+    // DEBUG: Only for troubleshooting the visibility bug
+    useEffect(() => {
+        console.log('[BudgetView] activeMemberId:', activeMemberId);
+        console.log('[BudgetView] currentUserId:', currentUserId);
+        console.log('[BudgetView] isOwner:', isOwner);
+    }, [activeMemberId, currentUserId]);
+
+    const activeMember = familyMembers.find((m: any) => m.userId === activeMemberId) || {};
+    const isAdmin = familyRole === 'head_of_family' || familyRole === 'treasurer';
+
+    // Filter members to hide admins (KK/BDH) from the member list, but keep yourself in tabs
+    const filteredMembers = familyMembers.filter((m: any) => 
+        m.userId === currentUserId || (m.role !== 'head_of_family' && m.role !== 'treasurer')
+    );
+
+    // Refetch categories when activeMemberId changes to support per-user budgets
+    useEffect(() => {
+        setIsEditingBudget(false);
+        if (typeof refreshDashboard === 'function') {
+            refreshDashboard('budget', activeMemberId);
+        }
+    }, [activeMemberId, selectedMonth, selectedYear]);
+
+    useEffect(() => {
+        const lowerActiveId = String(activeMemberId).toLowerCase();
+        if (summary?.memberBudgets && summary.memberBudgets[lowerActiveId] !== undefined) {
+            setTotalBudget(summary.memberBudgets[lowerActiveId]);
+        } else if (summary?.memberBudgets && summary.memberBudgets[activeMemberId] !== undefined) {
+            setTotalBudget(summary.memberBudgets[activeMemberId]);
+        } else if (activeMemberId === currentUserId) {
+            setTotalBudget(summary?.userBudget || 0);
+        } else if (activeMember) {
+            setTotalBudget(activeMember.monthly_budget || 0);
+        }
+    }, [activeMemberId, summary?.userBudget, summary?.memberBudgets, activeMember]);
+
+    const handleUpdateActiveMemberBudget = async () => {
+        try {
+            const targetId = activeMemberId === currentUserId ? undefined : activeMemberId;
+            await FinanceController.updateMemberBudget(tempBudget, targetId, selectedMonth, selectedYear);
+            showAlert('Berhasil', 'Budget bulanan berhasil diperbarui');
+            setIsEditingBudget(false);
+            refreshDashboard();
+        } catch (err: any) {
+            showAlert('Gagal', err.response?.data?.error || 'Gagal memperbarui budget');
+        }
+    };
+
+    const handleApplyDefault = async () => {
+        const msg = activeMemberId === currentUserId
+            ? 'Sistem akan membuatkan item budget dasar untuk Anda (Makan, Listrik, dll). Lanjutkan?'
+            : `Sistem akan membuatkan item budget dasar untuk ${activeMember.fullName || 'anggota ini'}. Lanjutkan?`;
+
+        showConfirm('Gunakan Alokasi Default?', msg, async () => {
+            try {
+                const targetId = activeMemberId === currentUserId ? undefined : activeMemberId;
+                await FinanceController.applyDefaultAllocation(targetId, selectedMonth, selectedYear);
+                showAlert('Berhasil', 'Alokasi default diterapkan');
+                refreshDashboard();
+            } catch (err: any) {
+                showAlert('Gagal', err.response?.data?.error || 'Gagal menerapkan alokasi');
+            }
+        });
+    };
+
+    const handleClearCategoryItems = async (catId: string) => {
+        showConfirm('Hapus Semua?', 'Yakin ingin menghapus semua sub-kategori ini? Jika dihapus, SEMUA data transaksi yang bersangkutan juga akan terhapus permanen.', async () => {
+            try {
+                await BudgetController.clearCategoryItems(catId, isAdmin ? activeMemberId : undefined);
+                showAlert('Berhasil', 'Semua sub-kategori berhasil dihapus');
+                refreshDashboard();
+            } catch (err: any) {
+                showAlert('Gagal', err.response?.data?.error || 'Gagal menghapus data');
+            }
+        }, 'danger');
+    };
+
+    const [allocateAmount, setAllocateAmount] = useState<number>(0);
+    const [allocateWalletId, setAllocateWalletId] = useState('');
+
+    const grandTotalAllocated = budgetCategories.reduce((acc: number, cat: any) => {
+        const catItems = (cat.items || []).filter((s: any) => (s.userId || s.user_id) === activeMemberId);
+        return acc + catItems.reduce((iAcc: number, item: any) => iAcc + (item.targetAmount || item.target_amount || 0), 0);
+    }, 0);
+
+    const openCreateModal = (catId?: string) => {
+        setEditSaving(null);
+        setName('');
+        setTarget(0);
+        setSelectedCategory(catId || budgetCategories[0]?.id || '');
+        setEmoji('💰');
+        setDueDate(0);
+        setIsModalOpen(true);
+    };
+
+    const openEditModal = (saving: any) => {
+        setEditSaving(saving);
+        setName(saving.name);
+        setTarget(saving.targetAmount || saving.target_amount);
+        setSelectedCategory(saving.category || 'savings');
+        setEmoji(saving.emoji || '💰');
+        setDueDate(saving.dueDate || saving.due_date || 0);
+        setIsModalOpen(true);
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (editSaving) {
+            handleUpdateSaving({
+                ...editSaving,
+                name,
+                targetAmount: target,
+                category: selectedCategory,
+                emoji,
+                dueDate: dueDate
+            });
+        } else {
+            handleCreateSaving(name, target, 0, "", selectedCategory, emoji, dueDate, activeMemberId);
+        }
+        setIsModalOpen(false);
+    };
+
+    const handleAllocateSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (selectedGoal && allocateWalletId && allocateAmount > 0) {
+            handleAllocateToSaving(allocateWalletId, selectedGoal.id, allocateAmount);
+            setIsAllocateOpen(false);
+            setAllocateAmount(0);
+        }
+    };
+
+    const confirmDeleteSaving = (id: string) => {
+        showConfirm('Hapus Item', 'Yakin ingin menghapus item ini? Jika dihapus, SEMUA data transaksi yang bersangkutan juga akan terhapus permanen.', () => {
+            handleDeleteSaving(id);
+        }, 'danger');
+    };
+
+    const confirmDeleteCategory = (id: string) => {
+        showConfirm(
+            'Hapus Kategori PERMANEN', 
+            'AWAS: Ini akan menghapus kategori ini dan SEMUA item di dalamnya untuk SEMUA BULAN selamanya. Lanjutkan?', 
+            () => {
+                handleDeleteBudgetCategory(id, undefined, undefined, isAdmin ? activeMemberId : undefined); // Global delete
+            }, 
+            'danger'
+        );
+    };
+
+    const confirmClearCategoryItems = (id: string) => {
+        showConfirm(
+            'Kosongkan Bulan Ini', 
+            `Yakin ingin menghapus semua item budget pada kategori ini untuk bulan ${selectedMonth}/${selectedYear}? Transaksi tidak akan terhapus.`, 
+            () => {
+                handleDeleteBudgetCategory(id, selectedMonth, selectedYear, isAdmin ? activeMemberId : undefined); // Period-specific clear
+            }, 
+            'danger'
+        );
+    };
+
+    const handleClearAll = () => {
+        showConfirm(
+            'Hapus Semua Kategori?', 
+            'AWAS: Ini akan menghapus SEMUA kategori dan item budget selamanya (semua bulan). Lanjutkan?', 
+            () => handleClearAllCategories(isAdmin ? activeMemberId : undefined), 
+            'danger'
+        );
+    };
+
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="bg-dagang-dark rounded-[32px] p-8 md:p-12 text-white relative overflow-hidden shadow-2xl shadow-dagang-dark/20 min-h-[300px] flex flex-col justify-center">
-                <div className="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-l from-dagang-accent/5 to-transparent pointer-events-none" />
+            {filteredMembers.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                    {filteredMembers.map((member: any) => (
+                        <button
+                            key={member.userId}
+                            onClick={() => setActiveMemberId(member.userId)}
+                            className={`px-6 py-3 rounded-2xl font-black text-[12px] whitespace-nowrap transition-all flex items-center gap-2 border-2 ${activeMemberId === member.userId
+                                ? 'bg-dagang-accent text-dagang-dark border-dagang-accent shadow-lg shadow-dagang-accent/20'
+                                : 'bg-[var(--surface-card)] text-[var(--text-muted)] border-[var(--border)] hover:border-dagang-accent/30'
+                                }`}
+                        >
+                            <div className={`w-2 h-2 rounded-full ${activeMemberId === member.userId ? 'bg-dagang-dark animate-pulse' : 'bg-[var(--text-muted)]/30'}`} />
+                            {member.userId === currentUserId ? 'SAYA (KONTROL)' : (member.fullName || 'ANGGOTA').toUpperCase()}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            <div className="bg-[#064E3B] rounded-[32px] p-8 md:p-12 text-white relative overflow-hidden shadow-2xl shadow-emerald-950/20 min-h-[300px] flex flex-col justify-center">
+                <div className="absolute right-0 top-0 w-full h-full bg-gradient-to-l from-emerald-400/5 to-transparent pointer-events-none" />
                 <div className="relative z-10 flex flex-col gap-10">
                     <div className="text-center md:text-left">
-                        <h2 className="text-3xl md:text-5xl font-serif mb-4">Atur Budget</h2>
-                        <p className="text-white/40 text-sm md:text-base max-w-md leading-relaxed">
-                            "Berikan setiap rupiah Anda sebuah tugas." Alokasikan pemasukan secara strategis.
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-4">
+                            <div className="flex flex-col gap-4">
+                                <h2 className="text-4xl md:text-6xl font-serif leading-tight">
+                                    Atur Budget
+                                </h2>
+                                <div className="flex items-center gap-3 text-white font-bold">
+                                    <span className="text-body-s uppercase tracking-widest opacity-60">untuk bulan</span>
+                                    <div className="inline-flex items-center gap-1.5 p-1 bg-white/10 border border-white/20 rounded-2xl backdrop-blur-md shadow-inner select-none transition-all hover:bg-white/20">
+                                        <select
+                                            value={selectedMonth}
+                                            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                                            className="bg-transparent border-none text-[12px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl focus:ring-0 cursor-pointer text-white"
+                                        >
+                                            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                                                <option key={m} value={m} className="bg-[var(--surface-card)] text-[var(--text-main)]">
+                                                    {new Date(2000, m - 1, 1).toLocaleDateString('id-ID', { month: 'long' })}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div className="w-px h-4 bg-white/20" />
+                                        <select
+                                            value={selectedYear}
+                                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                                            className="bg-transparent border-none text-[12px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl focus:ring-0 cursor-pointer text-white"
+                                        >
+                                            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(y => (
+                                                <option key={y} value={y} className="bg-[var(--surface-card)] text-[var(--text-main)]">{y}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 self-center md:self-auto">
+                        {isOwner && (
+                            <button
+                                onClick={() => {
+                                    setEditingCategory(null);
+                                    setCatName('');
+                                    setCatPercent(0);
+                                    setCatDesc('');
+                                    setCatIcon('ShoppingCart');
+                                    setCatColor('text-blue-500');
+                                    setCatBg('bg-blue-50');
+                                    setCatType('kebutuhan');
+                                    setIsCategoryModalOpen(true);
+                                }}
+                                className="px-6 py-3 bg-white text-[#064E3B] rounded-2xl text-[11px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-xl shadow-black/10"
+                            >
+                                <Plus className="w-4 h-4" /> TAMBAH KATEGORI PENGELUARAN
+                            </button>
+                        )}
+                    </div>
+                        </div>
+                        <p className="text-white/60 text-sm md:text-base max-w-md leading-relaxed font-medium text-center md:text-left">
+                            "Atur budgetmu setiap bulan supaya pengeluaran lebih terencana."
                         </p>
                     </div>
 
                     <div className="bg-white/5 border border-white/10 rounded-[32px] p-8 backdrop-blur-md relative overflow-hidden group">
                         <div className="absolute right-0 top-0 w-32 h-32 bg-dagang-accent/5 rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none" />
-
-                        {!isEditingBudget ? (
-                            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                                <div className="text-center md:text-left">
-                                    <div className="text-[10px] font-black text-dagang-accent uppercase tracking-[0.2em] mb-2 flex items-center justify-center md:justify-start gap-2">
-                                        <TrendingUp className="w-3 h-3" /> PENDAPATAN BULANAN
-                                    </div>
-                                    <div className="text-3xl sm:text-4xl md:text-5xl font-serif text-white tracking-tighter">
-                                        Rp {totalBudget.toLocaleString()}
-                                    </div>
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                            <div className="text-center md:text-left">
+                                <div className="text-[10px] font-black text-dagang-accent uppercase tracking-[0.2em] mb-2 flex items-center justify-center md:justify-start gap-2">
+                                    <TrendingUp className="w-3 h-3" /> {activeMemberId === currentUserId ? 'BUDGET SAYA' : `BUDGET ${activeMember.fullName || 'ANGGOTA'}`}
                                 </div>
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={() => {
-                                            setTempPercentages(budgetCategories.reduce((a:any, c:any) => ({...a, [c.id]: c.percentage}), {}));
-                                            setIsEditingPercentages(true);
-                                        }}
-                                        className="p-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl transition-all border border-white/10"
-                                        title="Atur Persentase"
-                                    >
-                                        <Coins className="w-5 h-5" />
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setTempBudget(totalBudget);
-                                            setIsEditingBudget(true);
-                                        }}
-                                        className="px-8 py-3 bg-dagang-accent text-dagang-dark rounded-2xl font-black text-[12px] hover:scale-[1.05] active:scale-[0.95] transition-all shadow-lg shadow-dagang-accent/20"
-                                    >
-                                        UBAH PEMASUKAN
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-6 animate-in slide-in-from-top-4 duration-300">
-                                <div className="text-[10px] font-black text-dagang-accent uppercase tracking-[0.2em] flex items-center gap-2">
-                                    <Edit3 className="w-3 h-3" /> ESTIMASI PEMASUKAN
-                                </div>
-                                <div className="flex flex-col md:flex-row items-stretch gap-4">
-                                    <div className="relative flex-1">
-                                        <span className="absolute left-6 top-1/2 -translate-y-1/2 font-serif text-white/40 text-2xl">Rp</span>
+                                {isEditingBudget && isOwner ? (
+                                    <div className="flex items-center gap-3">
                                         <input
-                                            type="number"
-                                            value={tempBudget}
-                                            onChange={(e) => setTempBudget(parseFloat(e.target.value))}
-                                            className="w-full bg-white/10 border-none rounded-[24px] py-6 pl-16 pr-6 text-3xl font-serif text-white outline-none focus:ring-2 focus:ring-dagang-accent/20 transition-all font-black"
+                                            type="text"
+                                            value={formatRupiah(tempBudget) || ''}
+                                            onChange={(e) => setTempBudget(parseRupiah(e.target.value))}
+                                            className="bg-white/10 border-b-2 border-dagang-accent outline-none text-3xl font-serif text-white w-48 py-1"
                                             autoFocus
                                         />
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={async () => {
-                                                try {
-                                                    await FinanceController.updateFamilyBudget(tempBudget);
-                                                    setTotalBudget(tempBudget);
-                                                    setIsEditingBudget(false);
-                                                    refreshDashboard();
-                                                } catch (err: any) {
-                                                    alert('Gagal menyimpan budget: ' + (err.response?.data?.error || err.message));
-                                                }
-                                            }}
-                                            className="px-10 py-5 bg-dagang-accent text-dagang-dark rounded-[24px] font-black text-[14px] hover:scale-[1.02] active:scale-[0.98] transition-all"
-                                        >
-                                            SIMPAN
+                                        <button onClick={handleUpdateActiveMemberBudget} className="p-2 bg-dagang-accent text-dagang-dark rounded-xl hover:scale-105 transition-all">
+                                            <Check className="w-5 h-5" />
                                         </button>
-                                        <button
-                                            onClick={() => setIsEditingBudget(false)}
-                                            className="px-10 py-5 bg-white/5 text-white/60 rounded-[24px] font-black text-[14px] hover:bg-white/10 transition-all"
-                                        >
-                                            BATAL
+                                        <button onClick={() => setIsEditingBudget(false)} className="p-2 bg-white/10 text-white rounded-xl">
+                                            <X className="w-5 h-5" />
                                         </button>
                                     </div>
+                                ) : (
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-3xl sm:text-4xl md:text-5xl font-serif text-white tracking-tighter">
+                                            Rp {totalBudget.toLocaleString('id-ID')}
+                                        </div>
+                                        {isOwner && (
+                                            <button
+                                                onClick={() => {
+                                                    setTempBudget(totalBudget);
+                                                    setIsEditingBudget(true);
+                                                }}
+                                                className="p-2 hover:bg-white/10 rounded-xl transition-all text-dagang-accent"
+                                            >
+                                                <Edit3 className="w-5 h-5" />
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                                <div className="mt-2 text-[11px] font-bold text-white/40 uppercase tracking-widest">
+                                    Teralokasi: Rp {grandTotalAllocated.toLocaleString('id-ID')} ({totalBudget > 0 ? ((grandTotalAllocated / totalBudget) * 100).toFixed(1) : 0}%)
                                 </div>
                             </div>
-                        )}
+                            <div className="flex gap-4">
+                                {isOwner && (
+                                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                                        <button
+                                            onClick={handleClearAll}
+                                            className="w-full sm:w-auto px-5 py-3 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-[11px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-xl shadow-red-500/10 flex items-center justify-center gap-2 group"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5 transition-transform group-hover:scale-110" />
+                                            HAPUS SEMUA KATEGORI
+                                        </button>
+                                        <button
+                                            onClick={handleApplyDefault}
+                                            className="w-full sm:w-auto px-5 py-3 bg-dagang-accent/10 border border-dagang-accent/20 rounded-2xl text-dagang-accent text-[11px] font-black uppercase tracking-widest hover:bg-dagang-accent hover:text-dagang-dark transition-all shadow-xl shadow-dagang-accent/10 flex items-center justify-center gap-2 group"
+                                        >
+                                            <Plus className="w-3.5 h-3.5 transition-transform group-hover:rotate-90" />
+                                            GUNAKAN ALOKASI DEFAULT
+                                        </button>
+                                    </div>
+                                )}
+                                {isAdmin && (
+                                    <div className="text-right flex flex-col items-end">
+                                        <div className="text-[10px] font-black text-dagang-accent uppercase tracking-[0.2em] mb-1">AGGREGATE TOTAL</div>
+                                        <div className="text-xl font-serif text-white/80">Rp {(summary?.totalFamilyBudget || 0).toLocaleString('id-ID')}</div>
+                                        <div className="text-[11px] text-white/40 font-bold uppercase tracking-widest">SEMUA KELUARGA</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {!isAllocationComplete && (
-                <div className="bg-amber-50 border border-amber-200 rounded-[32px] p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600">
-                            <Info className="w-6 h-6" />
+            {isAdmin && filteredMembers.some((m: any) => m.userId !== currentUserId) && (
+                <div className="bg-[var(--surface-card)] rounded-[32px] p-6 sm:p-8 border border-[var(--border)] shadow-sm">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-dagang-accent/10 rounded-xl">
+                            <Coins className="w-5 h-5 text-dagang-accent" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-amber-900">Alokasi Budget Belum Selesai</h4>
-                            <p className="text-sm text-amber-700">Total alokasi saat ini {totalPercentage}%. Sesuaikan agar menjadi 100%.</p>
+                            <h3 className="text-[14px] font-black uppercase tracking-widest text-[var(--text-main)]">Rincian Budget Anggota</h3>
+                            <p className="text-[11px] text-[var(--text-muted)] font-medium">Monitoring alokasi budget tiap individu</p>
                         </div>
                     </div>
-                    <button
-                        onClick={() => {
-                            setTempPercentages(budgetCategories.reduce((a:any, c:any) => ({...a, [c.id]: c.percentage}), {}));
-                            setIsEditingPercentages(true);
-                        }}
-                        className="px-6 py-2 bg-amber-600 text-white rounded-xl font-bold text-xs hover:bg-amber-700 transition-all"
-                    >
-                        ATUR SEKARANG
-                    </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {filteredMembers.filter((m: any) => m.userId !== currentUserId).map((m: any) => {
+                            const memberSpent = summary?.memberSpent?.[m.userId] || 0;
+                            const memberAllocated = budgetCategories.reduce((acc: number, cat: any) => {
+                                const catItems = (cat.items || []).filter((s: any) => (s.user_id || s.userId) === m.userId);
+                                return acc + catItems.reduce((iAcc: number, item: any) => iAcc + (item.targetAmount || item.target_amount || 0), 0);
+                            }, 0);
+
+                            const memberBudget = summary?.memberBudgets?.[String(m.userId).toLowerCase()] || summary?.memberBudgets?.[m.userId] || m.monthly_budget || 0;
+                            const spentPercent = memberBudget > 0 ? (memberSpent / memberBudget) * 100 : 0;
+
+                            return (
+                                <div key={m.id} className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--border)] transition-all hover:border-dagang-accent/30 flex flex-col justify-between">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="font-bold text-[13px] truncate">{m.fullName || m.full_name || 'Member'}</div>
+                                        <div className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter ${m.role === 'head_of_family' ? 'bg-dagang-accent text-dagang-dark' : 'bg-black/10 text-[var(--text-muted)]'}`}>
+                                            {m.role === 'head_of_family' ? 'KK' : m.role === 'treasurer' ? 'BDH' : 'MBR'}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between text-[10px] font-medium opacity-60">
+                                            <span>Limit:</span>
+                                            <span className="font-bold">Rp {memberBudget.toLocaleString('id-ID')}</span>
+                                        </div>
+                                        <div className="flex justify-between text-[10px] font-medium opacity-60">
+                                            <span>Teralokasi:</span>
+                                            <span className="font-bold">Rp {memberAllocated.toLocaleString('id-ID')}</span>
+                                        </div>
+                                        <div className="flex justify-between text-[10px] font-medium">
+                                            <span>Realisasi:</span>
+                                            <span className={`font-bold ${memberSpent > memberBudget ? 'text-red-500' : 'text-dagang-green'}`}>Rp {memberSpent.toLocaleString('id-ID')}</span>
+                                        </div>
+                                        <div className="h-1.5 bg-black/10 rounded-full mt-2 overflow-hidden">
+                                            <div
+                                                className={`h-full transition-all duration-1000 ${memberSpent > memberBudget ? 'bg-red-500' : 'bg-dagang-accent'}`}
+                                                style={{ width: `${Math.min(spentPercent, 100)}%` }}
+                                            />
+                                        </div>
+                                        <div className="text-[8px] font-bold text-[var(--text-muted)] mt-1 uppercase tracking-tighter">
+                                            Pengeluaran: {spentPercent.toFixed(1)}% dari limit
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
 
-            <div className="flex justify-end mb-6">
-                <button
-                    onClick={() => {
-                        setEditingCategory(null);
-                        setCatName('');
-                        setCatPercent(0);
-                        setCatDesc('');
-                        setCatIcon('ShoppingCart');
-                        setCatColor('text-blue-500');
-                        setCatBg('bg-blue-50');
-                        setIsCategoryModalOpen(true);
-                    }}
-                    className="flex items-center gap-2 px-6 py-3 bg-dagang-dark text-white rounded-2xl font-black text-xs hover:scale-105 transition-all shadow-lg"
-                >
-                    <Plus className="w-4 h-4" /> TAMBAH KATEGORI BUDGET
-                </button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-12">
-                {budgetCategories.map((cat: any) => (
-                    <CategoryRow 
-                        key={cat.id} 
-                        cat={cat} 
-                        context={context} 
-                        openCreateModal={openCreateModal} 
-                        openEditModal={openEditModal} 
-                        handleDeleteSaving={confirmDeleteSaving} 
-                        setSelectedGoal={setSelectedGoal} 
-                        setIsAllocateOpen={setIsAllocateOpen} 
-                        totalBudget={totalBudget} 
-                        openEditCategoryModal={(c: any) => {
-                            setEditingCategory(c);
-                            setCatName(c.name);
-                            setCatPercent(c.percentage);
-                            setCatDesc(c.description);
-                            setCatIcon(c.icon);
-                            setCatColor(c.color);
-                            setCatBg(c.bgColor);
-                            setIsCategoryModalOpen(true);
-                        }}
-                    />
-                ))}
+            <div className="mb-10">
+                {totalCategoryPercent !== 100 && (
+                    <div className={`mb-6 p-4 rounded-2xl border flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500 ${totalCategoryPercent > 100 ? 'bg-red-50 border-red-100 text-red-600' : 'bg-orange-50 border-orange-100 text-orange-600'}`}>
+                        <AlertCircle className="w-5 h-5 shrink-0" />
+                        <div>
+                            <div className="text-[11px] font-black uppercase tracking-widest">⚠️ Validasi Budget Kategori</div>
+                            <div className="text-sm font-medium">Total alokasi kategori saat ini adalah <strong>{totalCategoryPercent}%</strong>. Harusnya tepat <strong>100%</strong> agar semua budget Anda memiliki tugas.</div>
+                        </div>
+                    </div>
+                )}
+                <div className="grid grid-cols-1 gap-10">
+                    {budgetCategories.map((cat: any) => (
+                        <CategoryRow
+                            key={cat.id}
+                            cat={cat}
+                            totalBudget={totalBudget}
+                            currentUserId={currentUserId}
+                            activeMemberId={activeMemberId}
+                            familyRole={familyRole}
+                            context={context}
+                            openCreateModal={openCreateModal}
+                            openEditModal={openEditModal}
+                            handleDeleteSaving={confirmDeleteSaving}
+                            setSelectedGoal={setSelectedGoal}
+                            setIsAllocateOpen={setIsAllocateOpen}
+                            openEditCategoryModal={(c: any) => {
+                                setEditingCategory(c);
+                                setCatName(c.name);
+                                setCatPercent(c.percentage);
+                                setCatDesc(c.description);
+                                setCatIcon(c.icon);
+                                setCatColor(c.color);
+                                setCatBg(c.bgColor);
+                                setCatType(c.type || 'kebutuhan');
+                                setIsCategoryModalOpen(true);
+                            }}
+                            handleClearCategoryItems={confirmClearCategoryItems}
+                            handleDeleteBudgetCategory={confirmDeleteCategory}
+                            canManageBudget={canManageBudget}
+                            canDeleteBudget={canDeleteBudget}
+                            canInputBudget={canInputBudget}
+                            isAdmin={isAdmin}
+                        />
+                    ))}
+                </div>
             </div>
 
             {isModalOpen && (
-                <div className="fixed inset-0 bg-dagang-dark/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[32px] w-full max-w-lg p-8 shadow-2xl relative animate-in zoom-in-95 duration-300">
-                        <button onClick={() => setIsModalOpen(false)} className="absolute right-6 top-6 p-2 text-dagang-gray hover:text-dagang-dark rounded-full transition-all">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-[var(--surface-card)] rounded-[32px] w-full max-w-lg p-8 shadow-2xl relative animate-in zoom-in-95 duration-300 border border-[var(--border)]">
+                        <button onClick={() => setIsModalOpen(false)} className="absolute right-6 top-6 p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-full transition-all">
                             <X className="w-6 h-6" />
                         </button>
-
-                        <h3 className="text-2xl font-serif mb-8 text-dagang-dark">
+                        <h3 className="text-2xl font-serif mb-8 text-[var(--text-main)]">
                             {editSaving ? 'Ubah Alokasi' : 'Buat Alokasi Baru'}
                         </h3>
-
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="space-y-2">
-                                <label className="text-[11px] font-black text-dagang-gray uppercase tracking-widest pl-1">Kategori Utama</label>
-                                <div className="relative">
-                                    <select
-                                        value={selectedCategory}
-                                        onChange={(e) => setSelectedCategory(e.target.value)}
-                                        className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl focus:ring-2 focus:ring-dagang-green/20 outline-none transition-all appearance-none font-bold text-[15px]"
-                                    >
-                                        {budgetCategories.map((c: any) => (
-                                            <option key={c.id} value={c.id}>{c.name}</option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-dagang-gray pointer-events-none" />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-[11px] font-black text-dagang-gray uppercase tracking-widest pl-1">Nama Sub-Kategori</label>
+                                <label className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Nama Sub-Kategori</label>
                                 <input
                                     type="text"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     placeholder="cth. Perbaikan Rumah, Investasi Saham"
-                                    className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl focus:ring-2 focus:ring-dagang-green/20 outline-none transition-all font-bold text-[15px]"
+                                    className="w-full px-5 py-4 bg-black/5 dark:bg-white/5 border-none rounded-2xl focus:ring-2 focus:ring-dagang-green/20 outline-none transition-all font-bold text-[15px] text-[var(--text-main)] placeholder:text-[var(--text-muted)]/30"
                                     required
                                 />
                             </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-dagang-gray uppercase tracking-widest pl-1">Target (Rp)</label>
-                                    <input
-                                        type="number"
-                                        value={target || ''}
-                                        onChange={(e) => setTarget(parseFloat(e.target.value))}
-                                        className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl focus:ring-2 focus:ring-dagang-green/20 outline-none transition-all font-bold text-[15px]"
-                                        required
-                                    />
-                                </div>
-                                {!editSaving && (
-                                    <div className="space-y-2">
-                                        <label className="text-[11px] font-black text-dagang-gray uppercase tracking-widest pl-1">Setoran Awal (Rp)</label>
-                                        <input
-                                            type="number"
-                                            value={initial || ''}
-                                            onChange={(e) => setInitial(parseFloat(e.target.value))}
-                                            className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl focus:ring-2 focus:ring-dagang-green/20 outline-none transition-all font-bold text-[15px]"
-                                        />
-                                    </div>
-                                )}
+                            <div className="space-y-2">
+                                <label className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Target (Rp)</label>
+                                <input
+                                    type="text"
+                                    value={formatRupiah(target) || ''}
+                                    onChange={(e) => setTarget(parseRupiah(e.target.value))}
+                                    className="w-full px-5 py-4 bg-black/5 dark:bg-white/5 border-none rounded-2xl focus:ring-2 focus:ring-dagang-green/20 outline-none transition-all font-bold text-[15px] text-[var(--text-main)]"
+                                    required
+                                />
                             </div>
-
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-dagang-gray uppercase tracking-widest pl-1">Emoji</label>
+                                    <label className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Emoji</label>
                                     <input
                                         type="text"
                                         value={emoji}
                                         onChange={(e) => setEmoji(e.target.value)}
-                                        placeholder="💰, 🏠, 🍔"
-                                        className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl focus:ring-2 focus:ring-dagang-green/20 outline-none transition-all font-bold text-[15px]"
+                                        placeholder="💰"
+                                        className="w-full px-5 py-4 bg-black/5 dark:bg-white/5 border-none rounded-2xl focus:ring-2 focus:ring-dagang-green/20 outline-none transition-all font-bold text-[15px] text-[var(--text-main)] placeholder:text-[var(--text-muted)]/30"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-dagang-gray uppercase tracking-widest pl-1">Jatuh Tempo (Tgl)</label>
+                                    <label className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Jatuh Tempo (Tgl)</label>
                                     <input
                                         type="number"
                                         min="0"
@@ -571,33 +827,10 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                                         value={dueDate || ''}
                                         onChange={(e) => setDueDate(parseInt(e.target.value))}
                                         placeholder="1-31"
-                                        className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl focus:ring-2 focus:ring-dagang-green/20 outline-none transition-all font-bold text-[15px]"
+                                        className="w-full px-5 py-4 bg-black/5 dark:bg-white/5 border-none rounded-2xl focus:ring-2 focus:ring-dagang-green/20 outline-none transition-all font-bold text-[15px] text-[var(--text-main)] placeholder:text-[var(--text-muted)]/30"
                                     />
                                 </div>
                             </div>
-
-                            {!editSaving && initial > 0 && (
-                                <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-dagang-green uppercase tracking-widest pl-1 flex items-center gap-2">
-                                        <Wallet className="w-3 h-3" /> Ambil Dari Dompet
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            value={sourceWalletId}
-                                            onChange={(e) => setSourceWalletId(e.target.value)}
-                                            className="w-full px-5 py-4 bg-dagang-green/5 border-2 border-dagang-green/20 rounded-2xl outline-none font-black text-dagang-green appearance-none"
-                                            required
-                                        >
-                                            <option value="">Pilih Dompet</option>
-                                            {wallets.map((w: any) => (
-                                                <option key={w.id} value={w.id}>{w.name} (Rp {w.balance.toLocaleString()})</option>
-                                            ))}
-                                        </select>
-                                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-dagang-green pointer-events-none" />
-                                    </div>
-                                </div>
-                            )}
-
                             <button type="submit" className="w-full py-4 bg-dagang-accent text-dagang-dark rounded-2xl font-black text-[16px] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-dagang-accent/20 mt-4">
                                 {editSaving ? 'SIMPAN PERUBAHAN' : 'BUAT SEKARANG'}
                             </button>
@@ -607,37 +840,35 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
             )}
 
             {isAllocateOpen && (
-                <div className="fixed inset-0 bg-dagang-green/10 backdrop-blur-md z-[110] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[32px] w-full max-w-md p-8 shadow-2xl relative border border-dagang-green/10">
-                        <button onClick={() => setIsAllocateOpen(false)} className="absolute right-6 top-6 p-2 text-dagang-gray hover:text-dagang-dark rounded-full transition-all">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+                    <div className="bg-[var(--surface-card)] rounded-[32px] w-full max-w-md p-8 shadow-2xl relative border border-[var(--border)]">
+                        <button onClick={() => setIsAllocateOpen(false)} className="absolute right-6 top-6 p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-full transition-all">
                             <X className="w-6 h-6" />
                         </button>
-
                         <h3 className="text-xl font-black text-dagang-green mb-1">Setor ke {selectedGoal?.name}</h3>
-                        <p className="text-sm text-dagang-gray mb-8">Tambahkan saldo alokasi dari dompet Anda.</p>
-
-                        <form onSubmit={handleAllocateSubmit} className="space-y-6">
+                        <p className="text-sm text-[var(--text-muted)] mb-8">Tambahkan saldo alokasi dari dompet Anda.</p>
+                        <form onSubmit={handleAllocateSubmit} className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-[11px] font-black text-dagang-gray/50 uppercase tracking-widest pl-1">Sumber Dompet</label>
+                                <label className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Sumber Dompet</label>
                                 <select
                                     value={allocateWalletId}
                                     onChange={(e) => setAllocateWalletId(e.target.value)}
-                                    className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl outline-none font-black text-dagang-green"
+                                    className="w-full px-5 py-4 bg-black/5 dark:bg-white/5 border-none rounded-2xl outline-none font-black text-dagang-green text-[var(--text-main)]"
                                     required
                                 >
-                                    <option value="">Pilih Dompet</option>
-                                    {wallets.map((w: any) => (
-                                        <option key={w.id} value={w.id}>{w.name} (Rp {w.balance.toLocaleString()})</option>
+                                    <option value="" className="bg-[var(--surface-card)]">Pilih Dompet</option>
+                                    {myWallets.map((w: any) => (
+                                        <option key={w.id} value={w.id} className="bg-[var(--surface-card)]">{w.name} (Rp {w.balance.toLocaleString('id-ID')})</option>
                                     ))}
                                 </select>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[11px] font-black text-dagang-gray/50 uppercase tracking-widest pl-1">Nominal</label>
+                                <label className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Nominal</label>
                                 <input
-                                    type="number"
-                                    value={allocateAmount || ''}
-                                    onChange={(e) => setAllocateAmount(parseFloat(e.target.value) || 0)}
-                                    className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl outline-none font-black text-[28px] text-dagang-green"
+                                    type="text"
+                                    value={formatRupiah(allocateAmount) || ''}
+                                    onChange={(e) => setAllocateAmount(parseRupiah(e.target.value))}
+                                    className="w-full px-5 py-4 bg-black/5 dark:bg-white/5 border-none rounded-2xl outline-none font-black text-[28px] text-dagang-green placeholder:text-[var(--text-muted)]/20"
                                     placeholder="0"
                                     required
                                 />
@@ -650,94 +881,15 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                 </div>
             )}
 
-            {isEditingPercentages && (
-                <div className="fixed inset-0 bg-dagang-dark/40 backdrop-blur-sm z-[120] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[32px] w-full max-w-lg p-8 shadow-2xl relative animate-in zoom-in-95 duration-300">
-                        <button onClick={() => setIsEditingPercentages(false)} className="absolute right-6 top-6 p-2 text-dagang-gray hover:text-dagang-dark rounded-full transition-all">
-                            <X className="w-6 h-6" />
-                        </button>
-
-                        <h3 className="text-2xl font-serif mb-2 text-dagang-dark">Atur Strategi Budget</h3>
-                        <p className="text-sm text-dagang-gray mb-8">Tentukan porsi budget untuk setiap kategori agar totalnya 100%.</p>
-
-                        <div className="space-y-6">
-                            {budgetCategories.map((cat: any) => (
-                                <div key={cat.id} className="space-y-3">
-                                    <div className="flex justify-between items-center text-sm font-bold">
-                                        <span className="text-dagang-dark">{cat.name}</span>
-                                        <span className={`${cat.color} font-black`}>{(tempPercentages as any)[cat.id] ?? cat.percentage}%</span>
-                                    </div>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="100"
-                                        step="5"
-                                        value={(tempPercentages as any)[cat.id] ?? cat.percentage}
-                                        onChange={(e) => setTempPercentages({
-                                            ...tempPercentages,
-                                            [cat.id]: parseInt(e.target.value)
-                                        })}
-                                        className="w-full h-2 bg-dagang-cream rounded-lg appearance-none cursor-pointer accent-dagang-dark"
-                                    />
-                                </div>
-                            ))}
-
-                            <div className="pt-6 border-t border-black/5 flex items-center justify-between">
-                                <div className="text-sm">
-                                    <div className="text-dagang-gray uppercase text-[10px] font-black tracking-widest">Total Alokasi</div>
-                                    <div className={`text-2xl font-serif ${(() => {
-                                        const base = budgetCategories.reduce((a: any, c: any) => ({ ...a, [c.id]: c.percentage }), {});
-                                        const merged = { ...base, ...tempPercentages };
-                                        const total = Object.values(merged).reduce((a: number, b: any) => a + (Number(b) || 0), 0);
-                                        return total === 100 ? 'text-dagang-green' : 'text-red-500';
-                                    })()}`}>
-                                        {(() => {
-                                            const base = budgetCategories.reduce((a: any, c: any) => ({ ...a, [c.id]: c.percentage }), {});
-                                            const merged = { ...base, ...tempPercentages };
-                                            return Object.values(merged).reduce((a: number, b: any) => a + (Number(b) || 0), 0);
-                                        })()}%
-                                    </div>
-                                </div>
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={() => setIsEditingPercentages(false)}
-                                        className="px-6 py-3 bg-dagang-cream text-dagang-gray rounded-xl font-bold text-xs"
-                                    >
-                                        BATAL
-                                    </button>
-                                    <button
-                                        onClick={async () => {
-                                            for (const catId in tempPercentages) {
-                                                const cat = budgetCategories.find((c: any) => c.id === catId);
-                                                if (cat) {
-                                                    await handleUpdateBudgetCategory(catId, { ...cat, percentage: tempPercentages[catId] });
-                                                }
-                                            }
-                                            setIsEditingPercentages(false);
-                                            setTempPercentages({});
-                                        }}
-                                        className="px-8 py-3 bg-dagang-dark text-white rounded-xl font-bold text-xs shadow-lg shadow-black/10"
-                                    >
-                                        SIMPAN STRATEGI
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {isCategoryModalOpen && (
-                <div className="fixed inset-0 bg-dagang-dark/40 backdrop-blur-sm z-[130] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[32px] w-full max-w-lg p-8 shadow-2xl relative animate-in zoom-in-95 duration-300">
-                        <button onClick={() => setIsCategoryModalOpen(false)} className="absolute right-6 top-6 p-2 text-dagang-gray hover:text-dagang-dark rounded-full transition-all">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[130] flex items-center justify-center p-4">
+                    <div className="bg-[var(--surface-card)] rounded-[32px] w-full max-w-lg p-8 shadow-2xl relative animate-in zoom-in-95 duration-300 border border-[var(--border)]">
+                        <button onClick={() => setIsCategoryModalOpen(false)} className="absolute right-6 top-6 p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-full transition-all">
                             <X className="w-6 h-6" />
                         </button>
-
-                        <h3 className="text-2xl font-serif mb-6 text-dagang-dark">
+                        <h3 className="text-2xl font-serif mb-6 text-[var(--text-main)]">
                             {editingCategory ? 'Edit Kategori Budget' : 'Tambah Kategori Budget'}
                         </h3>
-
                         <form onSubmit={async (e) => {
                             e.preventDefault();
                             const payload = {
@@ -747,62 +899,74 @@ const CategoryRow = ({ cat, context, openCreateModal, openEditModal, handleDelet
                                 icon: catIcon,
                                 color: catColor,
                                 bgColor: catBg,
+                                type: catType,
                                 order: budgetCategories.length + 1
                             };
                             if (editingCategory) {
-                                await handleUpdateBudgetCategory(editingCategory.id, payload);
+                                await handleUpdateBudgetCategory(editingCategory.id, payload, isAdmin ? activeMemberId : undefined);
                             } else {
-                                await handleCreateBudgetCategory(payload);
+                                await handleCreateBudgetCategory(payload, isAdmin ? activeMemberId : undefined);
                             }
                             setIsCategoryModalOpen(false);
                         }} className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-[11px] font-black text-dagang-gray uppercase tracking-widest pl-1">Nama Kategori</label>
+                                <label className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Nama Kategori</label>
                                 <input
                                     type="text"
                                     value={catName}
                                     onChange={(e) => setCatName(e.target.value)}
                                     placeholder="cth. Kebutuhan Pokok"
-                                    className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl outline-none font-bold"
+                                    className="w-full px-5 py-4 bg-black/5 dark:bg-white/5 border-none rounded-2xl outline-none font-bold text-[var(--text-main)]"
                                     required
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-dagang-gray uppercase tracking-widest pl-1">Persentase (%)</label>
+                                    <label className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Persentase (%)</label>
                                     <input
                                         type="number"
                                         value={catPercent}
                                         onChange={(e) => setCatPercent(parseInt(e.target.value))}
-                                        className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl outline-none font-bold"
+                                        className="w-full px-5 py-4 bg-black/5 dark:bg-white/5 border-none rounded-2xl outline-none font-bold text-[var(--text-main)]"
                                         required
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-dagang-gray uppercase tracking-widest pl-1">Icon</label>
+                                    <label className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Icon</label>
                                     <select
                                         value={catIcon}
                                         onChange={(e) => setCatIcon(e.target.value)}
-                                        className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl outline-none font-bold appearance-none"
+                                        className="w-full px-5 py-4 bg-black/5 dark:bg-white/5 border-none rounded-2xl outline-none font-bold appearance-none text-[var(--text-main)]"
                                     >
-                                        <option value="ShoppingCart">Shopping</option>
-                                        <option value="Coffee">Coffee</option>
-                                        <option value="Coins">Coins</option>
-                                        <option value="ShieldCheck">Guard</option>
-                                        <option value="Wallet">Wallet</option>
+                                        <option value="ShoppingCart">Belanja</option>
+                                        <option value="Coffee">Hiburan</option>
+                                        <option value="Coins">Tabungan</option>
+                                        <option value="ShieldCheck">Asuransi</option>
+                                        <option value="Wallet">Lainnya</option>
                                     </select>
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[11px] font-black text-dagang-gray uppercase tracking-widest pl-1">Deskripsi</label>
-                                <textarea
-                                    value={catDesc}
-                                    onChange={(e) => setCatDesc(e.target.value)}
-                                    className="w-full px-5 py-4 bg-dagang-cream/50 border-none rounded-2xl outline-none font-bold min-h-[80px]"
-                                />
+                                <label className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Jenis Kebutuhan</label>
+                                <div className="flex gap-2 p-1 bg-black/5 dark:bg-white/5 rounded-2xl">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCatType('kebutuhan')}
+                                        className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all ${catType === 'kebutuhan' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-[var(--text-muted)] hover:bg-black/5'}`}
+                                    >
+                                        Kebutuhan
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setCatType('keinginan')}
+                                        className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all ${catType === 'keinginan' ? 'bg-pink-500 text-white shadow-lg shadow-pink-500/20' : 'text-[var(--text-muted)] hover:bg-black/5'}`}
+                                    >
+                                        Keinginan
+                                    </button>
+                                </div>
                             </div>
-                            <button type="submit" className="w-full py-4 bg-dagang-dark text-white rounded-2xl font-black shadow-xl hover:scale-[1.02] transition-all">
-                                {editingCategory ? 'SIMPAN PERUBAHAN' : 'BUAT KATEGORI'}
+                            <button type="submit" className="w-full py-4 bg-dagang-dark text-white rounded-2xl font-black text-[14px] shadow-xl shadow-black/20 mt-4 transition-all hover:bg-black active:scale-95">
+                                {editingCategory ? 'UPDATE KATEGORI' : 'TAMBAH KATEGORI'}
                             </button>
                         </form>
                     </div>

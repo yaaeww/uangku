@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { AuthController } from '../controllers/AuthController';
 import { useAuthStore } from '../store/authStore';
+import { Logo } from '../components/common/Logo';
 import { Mail, Lock, Loader2, ArrowLeft, ShieldCheck, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { ForgotPasswordModal } from './ForgotPasswordModal';
 
 export const LoginPage = () => {
     const navigate = useNavigate();
-    const { i18n } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
     const setAuth = useAuthStore((state) => state.setAuth);
 
     const toggleLanguage = () => {
@@ -45,7 +48,14 @@ export const LoginPage = () => {
                 navigate(`/${encodeURIComponent(family_name)}/dashboard`);
             }
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Gagal masuk. Silakan periksa kredensial Anda.');
+            const backendError = err.response?.data?.error;
+            if (backendError === 'user_not_found') {
+                setError(t('auth.login.errorUserNotFound'));
+            } else if (backendError === 'incorrect_password') {
+                setError(t('auth.login.errorInvalidPassword'));
+            } else {
+                setError(backendError || t('auth.login.errorDefault'));
+            }
         } finally {
             setLoading(false);
         }
@@ -57,16 +67,19 @@ export const LoginPage = () => {
             <div className="hidden md:flex md:w-[40%] bg-dagang-dark p-12 lg:p-16 flex-col justify-between relative overflow-hidden">
                 <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-dagang-green/20 blur-[120px] rounded-full" />
 
-                <div className="logo font-serif text-2xl text-white relative z-10">
-                    Uang<span className="text-dagang-accent">ku</span>
-                </div>
+                <Link to="/" className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity relative z-10">
+                    <Logo variant="horizontal" />
+                </Link>
 
                 <div className="relative z-10">
-                    <h2 className="font-serif text-[42px] text-white leading-tight mb-6">
-                        Selamat Datang <br />Kembali di <span className="text-dagang-green italic">Kenyamanan.</span>
-                    </h2>
+                    <h2 
+                        className="font-serif text-[42px] text-white leading-tight mb-6"
+                        dangerouslySetInnerHTML={{ 
+                            __html: `${t('auth.login.titlePart1')}<span class="text-dagang-green italic">${t('auth.login.titlePart2')}</span>` 
+                        }}
+                    />
                     <p className="text-white/40 text-lg max-w-sm mb-10 leading-relaxed">
-                        Pantau pengeluaran, capai target tabungan, dan tumbuhkan kekayaan keluarga Anda bersama-sama.
+                        {t('auth.login.subtitle')}
                     </p>
 
                     <div className="space-y-6">
@@ -74,13 +87,13 @@ export const LoginPage = () => {
                             <div className="w-11 h-11 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-dagang-green group-hover:bg-dagang-green group-hover:text-white transition-all">
                                 <ShieldCheck className="w-5 h-5" />
                             </div>
-                            <div className="text-sm text-white/70">Keamanan data keluarga terjamin dengan enkripsi SSL.</div>
+                            <div className="text-sm text-white/70">{t('auth.login.securityDesc')}</div>
                         </div>
                     </div>
                 </div>
 
                 <div className="text-[12px] text-white/20 relative z-10">
-                    © 2026 Uangku Platform. All rights reserved.
+                    {t('auth.login.copyright')}
                 </div>
             </div>
 
@@ -99,11 +112,11 @@ export const LoginPage = () => {
                 <div className="max-w-[420px] mx-auto w-full">
                     <div className="mb-10">
                         <a href="/" className="inline-flex items-center gap-2 text-dagang-gray text-xs font-semibold hover:text-dagang-green transition-colors mb-8">
-                            <ArrowLeft className="w-4 h-4" /> BERALIH KE BERANDA
+                            <ArrowLeft className="w-4 h-4" /> {t('auth.login.backToHome')}
                         </a>
-                        <h1 className="font-serif text-[42px] mb-2 leading-none">Masuk Akun</h1>
+                        <h1 className="font-serif text-[42px] mb-2 leading-none">{t('auth.login.heading')}</h1>
                         <p className="text-dagang-gray text-sm">
-                            Belum punya akun keluarga? <a href="/register" className="text-dagang-green font-bold hover:underline">Mulai Trial Gratis</a>
+                            {t('auth.login.noAccount')}<a href="/register" className="text-dagang-green font-bold hover:underline">{t('auth.login.startTrial')}</a>
                         </p>
                     </div>
 
@@ -115,14 +128,14 @@ export const LoginPage = () => {
                         )}
 
                         <div className="space-y-2">
-                            <label className="text-[13px] font-bold text-dagang-dark/70 tracking-wide uppercase">Alamat Email</label>
+                            <label className="text-[13px] font-bold text-dagang-dark/70 tracking-wide uppercase">{t('auth.login.emailLabel')}</label>
                             <div className="relative group">
                                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-dagang-gray/40 group-focus-within:text-dagang-green transition-colors" />
                                 <input
                                     type="email"
                                     required
                                     className="w-full pl-12 pr-4 py-4 bg-white border-1.5 border-black/5 rounded-2xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none shadow-sm"
-                                    placeholder="nama@email.com"
+                                    placeholder={t('auth.login.emailPlaceholder')}
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                 />
@@ -131,8 +144,14 @@ export const LoginPage = () => {
 
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <label className="text-[13px] font-bold text-dagang-dark/70 tracking-wide uppercase">Kata Sandi</label>
-                                <a href="#" className="text-[12px] font-bold text-dagang-green hover:underline">Lupa Password?</a>
+                                <label className="text-[13px] font-bold text-dagang-dark/70 tracking-wide uppercase">{t('auth.login.passwordLabel')}</label>
+                                <button 
+                                    type="button"
+                                    onClick={() => setIsForgotModalOpen(true)}
+                                    className="text-[12px] font-bold text-dagang-green hover:underline"
+                                >
+                                    {t('auth.login.forgotPassword')}
+                                </button>
                             </div>
                             <div className="relative group">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-dagang-gray/40 group-focus-within:text-dagang-green transition-colors" />
@@ -140,7 +159,7 @@ export const LoginPage = () => {
                                     type="password"
                                     required
                                     className="w-full pl-12 pr-4 py-4 bg-white border-1.5 border-black/5 rounded-2xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none shadow-sm"
-                                    placeholder="••••••••"
+                                    placeholder={t('auth.login.passwordPlaceholder')}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                 />
@@ -155,7 +174,7 @@ export const LoginPage = () => {
                                 checked={rememberMe}
                                 onChange={(e) => setRememberMe(e.target.checked)}
                             />
-                            <label htmlFor="remember" className="text-[13px] text-dagang-gray font-medium cursor-pointer">Ingat saya di perangkat ini</label>
+                            <label htmlFor="remember" className="text-[13px] text-dagang-gray font-medium cursor-pointer">{t('auth.login.rememberMe')}</label>
                         </div>
 
                         <button
@@ -165,7 +184,7 @@ export const LoginPage = () => {
                         >
                             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                                 <>
-                                    Masuk ke Dashboard
+                                    {t('auth.login.submitBtn')}
                                     <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </>
                             )}
@@ -175,11 +194,16 @@ export const LoginPage = () => {
                     <div className="mt-12 pt-8 border-t border-black/5 flex items-center justify-center gap-6 opacity-40">
                         <div className="flex items-center gap-1.5 grayscale">
                             <ShieldCheck className="w-4 h-4" />
-                            <span className="text-[11px] font-bold tracking-widest uppercase">Safe & Secure</span>
+                            <span className="text-[11px] font-bold tracking-widest uppercase">{t('auth.login.safeSecure')}</span>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <ForgotPasswordModal 
+                isOpen={isForgotModalOpen} 
+                onClose={() => setIsForgotModalOpen(false)} 
+            />
         </div>
     );
 };

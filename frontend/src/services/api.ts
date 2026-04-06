@@ -18,12 +18,25 @@ api.interceptors.response.use(
     },
     (error) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
+            const isLoginPage = window.location.pathname.includes('/login');
+            if (!isLoginPage) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            }
         }
-        if (error.response?.status === 403 && error.response?.data?.code === 'TRIAL_EXPIRED') {
-            window.location.href = '/pricing';
+        if (error.response?.status === 403) {
+            const isPricingPage = window.location.pathname.includes('/pricing');
+            if (error.response?.data?.code === 'TRIAL_EXPIRED' && !isPricingPage) {
+                window.location.href = '/pricing';
+            } else if (error.response?.data?.code === 'USER_BLOCKED' || error.response?.data?.code === 'FAMILY_BLOCKED') {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login?blocked=true';
+            }
+        }
+        if (error.response?.status >= 500) {
+            window.location.href = '/500';
         }
         return Promise.reject(error);
     }

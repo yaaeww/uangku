@@ -5,7 +5,9 @@
         "howItWorks": "Cara Kerja",
         "pricing": "Harga",
         "blog": "Blog",
-        "trial": "Mulai Trial Gratis"
+        "trial": "Mulai Trial Gratis",
+        "dashboard": "Dashboard",
+        "login": "Masuk"
     },
     "hero": {
         "badge": "🎉 Trial {{days}} Hari Gratis — Tanpa Kartu Kredit",
@@ -15,5 +17,320 @@
         "cta_trial_sub": "Gratis",
         "cta_demo": "Lihat Demo",
         "trust": "<strong>2.400+ keluarga</strong> sudah bergabung bulan ini"
+    },
+    "footer": {
+        "description": "Membantu keluarga Indonesia mengelola keuangan dengan lebih bijak, transparan, dan terencana.",
+        "featuresTitle": "Fitur",
+        "resourcesTitle": "Sumber Daya",
+        "companyTitle": "Perusahaan",
+        "features": {
+            "record": "Catat Transaksi",
+            "budgeting": "Budgeting",
+            "reports": "Laporan Keuangan",
+            "multiUser": "Multi Anggota"
+        },
+        "resources": {
+            "blog": "Blog & Tips"
+        },
+        "company": {
+            "about": "Tentang Kami",
+            "privacy": "Privasi",
+            "terms": "Syarat & Ketentuan",
+            "contact": "Kontak"
+        },
+        "copyright": "© 2026 Uangku · Dibuat dengan ❤️ untuk keluarga"
+    },
+    "appPreview": {
+        "familyBudi": "🏠 Keluarga Budi",
+        "trialBadge": "Trial: {{days}} hari",
+        "netBalance": "Saldo Bersih Bulan Ini",
+        "balanceChange": "↑ 12% dari bulan lalu",
+        "income": "Pemasukan",
+        "expense": "Pengeluaran",
+        "groceries": "Belanja Bulanan",
+        "today": "Hari ini",
+        "salary": "Gaji Suami",
+        "groceryBudget": "Budget Makan",
+        "budgetUsed": "78% terpakai"
+    },
+    "featuresSection": {
+        "label": "Fitur Unggulan",
+        "title": "Semua yang Keluarga Butuhkan",
+        "subtitle": "Dari pencatatan harian hingga laporan bulanan — semua tersedia dalam satu platform yang mudah digunakan bersama.",
+        "items": [
+            { "title": "Catat Transaksi Bersama", "desc": "Semua anggota keluarga bisa mencatat pemasukan dan pengeluaran secara real-time. Tidak ada yang terlewat." },
+            { "title": "Budget Planning", "desc": "Buat anggaran per kategori, pantau pemakaian, dan dapatkan notifikasi saat mendekati batas budget." },
+            { "title": "Tabungan Tujuan", "desc": "Rencanakan tabungan untuk liburan, pendidikan, atau dana darurat. Lacak progres bersama keluarga." },
+            { "title": "Laporan Visual", "desc": "Grafik dan laporan keuangan yang mudah dipahami. Pahami pola pengeluaran keluarga setiap bulan." },
+            { "title": "Multi Anggota", "desc": "Undang suami, istri, atau anak ke workspace keluarga. Atur peran dan akses setiap anggota." },
+            { "title": "Pengingat Tagihan", "desc": "Jangan sampai lupa bayar tagihan. Atur jadwal pembayaran dan terima notifikasi tepat waktu." }
+        ]
+    },
+    "howItWorksSection": {
+        "label": "Cara Kerja",
+        "title": "Mulai dalam 3 Menit",
+        "subtitle": "Setup cepat, langsung bisa digunakan oleh seluruh anggota keluarga.",
+        "items": [
+            { "title": "Daftar Akun", "desc": "Buat akun gratis dengan email dan password. Tidak perlu kartu kredit." },
+            { "title": "Buat Workspace", "desc": "Beri nama workspace keluarga dan undang anggota dengan link atau email." },
+            { "title": "Catat Keuangan", "desc": "Mulai catat pemasukan, pengeluaran, dan buat budget bersama keluarga." },
+            { "title": "Pantau & Evaluasi", "desc": "Lihat laporan, analisis kebiasaan, dan buat keputusan finansial yang lebih baik." }
+        ]
+    },
+    "pricingSection": {
+        "label": "Harga Terjangkau",
+        "title": "Pilih Paket Keluarga Anda",
+        "subtitle": "Mulai gratis {{days}} hari, lanjutkan dengan paket yang sesuai kebutuhan keluarga.",
+        "popular": "⭐ Paling Populer",
+        "free": "Gratis",
+        "perMonth": "per bulan",
+        "perDays": "per {{days}} hari",
+        "choosePlan": "Pilih",
+        "unavailable": "Paket langganan belum tersedia."
+    },
+    "ctaSection": {
+        "title": "Mulai Perjalanan Finansial Keluarga Anda",
+        "subtitle": "Gratis {{days}} hari. Setup 3 menit. Tidak perlu kartu kredit.",
+        "buttonDashboard": "🚀 Masuk ke Dashboard",
+        "buttonTrial": "🚀 Mulai Trial Gratis Sekarang",
+        "trust": "Sudah 2.400+ keluarga bergabung • Batalkan kapan saja"
+    },
+    "pricingPage": {
+        "nav": {
+            "dashboard": "Masuk ke Dashboard",
+            "logout": "Keluar"
+        },
+        "hero": {
+            "badge": "Pricing Plans",
+            "title": "Investasi untuk Masa Depan",
+            "subtitle": "Pilih paket yang sesuai dengan kebutuhan keluarga Anda. Harga transparan, fitur lengkap, dan dukungan penuh."
+        },
+        "alerts": {
+            "trialEndedTitle": "Masa Trial Telah Berakhir",
+            "trialEndedDesc": "Maaf, masa percobaan gratis Anda selama {{days}} hari telah selesai. Untuk tetap bisa mencatat transaksi dan mengelola keuangan keluarga, silakan pilih salah satu paket di bawah ini.",
+            "viewPlansBtn": "Lihat Paket Pilihan ↓",
+            "trialActive": "Akun Anda sedang dalam masa trial (Sisa: {{remaining}}). Silakan pilih paket untuk membuka semua fitur.",
+            "loading": "Memuat paket pilihan..."
+        },
+        "card": {
+            "current": "PAKET SAAT INI",
+            "recommended": "DIREKOMENDASIKAN",
+            "perMonthFamily": "per bulan / keluarga",
+            "newBenefit": "Benefit Baru!",
+            "btnCurrent": "Paket Saat Ini",
+            "btnSelected": "Paket Terpilih",
+            "btnChoose": "Pilih {{plan}}"
+        },
+        "trustFooter": "Pembayaran aman dengan enkripsi 256-bit SSL · Jaminan uang kembali 30 hari",
+        "overlay": {
+            "titlePart1": "Masa Trial Anda ",
+            "titlePart2": "Telah Habis",
+            "desc": "Terima kasih telah mencoba UangKu selama {{days}} hari terakhir. Untuk melanjutkan pencatatan dan akses data keluarga, silakan pilih paket berlangganan di bawah ini.",
+            "safeDataTitle": "Semua data Anda tetap aman",
+            "safeDataDesc": "Pencatatan akan dilanjutkan tepat saat Anda berhenti.",
+            "upgradeBtn": "Upgrade Sekarang"
+        }
+    },
+    "aboutPage": {
+        "hero": {
+            "badge": "Tentang UangKu",
+            "titlePart1": "Membangun Masa Depan",
+            "titlePart2": "Finansial Keluarga",
+            "subtitle": "UangKu adalah platform manajemen keuangan keluarga modern yang dirancang untuk membantu setiap rumah tangga di Indonesia mencapai kemandirian finansial melalui transparansi dan perencanaan yang cerdas."
+        },
+        "vision": {
+            "title": "Visi Kami",
+            "desc": "Menjadi mitra terpercaya bagi setiap keluarga Indonesia dalam menavigasi kompleksitas keuangan, menciptakan masyarakat yang melek finansial dan sejahtera."
+        },
+        "mission": {
+            "title": "Misi Kami",
+            "items": [
+                "Menyediakan alat pencatatan keuangan yang intuitif.",
+                "Memberikan wawasan cerdas berbasis data untuk penghematan.",
+                "Mendorong kolaborasi finansial yang sehat antar anggota keluarga.",
+                "Mengedukasi masyarakat tentang pentingnya dana darurat dan investasi."
+            ]
+        },
+        "values": {
+            "title": "Nilai Inti Kami",
+            "subtitle": "Landasan utama kami dalam melayani Anda.",
+            "items": [
+                {
+                    "title": "Keamanan Data",
+                    "desc": "Privasi dan keamanan finansial Anda adalah prioritas mutlak kami dengan enkripsi standar industri."
+                },
+                {
+                    "title": "Kolaborasi",
+                    "desc": "Percaya bahwa transparansi antar anggota keluarga adalah kunci keharmonisan rumah tangga."
+                },
+                {
+                    "title": "Inovasi",
+                    "desc": "Terus mengembangkan fitur berbasis AI untuk membantu Anda mengoptimalkan setiap Rupiah."
+                }
+            ]
+        }
+    },
+    "contactPage": {
+        "hero": {
+            "titlePart1": "Hubungi",
+            "titlePart2": "Tim UangKu",
+            "desc": "Punya pertanyaan? Kami siap membantu mengoptimalkan finansial keluarga Anda."
+        },
+        "info": {
+            "title": "Informasi Kontak",
+            "building": "Gedung",
+            "address": "Jl. Cigadung Raya Tengah No.52, RT.2, Cigadung, Kec. Cibeunying Kaler, Kota Bandung, Jawa Barat 40191",
+            "emailSupport": "Email Support",
+            "phone": "WhatsApp & Telepon"
+        },
+        "social": {
+            "title": "Media Sosial"
+        },
+        "cta": {
+            "title": "Chat WA Support",
+            "desc": "Respon cepat untuk bantuan teknis, tanya harga langganan, atau kerjasama bisnis."
+        }
+    },
+    "blogList": {
+        "hero": {
+            "badge": "Wawasan Keuangan Keluarga",
+            "titlePart1": "Catatan",
+            "titlePart2": "Cerdas",
+            "subtitle": "Navigasi cerdas untuk kemerdekaan finansial keluarga Anda. Strategi, inspirasi, dan tips praktis dari para ahli."
+        },
+        "filter": {
+            "searchPlaceholder": "Cari topik finansial...",
+            "all": "Semua"
+        },
+        "card": {
+            "generalCategory": "Umum",
+            "admin": "Admin UangKu",
+            "readMore": "Baca Selengkapnya"
+        },
+        "empty": {
+            "title": "Artikel tidak ditemukan",
+            "desc": "Coba gunakan kata kunci lain atau pilih kategori yang berbeda."
+        }
+    },
+    "blogDetail": {
+        "notFound": {
+            "title": "Artikel tidak ditemukan",
+            "desc": "Maaf, artikel yang Anda cari mungkin telah dihapus atau dipindahkan ke alamat baru.",
+            "backBtn": "Kembali ke Blog"
+        },
+        "nav": {
+            "back": "Kembali ke Blog"
+        },
+        "meta": {
+            "readTime": "Menit Membaca",
+            "admin": "Admin UangKu",
+            "role": "Arsitek Finansial",
+            "publishedOn": "Diterbitkan Pada"
+        },
+        "share": {
+            "wisdom": "Bagikan Ilmu"
+        },
+        "recommendations": {
+            "title": "Artikel Terkait",
+            "subtitle": "Inspirasi Finansial Lainnya",
+            "viewAllBtn": "Lihat Semua",
+            "readMore": "Selengkapnya"
+        },
+        "shareModal": {
+            "title": "Bagikan Artikel",
+            "copyLink": "Salin Tautan",
+            "socialMedia": "Media Sosial"
+        }
+    },
+    "auth": {
+        "login": {
+            "titlePart1": "Selamat Datang <br />Kembali di ",
+            "titlePart2": "Kenyamanan.",
+            "subtitle": "Pantau pengeluaran, capai target tabungan, dan tumbuhkan kekayaan keluarga Anda bersama-sama.",
+            "securityDesc": "Keamanan data keluarga terjamin dengan enkripsi SSL.",
+            "copyright": "© 2026 Uangku Platform. All rights reserved.",
+            "backToHome": "BERALIH KE BERANDA",
+            "heading": "Masuk Akun",
+            "noAccount": "Belum punya akun keluarga? ",
+            "startTrial": "Mulai Trial Gratis",
+            "emailLabel": "Alamat Email",
+            "emailPlaceholder": "nama@email.com",
+            "passwordLabel": "Kata Sandi",
+            "forgotPassword": "Lupa Password?",
+            "passwordPlaceholder": "••••••••",
+            "rememberMe": "Ingat saya di perangkat ini",
+            "submitBtn": "Masuk ke Dashboard",
+            "safeSecure": "Safe & Secure",
+            "errorDefault": "Gagal masuk. Silakan periksa kredensial Anda.",
+            "errorUserNotFound": "Email tidak ditemukan",
+            "errorInvalidPassword": "Kata sandi salah"
+        },
+        "register": {
+            "heroTitlePrefix": "Kelola Keuangan Keluarga dengan ",
+            "heroTitleHighlight": "Lebih Bijak",
+            "heroSubtitle": "Bergabunglah bersama ribuan keluarga Indonesia yang sudah menggunakan Uangku untuk mengelola keuangan mereka.",
+            "features": [
+                "Catat transaksi bersama seluruh anggota keluarga",
+                "Budget planning & tabungan tujuan otomatis",
+                "Laporan keuangan visual yang mudah dipahami",
+                "Notifikasi tagihan & pengingat budget"
+            ],
+            "trialTitle": "Trial {{days}} Hari Gratis",
+            "trialDesc": "Akses semua fitur lengkap. Tanpa kartu kredit.",
+            "backToHome": "Kembali ke beranda",
+            "heading": "Buat Akun Keluarga",
+            "haveAccount": "Sudah punya akun? ",
+            "loginHere": "Masuk di sini",
+            "steps": ["Pilih Paket", "Data Akun", "Verifikasi", "Mulai Trial"],
+            "passwordMismatch": "Konfirmasi password tidak cocok",
+            "registerFailed": "Gagal registrasi. Silakan coba lagi.",
+            "otpInvalid": "OTP tidak valid atau kadaluarsa.",
+            "newFamilyBtn": "Daftar sebagai Keluarga Baru",
+            "fullName": "Nama Lengkap",
+            "fullNamePlaceholder": "Budi Santoso",
+            "whatsapp": "Nomor WhatsApp",
+            "whatsappPlaceholder": "08xxxxxxxxxx",
+            "email": "Email",
+            "emailPlaceholder": "budi@email.com",
+            "password": "Password",
+            "passwordPlaceholder": "Min. 8 karakter",
+            "confirmPassword": "Konfirmasi Password",
+            "confirmPasswordPlaceholder": "Ulangi password",
+            "familyData": "Data Keluarga",
+            "familyName": "Nama Keluarga",
+            "autoSetByInviter": "Otomatis diatur pengundang",
+            "familyPlaceholder": "Keluarga Budi",
+            "submitBtn": "🚀 Ajukan Join & Mulai Trial Gratis",
+            "verifyHeading": "Verifikasi Email Anda",
+            "verifyDescP1": "Kami telah mengirimkan kode OTP ke ",
+            "verifyDescP2": " dan ",
+            "enterCode": "Masukkan 6-Digit Kode",
+            "verifyBtn": "Verifikasi & Lanjutkan",
+            "noCode": "Tidak menerima kode? ",
+            "resend": "Kirim ulang",
+            "welcomeHeading": "Selamat Datang!",
+            "welcomeDesc": "Permintaan join akun Anda berhasil diajukan dan sedang menunggu verifikasi Super Admin. Akses trial Anda akan aktif segera setelah disetujui.",
+            "goToPortal": "Masuk ke Portal UangKu",
+            "secureData": "Data Anda aman dan terenkripsi · SSL Protected"
+        },
+        "forgotPassword": {
+            "titleRequest": "Lupa Password?",
+            "titleReset": "Masukan Kode OTP",
+            "descRequest": "Jangan khawatir, masukkan email Anda untuk menerima kode verifikasi.",
+            "descReset": "Periksa email Anda untuk kode verifikasi 6 digit.",
+            "otpSent": "Kode OTP telah dikirim ke email Anda.",
+            "requestFailed": "Gagal mengirim OTP.",
+            "resetSuccess": "Password berhasil diubah. Silakan masuk kembali.",
+            "resetFailed": "Gagal meriset password.",
+            "emailLabel": "Email Terdaftar",
+            "emailPlaceholder": "nama@email.com",
+            "sendOtpBtn": "Kirim Kode Verifikasi",
+            "otpLabel": "Kode OTP (6 Digit)",
+            "otpPlaceholder": "000000",
+            "newPasswordLabel": "Password Baru",
+            "newPasswordPlaceholder": "••••••••",
+            "updatePasswordBtn": "Update Password Baru",
+            "resendBtn": "Belum dapat kode? Kirim ulang"
+        }
     }
 }

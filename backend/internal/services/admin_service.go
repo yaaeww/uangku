@@ -11,36 +11,52 @@ import (
 	"gorm.io/gorm"
 	"time"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
+	"strings"
 )
 
 type UserWithFamily struct {
 	models.User
-	FamilyName     string    `json:"family_name"`
-	Plan           string    `json:"plan"`
-	Status         string    `json:"status"`
-	TrialEndsAt    time.Time `json:"trial_ends_at"`
-	DaysRemaining  int       `json:"days_remaining"`
+	IsVerified    bool      `json:"is_verified"`
+	IsBlocked     bool      `json:"is_blocked"`
+	FamilyName    string    `json:"family_name"`
+	Plan          string    `json:"plan"`
+	Status        string    `json:"status"`
+	TrialEndsAt   time.Time `json:"trial_ends_at"`
+	DaysRemaining int       `json:"days_remaining"`
 }
 
 type AdminService interface {
 	// Super Admin Methods
-	GetDashboardStats() (map[string]interface{}, error)
+	GetDashboardStats(chartDays int) (map[string]interface{}, error)
 	GetAllApplications() ([]models.FamilyApplication, error)
 	ApproveApplication(id string) error
 	RejectApplication(id string) error
 	GetAllFamilies() ([]models.Family, error)
+	GetFamiliesPaginated(offset, limit int, search, status string) ([]models.Family, int64, error)
+	GetFamilyStats() (map[string]int64, error)
 	DeleteFamily(id string) error
+	ToggleFamilyBlock(id string) error
 
 	// User Management Methods
 	GetUsersPaginated(offset, limit int, search, status string) ([]UserWithFamily, int64, error)
+	GetUserStats() (map[string]int64, error)
 	UpdateUser(user *models.User) error
 	ToggleUserBlock(id string) error
+	GetSuperAdmins() ([]models.User, error)
+	CreateSuperAdmin(fullName, email, password string) error
+	UpdateSuperAdmin(id, fullName, email, password string) error
+	DeleteSuperAdmin(id string) error
+	CreateUserWithRole(fullName, email, password, role, familyName string) error
+	UpdateUserAdmin(id, fullName, email, password, role string) error
+	DeleteUserAdmin(id string) error
 
 	// Family Admin Methods
 	GetMembers(familyID uuid.UUID) ([]repositories.MemberWithUser, error)
 	UpdateMemberRole(memberID uuid.UUID, familyID uuid.UUID, role string) error
 	RemoveMember(memberID uuid.UUID, familyID uuid.UUID) error
 	InviteMember(email string, role string, familyID uuid.UUID, invitedBy uuid.UUID) (uuid.UUID, error)
+	GetInvitations(familyID uuid.UUID) ([]models.FamilyInvitation, error)
 
 	// Settings Methods
 	GetSettings() ([]models.SystemSetting, error)
@@ -55,24 +71,36 @@ type AdminService interface {
 	GetPlanByID(id string) (models.SubscriptionPlan, error)
 
 	// Payment Transaction Methods
-	GetPaymentTransactions() ([]models.PaymentTransaction, error)
+	GetPaymentTransactionsPaginated(offset, limit int, search, status, period string) ([]models.PaymentTransaction, int64, error)
+
+	// Payment Channel Methods
+	ListPaymentChannels() ([]models.PaymentChannel, error)
+	SyncPaymentChannels() error
+	UpdatePaymentChannel(channel *models.PaymentChannel) error
+	CreatePaymentChannel(channel *models.PaymentChannel) error
+	DeletePaymentChannel(id string) error
 }
 
 type adminService struct {
 	adminRepo  repositories.AdminRepository
 	memberRepo repositories.MemberRepository
 	mail       MailService
+	tripay     TripayService
 }
 
-func NewAdminService(adminRepo repositories.AdminRepository, memberRepo repositories.MemberRepository, mail MailService) AdminService {
+func NewAdminService(adminRepo repositories.AdminRepository, memberRepo repositories.MemberRepository, mail MailService, tripay TripayService) AdminService {
 	return &adminService{
 		adminRepo:  adminRepo,
 		memberRepo: memberRepo,
 		mail:       mail,
+		tripay:     tripay,
 	}
 }
 
-func (s *adminService) GetDashboardStats() (map[string]interface{}, error) {
+func (s *adminService) GetDashboardStats(chartDays int) (map[string]interface{}, error) {
+	if chartDays <= 0 {
+		chartDays = 7
+	}
 	var totalUsers int64
 	var totalFamilies int64
 	var pendingApps int64
@@ -87,13 +115,51 @@ func (s *adminService) GetDashboardStats() (map[string]interface{}, error) {
 	config.DB.Model(&models.Family{}).Where("status = ?", "active").Count(&activeFamilies)
 	config.DB.Model(&models.FamilyApplication{}).Where("status = ?", "pending").Count(&pendingApps)
 
+	// Financial Stats (Current Month)
+	now := time.Now()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
+	
+	var totalRevenue float64
+	config.DB.Model(&models.PaymentTransaction{}).
+		Where("status = ? AND created_at >= ?", "PAID", monthStart).
+		Select("COALESCE(SUM(total_amount), 0)").Scan(&totalRevenue)
+
+	var totalExpenses float64
+	config.DB.Table("platform_expenses").
+		Where("expense_date >= ?", monthStart).
+		Select("COALESCE(SUM(amount), 0)").Scan(&totalExpenses)
+
+	// Activity Data (configurable period)
+	type DailyActivity struct {
+		Date    string  `json:"date"`
+		Revenue float64 `json:"revenue"`
+	}
+	var activities []DailyActivity
+	for i := chartDays - 1; i >= 0; i-- {
+		date := time.Now().AddDate(0, 0, -i).Format("2006-01-02")
+		var dailyRev float64
+		config.DB.Model(&models.PaymentTransaction{}).
+			Where("status = ? AND DATE(created_at) = ?", "PAID", date).
+			Select("COALESCE(SUM(total_amount), 0)").Scan(&dailyRev)
+		
+		activities = append(activities, DailyActivity{
+			Date:    date,
+			Revenue: dailyRev,
+		})
+	}
+
 	return map[string]interface{}{
-		"total_users":           totalUsers,
-		"blocked_users":         blockedUsers,
-		"total_families":        totalFamilies,
-		"trial_families":        trialFamilies,
-		"active_families":       activeFamilies,
-		"pending_applications":  pendingApps,
+		"total_users":          totalUsers,
+		"blocked_users":        blockedUsers,
+		"total_families":       totalFamilies,
+		"trial_families":       trialFamilies,
+		"active_families":      activeFamilies,
+		"pending_applications": pendingApps,
+		"total_revenue":        totalRevenue,
+		"total_expenses":       totalExpenses,
+		"net_profit":           totalRevenue - totalExpenses,
+		"activity_chart":       activities,
+		"period_label":         now.Format("January 2006"), // For UI feedback
 	}, nil
 }
 
@@ -113,8 +179,20 @@ func (s *adminService) GetAllFamilies() ([]models.Family, error) {
 	return s.adminRepo.GetAllFamilies()
 }
 
+func (s *adminService) GetFamiliesPaginated(offset, limit int, search, status string) ([]models.Family, int64, error) {
+	return s.adminRepo.GetFamiliesPaginated(offset, limit, search, status)
+}
+
+func (s *adminService) GetFamilyStats() (map[string]int64, error) {
+	return s.adminRepo.GetFamilyStats()
+}
+
 func (s *adminService) DeleteFamily(id string) error {
 	return s.adminRepo.DeleteFamily(id)
+}
+
+func (s *adminService) ToggleFamilyBlock(id string) error {
+	return s.adminRepo.ToggleFamilyBlock(id)
 }
 
 func (s *adminService) GetUsersPaginated(offset, limit int, search, status string) ([]UserWithFamily, int64, error) {
@@ -125,7 +203,11 @@ func (s *adminService) GetUsersPaginated(offset, limit int, search, status strin
 
 	var result []UserWithFamily
 	for _, u := range users {
-		item := UserWithFamily{User: u}
+		item := UserWithFamily{
+			User:       u,
+			IsVerified: u.IsVerified,
+			IsBlocked:  u.IsBlocked,
+		}
 		
 		// Find family membership
 		var member models.FamilyMember
@@ -145,7 +227,47 @@ func (s *adminService) GetUsersPaginated(offset, limit int, search, status strin
 		result = append(result, item)
 	}
 
+	// Add pending invitations if status is empty or pending
+	if status == "" || status == "pending" {
+		var invitations []models.FamilyInvitation
+		config.DB.Order("created_at desc").Find(&invitations)
+		
+		for _, inv := range invitations {
+			// Check if already in result by email to avoid duplicates
+			exists := false
+			for _, r := range result {
+				if r.Email == inv.Email {
+					exists = true
+					break
+				}
+			}
+			if exists { continue }
+
+			// Find family name for invitation
+			var family models.Family
+			config.DB.Select("name").First(&family, "id = ?", inv.FamilyID)
+
+			item := UserWithFamily{
+				User: models.User{
+					Email:     inv.Email,
+					FullName:  inv.Email, // Use email as name since they haven't registered
+					CreatedAt: inv.CreatedAt,
+				},
+				IsVerified: false,
+				IsBlocked:  false,
+				FamilyName: family.Name,
+				Status:     "pending_invite",
+			}
+			result = append(result, item)
+			total++ // Increment total count to reflect added invitation
+		}
+	}
+
 	return result, total, nil
+}
+
+func (s *adminService) GetUserStats() (map[string]int64, error) {
+	return s.adminRepo.GetUserStats()
 }
 
 func (s *adminService) UpdateUser(user *models.User) error {
@@ -154,6 +276,117 @@ func (s *adminService) UpdateUser(user *models.User) error {
 
 func (s *adminService) ToggleUserBlock(id string) error {
 	return s.adminRepo.ToggleUserBlock(id)
+}
+
+func (s *adminService) GetSuperAdmins() ([]models.User, error) {
+	return s.adminRepo.GetSuperAdmins()
+}
+
+func (s *adminService) CreateSuperAdmin(fullName, email, password string) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return errors.New("gagal mengamankan password")
+	}
+
+	user := &models.User{
+		FullName:     fullName,
+		Email:        email,
+		PasswordHash: string(hashedPassword),
+		Role:         "super_admin",
+		IsVerified:   true,
+	}
+
+	return s.adminRepo.CreateSuperAdmin(user)
+}
+
+func (s *adminService) UpdateSuperAdmin(id, fullName, email, password string) error {
+	user, err := s.adminRepo.GetSuperAdminByID(id)
+	if err != nil {
+		return errors.New("admin tidak ditemukan")
+	}
+
+	if fullName != "" {
+		user.FullName = fullName
+	}
+	if email != "" {
+		user.Email = email
+	}
+	if password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			return errors.New("gagal mengamankan password")
+		}
+		user.PasswordHash = string(hashedPassword)
+	}
+
+	return s.adminRepo.UpdateUser(user)
+}
+
+func (s *adminService) DeleteSuperAdmin(id string) error {
+	admins, err := s.adminRepo.GetSuperAdmins()
+	if err != nil {
+		return err
+	}
+	if len(admins) <= 1 {
+		return errors.New("tidak bisa menghapus satu-satunya super admin")
+	}
+	return s.adminRepo.DeleteSuperAdmin(id)
+}
+
+func (s *adminService) CreateUserWithRole(fullName, email, password, role, familyName string) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return errors.New("gagal mengamankan password")
+	}
+
+	user := &models.User{
+		FullName:     fullName,
+		Email:        email,
+		PasswordHash: string(hashedPassword),
+		Role:         role,
+		IsVerified:   true,
+	}
+
+	// If family name is provided and role is not super_admin/writer, create family too
+	if familyName != "" && role != "super_admin" && role != "writer" {
+		return s.adminRepo.CreateFamilyWithAdmin(familyName, user)
+	}
+
+	return s.adminRepo.CreateUserAdmin(user)
+}
+
+func (s *adminService) UpdateUserAdmin(id, fullName, email, password, role string) error {
+	user, err := s.adminRepo.GetUserByID(id)
+	if err != nil {
+		return errors.New("pengguna tidak ditemukan")
+	}
+
+	if fullName != "" {
+		user.FullName = fullName
+	}
+	if email != "" {
+		user.Email = email
+	}
+	if role != "" {
+		user.Role = role
+	}
+	if password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			return errors.New("gagal mengamankan password")
+		}
+		user.PasswordHash = string(hashedPassword)
+	}
+
+	return s.adminRepo.UpdateUser(user)
+}
+
+func (s *adminService) DeleteUserAdmin(id string) error {
+	return s.adminRepo.DeleteUserAdmin(id)
+}
+
+func (s *adminService) GetInvitations(familyID uuid.UUID) ([]models.FamilyInvitation, error) {
+	return s.memberRepo.GetInvitations(familyID)
 }
 
 func (s *adminService) GetMembers(familyID uuid.UUID) ([]repositories.MemberWithUser, error) {
@@ -185,6 +418,7 @@ func (s *adminService) RemoveMember(memberID uuid.UUID, familyID uuid.UUID) erro
 }
 
 func (s *adminService) InviteMember(email string, role string, familyID uuid.UUID, invitedBy uuid.UUID) (uuid.UUID, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
 	if familyID == uuid.Nil || invitedBy == uuid.Nil {
 		return uuid.Nil, errors.New("konteks keluarga atau pengundang tidak valid")
 	}
@@ -269,7 +503,7 @@ func (s *adminService) InviteMember(email string, role string, familyID uuid.UUI
 				log.Printf("Recovered from panic in SendInvitation: %v", r)
 			}
 		}()
-		s.mail.SendInvitation(email, family.Name, inviter.FullName, roleDisplay)
+		s.mail.SendInvitation(email, family.Name, inviter.FullName, roleDisplay, invitation.ID.String())
 	}()
 
 	return invitation.ID, nil
@@ -315,9 +549,28 @@ func (s *adminService) GetPublicSettings() (map[string]string, error) {
 
 	public := make(map[string]string)
 	allowed := map[string]bool{
-		"trial_duration_days": true,
-		"allow_registration":  true,
-		"trial_max_members":   true,
+		"trial_duration_days":    true,
+		"allow_registration":     true,
+		"trial_max_members":      true,
+		"website_name":           true,
+		"logo_url_light":         true,
+		"logo_url_dark":          true,
+		"otp_expiry_duration":    true,
+		"resend_otp_duration":    true,
+		"contact_address":        true,
+		"contact_building":       true,
+		"contact_email_support":  true,
+		"contact_email_admin":    true,
+		"contact_phone_primary":  true,
+		"contact_phone_secondary": true,
+		"social_instagram_1":    true,
+		"social_instagram_2":    true,
+		"social_youtube":        true,
+		"social_facebook":       true,
+		"social_tiktok":         true,
+		"social_twitter":        true,
+		"whatsapp_number":       true,
+		"whatsapp_link":         true,
 	}
 
 	for _, s := range settings {
@@ -389,6 +642,49 @@ func (s *adminService) GetPlanByID(id string) (models.SubscriptionPlan, error) {
 	return *plan, nil
 }
 
-func (s *adminService) GetPaymentTransactions() ([]models.PaymentTransaction, error) {
-	return s.adminRepo.GetPaymentTransactions()
+func (s *adminService) GetPaymentTransactionsPaginated(offset, limit int, search, status, period string) ([]models.PaymentTransaction, int64, error) {
+	return s.adminRepo.GetPaymentTransactionsPaginated(offset, limit, search, status, period)
+}
+
+func (s *adminService) ListPaymentChannels() ([]models.PaymentChannel, error) {
+	return s.adminRepo.GetAllPaymentChannels()
+}
+
+func (s *adminService) SyncPaymentChannels() error {
+	remoteChannels, err := s.tripay.GetPaymentChannels()
+	if err != nil {
+		return err
+	}
+
+	for _, rc := range remoteChannels {
+		channel := &models.PaymentChannel{
+			Code:       rc.Code,
+			Name:       rc.Name,
+			Group:      rc.Group,
+			Type:       rc.Type,
+			FeeFlat:    rc.FeeMerchant.Flat + rc.FeeCustomer.Flat,
+			FeePercent: rc.FeeMerchant.Percent + rc.FeeCustomer.Percent, // Assuming total fee is sum
+			IsActive:   rc.Active,
+			IconURL:    rc.IconURL,
+		}
+		// Special handling for Icon URLs or other metadata if available...
+		// In TriPay it might be separate or we just use code to find icon.
+		
+		if err := s.adminRepo.UpsertPaymentChannel(channel); err != nil {
+			log.Printf("[ERROR] Failed to upsert payment channel %s: %v", rc.Code, err)
+		}
+	}
+
+	return nil
+}
+
+func (s *adminService) UpdatePaymentChannel(channel *models.PaymentChannel) error {
+	return s.adminRepo.UpdatePaymentChannel(channel)
+}
+func (s *adminService) CreatePaymentChannel(channel *models.PaymentChannel) error {
+	return s.adminRepo.CreatePaymentChannel(channel)
+}
+
+func (s *adminService) DeletePaymentChannel(id string) error {
+	return s.adminRepo.DeletePaymentChannel(id)
 }

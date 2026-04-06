@@ -1,0 +1,45 @@
+server {
+    listen ${PORT};
+    server_name localhost;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # SEO and Bots
+    location /sitemap.xml {
+        proxy_pass ${BACKEND_URL}/sitemap.xml;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location /robots.txt {
+        proxy_pass ${BACKEND_URL}/robots.txt;
+        proxy_set_header Host $host;
+    }
+
+    # API Proxy
+    location /api/v1/ {
+        proxy_pass ${BACKEND_URL}/api/v1/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Uploads Proxy
+    location /uploads/ {
+        proxy_pass ${BACKEND_URL}/uploads/;
+        proxy_set_header Host $host;
+    }
+
+    # React SPA Fallback
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Error Pages
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root /usr/share/nginx/html;
+    }
+}

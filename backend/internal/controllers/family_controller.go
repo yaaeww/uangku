@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"keuangan-keluarga/internal/config"
 	"keuangan-keluarga/internal/models"
+	"keuangan-keluarga/internal/repositories"
+	"keuangan-keluarga/internal/services"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"keuangan-keluarga/internal/utils"
 )
 
 type FamilyController struct{}
@@ -58,14 +61,24 @@ func (ctrl *FamilyController) UpdateFamily(c *gin.Context) {
 			os.MkdirAll(uploadDir, os.ModePerm)
 		}
 
-		// Generate unique filename with .webp extension
+		// 1. Save as temporary file first
+		ext := filepath.Ext(file.Filename)
+		tempFilename := fmt.Sprintf("temp_family_%d%s", time.Now().UnixNano(), ext)
+		tempPath := filepath.Join(uploadDir, tempFilename)
+
+		if err := c.SaveUploadedFile(file, tempPath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save temporary file"})
+			return
+		}
+		defer os.Remove(tempPath)
+
+		// 2. Prepare final WebP filename
 		filename := fmt.Sprintf("%s_%d.webp", familyID.String(), time.Now().Unix())
 		filePath := filepath.Join(uploadDir, filename)
 
-		// Save the file
-		// Frontend is expected to have already converted it to WebP
-		if err := c.SaveUploadedFile(file, filePath); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan foto"})
+		// 3. Convert to WebP
+		if err := utils.ConvertToWebP(tempPath, filePath, 80); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert photo to WebP"})
 			return
 		}
 
@@ -210,4 +223,93 @@ func (ctrl *FamilyController) UpdateSubscriptionPlan(c *gin.Context) {
 		"message": msg,
 		"family":  family,
 	})
+}
+func (ctrl *FamilyController) UpdateMemberBudget(c *gin.Context) {
+	familyIDStr := c.GetString("family_id")
+	userIDStr := c.GetString("user_id")
+	familyID, _ := uuid.Parse(familyIDStr)
+	userID, _ := uuid.Parse(userIDStr)
+
+	var input struct {
+		TargetUserID string  `json:"target_user_id"`
+		Amount       float64 `json:"amount"`
+		Month        int     `json:"month"`
+		Year         int     `json:"year"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Format data tidak valid"})
+		return
+	}
+
+	targetUserID := userID
+	if input.TargetUserID != "" {
+		if tid, err := uuid.Parse(input.TargetUserID); err == nil {
+			targetUserID = tid
+		}
+	}
+
+	// If month and year are provided, we use SetMonthlyBudget (dynamic plan)
+	if input.Month > 0 && input.Year > 0 {
+		financeSvc := services.NewFinanceService(
+			repositories.NewFinanceRepository(),
+			repositories.NewWalletRepository(),
+			repositories.NewBehaviorRepository(),
+			repositories.NewAssetRepository(),
+			repositories.NewGoalRepository(),
+			repositories.NewBudgetRepository(),
+			services.NewAIService(),
+		)
+		if err := financeSvc.SetMonthlyBudget(familyID, targetUserID, input.Month, input.Year, input.Amount); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui budget bulanan: " + err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "Budget untuk periode tersebut berhasil diperbarui"})
+		return
+	}
+
+	// Fallback to updating default monthly budget (static)
+	if err := config.DB.Model(&models.FamilyMember{}).
+		Where("family_id = ? AND user_id = ?", familyID, targetUserID).
+		Update("monthly_budget", input.Amount).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui budget default anggota"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Budget default berhasil diperbarui"})
+}
+
+func (ctrl *FamilyController) ApplyDefaultAllocation(c *gin.Context) {
+	familyIDStr := c.GetString("family_id")
+	userIDStr := c.GetString("user_id")
+	familyID, _ := uuid.Parse(familyIDStr)
+	userID, _ := uuid.Parse(userIDStr)
+
+	var input struct {
+		TargetUserID string `json:"target_user_id"`
+		Month        int    `json:"month"`
+		Year         int    `json:"year"`
+	}
+	c.ShouldBindJSON(&input)
+
+	if input.Month == 0 {
+		input.Month = int(time.Now().Month())
+	}
+	if input.Year == 0 {
+		input.Year = time.Now().Year()
+	}
+
+	targetUserID := userID
+	if input.TargetUserID != "" {
+		if tid, err := uuid.Parse(input.TargetUserID); err == nil {
+			targetUserID = tid
+		}
+	}
+
+	budgetSvc := services.NewBudgetService()
+	if err := budgetSvc.SeedDefaultBudget(nil, familyID, targetUserID, input.Month, input.Year); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menerapkan alokasi default: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Alokasi budget default berhasil diterapkan"})
 }

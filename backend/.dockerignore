@@ -1,0 +1,21 @@
+# .dockerignore for Backend
+.git
+.vscode
+node_modules
+dist
+tmp
+*.exe
+*.log
+uploads
+# scripts (Need this for OCR service)
+blog_check_results.txt
+blog_response.txt
+final_status.txt
+notifs_full.txt
+notifs_utf8.txt
+seed_output*.txt
+status_*.txt
+test_output.txt
+tmp_diagnose_output*.txt
+tunnel.log
+users_*.txt

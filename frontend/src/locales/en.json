@@ -5,7 +5,9 @@
         "howItWorks": "How it Works",
         "pricing": "Pricing",
         "blog": "Blog",
-        "trial": "Start Free Trial"
+        "trial": "Start Free Trial",
+        "dashboard": "Dashboard",
+        "login": "Login"
     },
     "hero": {
         "badge": "🎉 {{days}}-Day Free Trial — No Credit Card Required",
@@ -15,5 +17,320 @@
         "cta_trial_sub": "Free",
         "cta_demo": "View Demo",
         "trust": "<strong>2,400+ families</strong> joined this month"
+    },
+    "footer": {
+        "description": "Helping families manage finances wiser, more transparently, and effectively plan their future.",
+        "featuresTitle": "Features",
+        "resourcesTitle": "Resources",
+        "companyTitle": "Company",
+        "features": {
+            "record": "Record Transactions",
+            "budgeting": "Budgeting",
+            "reports": "Financial Reports",
+            "multiUser": "Multi-User"
+        },
+        "resources": {
+            "blog": "Blog & Tips"
+        },
+        "company": {
+            "about": "About Us",
+            "privacy": "Privacy Policy",
+            "terms": "Terms & Conditions",
+            "contact": "Contact"
+        },
+        "copyright": "© 2026 Uangku · Made with ❤️ for families"
+    },
+    "appPreview": {
+        "familyBudi": "🏠 Budi Family",
+        "trialBadge": "Trial: {{days}} days",
+        "netBalance": "Net Balance This Month",
+        "balanceChange": "↑ 12% from last month",
+        "income": "Income",
+        "expense": "Expense",
+        "groceries": "Monthly Groceries",
+        "today": "Today",
+        "salary": "Husband's Salary",
+        "groceryBudget": "Food Budget",
+        "budgetUsed": "78% used"
+    },
+    "featuresSection": {
+        "label": "Key Features",
+        "title": "Everything Your Family Needs",
+        "subtitle": "From daily logging to monthly reports — everything is available in one easy-to-use shared platform.",
+        "items": [
+            { "title": "Collaborative Logging", "desc": "All family members can log income and expenses in real-time. Nothing gets missed." },
+            { "title": "Budget Planning", "desc": "Create budgets per category, monitor usage, and get notified when approaching the budget limit." },
+            { "title": "Goal Savings", "desc": "Plan savings for vacations, education, or emergency funds. Track progress together with the family." },
+            { "title": "Visual Reports", "desc": "Easy-to-understand financial charts and reports. Understand your family's spending patterns every month." },
+            { "title": "Multi User", "desc": "Invite your husband, wife, or children to the family workspace. Set roles and access for each member." },
+            { "title": "Bill Reminders", "desc": "Don't forget to pay bills. Set payment schedules and receive timely notifications." }
+        ]
+    },
+    "howItWorksSection": {
+        "label": "How it Works",
+        "title": "Start in 3 Minutes",
+        "subtitle": "Quick setup, ready to use by all family members immediately.",
+        "items": [
+            { "title": "Register Account", "desc": "Create a free account with email and password. No credit card required." },
+            { "title": "Create Workspace", "desc": "Name your family workspace and invite members via link or email." },
+            { "title": "Log Finances", "desc": "Start logging income, expenses, and create budgets together with your family." },
+            { "title": "Monitor & Evaluate", "desc": "View reports, analyze habits, and make better financial decisions." }
+        ]
+    },
+    "pricingSection": {
+        "label": "Affordable Pricing",
+        "title": "Choose Your Family Plan",
+        "subtitle": "Start free for {{days}} days, continue with a plan that fits your family's needs.",
+        "popular": "⭐ Most Popular",
+        "free": "Free",
+        "perMonth": "per month",
+        "perDays": "per {{days}} days",
+        "choosePlan": "Choose",
+        "unavailable": "Subscription plans are currently unavailable."
+    },
+    "ctaSection": {
+        "title": "Start Your Family's Financial Journey",
+        "subtitle": "Free {{days}} days. 3-minute setup. No credit card required.",
+        "buttonDashboard": "🚀 Go to Dashboard",
+        "buttonTrial": "🚀 Start Free Trial Now",
+        "trust": "Over 2,400+ families joined • Cancel anytime"
+    },
+    "pricingPage": {
+        "nav": {
+            "dashboard": "Go to Dashboard",
+            "logout": "Logout"
+        },
+        "hero": {
+            "badge": "Pricing Plans",
+            "title": "Investment for the Future of",
+            "subtitle": "Choose a plan that fits your family's needs. Transparent pricing, full features, and comprehensive support."
+        },
+        "alerts": {
+            "trialEndedTitle": "Trial Period Ended",
+            "trialEndedDesc": "Sorry, your {{days}}-day free trial has expired. To continue logging transactions and managing family finances, please choose one of the plans below.",
+            "viewPlansBtn": "View Available Plans ↓",
+            "trialActive": "Your account is in the trial period (Remaining: {{remaining}}). Please select a plan to unlock all features.",
+            "loading": "Loading available plans..."
+        },
+        "card": {
+            "current": "CURRENT PLAN",
+            "recommended": "RECOMMENDED",
+            "perMonthFamily": "per month / family",
+            "newBenefit": "New Benefit!",
+            "btnCurrent": "Current Plan",
+            "btnSelected": "Selected Plan",
+            "btnChoose": "Choose {{plan}}"
+        },
+        "trustFooter": "Secure payment with 256-bit SSL encryption · 30-day money-back guarantee",
+        "overlay": {
+            "titlePart1": "Your Trial Has ",
+            "titlePart2": "Ended",
+            "desc": "Thank you for trying UangKu for the past {{days}} days. To continue logging and accessing family data, please choose a subscription plan below.",
+            "safeDataTitle": "All your data is safe",
+            "safeDataDesc": "Logging will resume right where you left off.",
+            "upgradeBtn": "Upgrade Now"
+        }
+    },
+    "aboutPage": {
+        "hero": {
+            "badge": "About UangKu",
+            "titlePart1": "Building the Future of",
+            "titlePart2": "Family Finances",
+            "subtitle": "UangKu is a modern family financial management platform designed to help every household achieve financial independence through transparency and smart planning."
+        },
+        "vision": {
+            "title": "Our Vision",
+            "desc": "To be a trusted partner for every family in navigating financial complexities, creating a financially literate and prosperous society."
+        },
+        "mission": {
+            "title": "Our Mission",
+            "items": [
+                "Provide intuitive financial tracking tools.",
+                "Deliver data-driven smart insights for savings.",
+                "Encourage healthy financial collaboration among family members.",
+                "Educate the community on the importance of emergency funds and investments."
+            ]
+        },
+        "values": {
+            "title": "Our Core Values",
+            "subtitle": "Our fundamental foundation in serving you.",
+            "items": [
+                {
+                    "title": "Data Security",
+                    "desc": "Your financial privacy and security are our absolute priority, utilizing industry-standard encryption."
+                },
+                {
+                    "title": "Collaboration",
+                    "desc": "We believe transparency among family members is the key to household harmony."
+                },
+                {
+                    "title": "Innovation",
+                    "desc": "Continuously developing AI-based features to help you optimize every penny."
+                }
+            ]
+        }
+    },
+    "contactPage": {
+        "hero": {
+            "titlePart1": "Contact",
+            "titlePart2": "UangKu Team",
+            "desc": "Have questions? We are ready to help optimize your family's finances."
+        },
+        "info": {
+            "title": "Contact Information",
+            "building": "Headquarters",
+            "address": "Jl. Cigadung Raya Tengah No.52, RT.2, Cigadung, Kec. Cibeunying Kaler, Kota Bandung, West Java 40191",
+            "emailSupport": "Email Support",
+            "phone": "WhatsApp & Phone"
+        },
+        "social": {
+            "title": "Social Media"
+        },
+        "cta": {
+            "title": "Chat on WA Support",
+            "desc": "Fast response for technical assistance, subscription pricing inquiries, or business partnerships."
+        }
+    },
+    "blogList": {
+        "hero": {
+            "badge": "Family Financial Insights",
+            "titlePart1": "Smart",
+            "titlePart2": "Notes",
+            "subtitle": "Smart navigation for your family's financial independence. Strategies, inspiration, and practical tips from experts."
+        },
+        "filter": {
+            "searchPlaceholder": "Search financial topics...",
+            "all": "All"
+        },
+        "card": {
+            "generalCategory": "General",
+            "admin": "UangKu Admin",
+            "readMore": "Read More"
+        },
+        "empty": {
+            "title": "Articles not found",
+            "desc": "Try using another keyword or selecting a different category."
+        }
+    },
+    "blogDetail": {
+        "notFound": {
+            "title": "Article not found",
+            "desc": "Sorry, the article you are looking for may have been deleted or moved to a new address.",
+            "backBtn": "Back to Blog"
+        },
+        "nav": {
+            "back": "Back to Blog"
+        },
+        "meta": {
+            "readTime": "Min Read",
+            "admin": "UangKu Admin",
+            "role": "Financial Architect",
+            "publishedOn": "Published On"
+        },
+        "share": {
+            "wisdom": "Share the Wisdom"
+        },
+        "recommendations": {
+            "title": "Related Articles",
+            "subtitle": "More Financial Inspiration",
+            "viewAllBtn": "View All",
+            "readMore": "Read More"
+        },
+        "shareModal": {
+            "title": "Share Article",
+            "copyLink": "Copy Link",
+            "socialMedia": "Social Media"
+        }
+    },
+    "auth": {
+        "login": {
+            "titlePart1": "Welcome <br />Back to ",
+            "titlePart2": "Comfort.",
+            "subtitle": "Track expenses, achieve savings goals, and grow your family's wealth together.",
+            "securityDesc": "Family data security is guaranteed with SSL encryption.",
+            "copyright": "© 2026 Uangku Platform. All rights reserved.",
+            "backToHome": "SWITCH TO HOME",
+            "heading": "Account Login",
+            "noAccount": "Don't have a family account yet? ",
+            "startTrial": "Start Free Trial",
+            "emailLabel": "Email Address",
+            "emailPlaceholder": "name@email.com",
+            "passwordLabel": "Password",
+            "forgotPassword": "Forgot Password?",
+            "passwordPlaceholder": "••••••••",
+            "rememberMe": "Remember me on this device",
+            "submitBtn": "Go to Dashboard",
+            "safeSecure": "Safe & Secure",
+            "errorDefault": "Failed to login. Please check your credentials.",
+            "errorUserNotFound": "Email address not found",
+            "errorInvalidPassword": "Incorrect password"
+        },
+        "register": {
+            "heroTitlePrefix": "Manage Family Finances ",
+            "heroTitleHighlight": "Smarter",
+            "heroSubtitle": "Join thousands of families who are already using Uangku to manage their finances.",
+            "features": [
+                "Log transactions together with all family members",
+                "Automatic budget planning & goal savings",
+                "Easy-to-understand visual financial reports",
+                "Bill notifications & budget reminders"
+            ],
+            "trialTitle": "Free {{days}}-Day Trial",
+            "trialDesc": "Access all features. No credit card required.",
+            "backToHome": "Back to Home",
+            "heading": "Create Family Account",
+            "haveAccount": "Already have an account? ",
+            "loginHere": "Login here",
+            "steps": ["Choose Plan", "Account Data", "Verification", "Start Trial"],
+            "passwordMismatch": "Password confirmation does not match",
+            "registerFailed": "Registration failed. Please try again.",
+            "otpInvalid": "Invalid or expired OTP.",
+            "newFamilyBtn": "Register as New Family",
+            "fullName": "Full Name",
+            "fullNamePlaceholder": "John Doe",
+            "whatsapp": "WhatsApp Number",
+            "whatsappPlaceholder": "08xxxxxxxxxx",
+            "email": "Email",
+            "emailPlaceholder": "john@email.com",
+            "password": "Password",
+            "passwordPlaceholder": "Min. 8 characters",
+            "confirmPassword": "Confirm Password",
+            "confirmPasswordPlaceholder": "Repeat password",
+            "familyData": "Family Data",
+            "familyName": "Family Name",
+            "autoSetByInviter": "Automatically set by inviter",
+            "familyPlaceholder": "Doe Family",
+            "submitBtn": "🚀 Apply to Join & Start Free Trial",
+            "verifyHeading": "Verify Your Email",
+            "verifyDescP1": "We have sent an OTP code to ",
+            "verifyDescP2": " and ",
+            "enterCode": "Enter 6-Digit Code",
+            "verifyBtn": "Verify & Continue",
+            "noCode": "Didn't receive code? ",
+            "resend": "Resend",
+            "welcomeHeading": "Welcome!",
+            "welcomeDesc": "Your account join request has been submitted and is pending Super Admin verification. Your trial access will be active once approved.",
+            "goToPortal": "Go to UangKu Portal",
+            "secureData": "Your data is safe and encrypted · SSL Protected"
+        },
+        "forgotPassword": {
+            "titleRequest": "Forgot Password?",
+            "titleReset": "Enter OTP Code",
+            "descRequest": "Don't worry, enter your email to receive a verification code.",
+            "descReset": "Check your email for the 6-digit verification code.",
+            "otpSent": "OTP code has been sent to your email.",
+            "requestFailed": "Failed to send OTP.",
+            "resetSuccess": "Password successfully changed. Please log in again.",
+            "resetFailed": "Failed to reset password.",
+            "emailLabel": "Registered Email",
+            "emailPlaceholder": "name@email.com",
+            "sendOtpBtn": "Send Verification Code",
+            "otpLabel": "OTP Code (6 Digits)",
+            "otpPlaceholder": "000000",
+            "newPasswordLabel": "New Password",
+            "newPasswordPlaceholder": "••••••••",
+            "updatePasswordBtn": "Update New Password",
+            "resendBtn": "Didn't receive code? Resend"
+        }
     }
 }
