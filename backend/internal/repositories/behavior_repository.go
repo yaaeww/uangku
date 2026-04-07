@@ -77,21 +77,16 @@ func (r *behaviorRepository) GetBehaviorSummary(familyID uuid.UUID, period strin
 	thisMonthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	
 	var startDate time.Time
-	var durationDays float64
 	
 	switch period {
 	case "7d":
 		startDate = now.AddDate(0, 0, -7)
-		durationDays = 7
 	case "30d":
 		startDate = now.AddDate(0, 0, -30)
-		durationDays = 30
 	case "1y":
 		startDate = now.AddDate(-1, 0, 0)
-		durationDays = 365
 	default: // 90d default
 		startDate = now.AddDate(0, 0, -90)
-		durationDays = 90
 	}
 
 	// --- 0. Fetch Active Challenges & Track Progress ---
@@ -244,96 +239,79 @@ func (r *behaviorRepository) GetBehaviorSummary(familyID uuid.UUID, period strin
 		}
 	}
 
-	// 4. Member Profiling & Character Analysis (Deep Analysis)
+	// 4. Member Profiling & Character Analysis (Deep Analysis - BATCH OPTIMIZED)
 	var familyMembers []models.FamilyMember
 	config.DB.Preload("User").Where("family_id = ?", familyID).Find(&familyMembers)
 
-	type memberStats struct {
-		profile    MemberProfile
-		debtPay    float64
-		pureSpend  float64
-		totalSaved float64
-		txCount    int64
+	type memberStatsResult struct {
+		UserID      uuid.UUID
+		Income      float64
+		Expense     float64
+		DebtPay     float64
+		Savings     float64
+		TxCount     int64
 	}
-	var statsList []memberStats
-	var maxDebtPay, maxPureSpend, maxSaved float64
-	var maxTxCount int64
+	var rawStats []memberStatsResult
+
+	// Consolidated query for all member aggregated stats in one go
+	// This uses the new performance index (family_id, type, date) effectively
+	config.DB.Table("transactions").
+		Select(`
+			user_id,
+			SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
+			SUM(CASE WHEN type = 'expense' AND (category IS NULL OR (category != 'debt_payment' AND category != 'Tabungan')) THEN amount ELSE 0 END) as expense,
+			SUM(CASE WHEN category = 'debt_payment' THEN amount ELSE 0 END) as debt_pay,
+			SUM(CASE WHEN type IN ('saving', 'goal_allocation') OR category = 'Tabungan' THEN amount ELSE 0 END) as savings,
+			COUNT(*) as tx_count
+		`).
+		Where("family_id = ? AND date >= ?", familyID, startDate).
+		Group("user_id").
+		Scan(&rawStats)
+
+	statsMap := make(map[uuid.UUID]memberStatsResult)
+	for _, s := range rawStats {
+		statsMap[s.UserID] = s
+	}
 
 	for _, member := range familyMembers {
-		var memberIncome, memberExpense, memberSavings, memberDebtPay float64
-		// Dynamic period analysis
-		config.DB.Model(&models.Transaction{}).Where("family_id = ? AND user_id = ? AND date >= ? AND type = 'income'", familyID, member.UserID, startDate).Select("COALESCE(SUM(amount), 0)").Scan(&memberIncome)
-		config.DB.Model(&models.Transaction{}).Where("family_id = ? AND user_id = ? AND date >= ? AND type = 'expense' AND category != 'debt_payment'", familyID, member.UserID, startDate).Select("COALESCE(SUM(amount), 0)").Scan(&memberExpense)
-		config.DB.Table("transactions").
-			Joins("LEFT JOIN savings ON transactions.saving_id = savings.id").
-			Joins("LEFT JOIN budget_categories ON savings.budget_category_id = budget_categories.id").
-			Where("transactions.family_id = ? AND transactions.user_id = ? AND transactions.date >= ? AND (transactions.type IN ('saving', 'goal_allocation') OR budget_categories.name = 'Tabungan' OR transactions.category = 'Tabungan')", familyID, member.UserID, startDate).
-			Select("COALESCE(SUM(transactions.amount), 0)").Scan(&memberSavings)
-		config.DB.Model(&models.Transaction{}).Where("family_id = ? AND user_id = ? AND date >= ? AND category = 'debt_payment'", familyID, member.UserID, startDate).Select("COALESCE(SUM(amount), 0)").Scan(&memberDebtPay)
-
-		totalSaved := memberSavings
+		s := statsMap[member.UserID]
+		
+		totalSaved := s.Savings
 		savingRate := 0.0
-		if memberIncome > 0 {
-			savingRate = (totalSaved / memberIncome) * 100
+		if s.Income > 0 {
+			savingRate = (totalSaved / s.Income) * 100
 		}
 
-		// Count transaction frequency for Si Tukang Catat
-		var txCount int64
-		config.DB.Model(&models.Transaction{}).Where("family_id = ? AND user_id = ? AND date >= ?", familyID, member.UserID, startDate).Count(&txCount)
-
-		stats := memberStats{
-			profile: MemberProfile{
-				UserID:     member.UserID,
-				FullName:   member.User.FullName,
-				TotalSpend: memberExpense + memberDebtPay,
-				SavingRate: savingRate,
-				Trait:      "Petualang Keuangan", // Default
-				Description: "Masih mencari ritme keuangan yang pas. Konsistensi mencatat adalah kuncinya!",
-			},
-			debtPay:    memberDebtPay,
-			pureSpend:  memberExpense,
-			totalSaved: totalSaved,
-			txCount:    txCount,
+		profile := MemberProfile{
+			UserID:     member.UserID,
+			FullName:   member.User.FullName,
+			TotalSpend: s.Expense + s.DebtPay,
+			SavingRate: savingRate,
+			Trait:      "Petualang Keuangan", // Default
+			Description: "Masih mencari ritme keuangan yang pas. Konsistensi mencatat adalah kuncinya!",
 		}
-		statsList = append(statsList, stats)
 
-		if memberDebtPay > maxDebtPay { maxDebtPay = memberDebtPay }
-		if memberExpense > maxPureSpend { maxPureSpend = memberExpense }
-		if totalSaved > maxSaved { maxSaved = totalSaved }
-		if txCount > maxTxCount { maxTxCount = txCount }
-	}
-
-	// 5. Assign Titles (Panduan Personas)
-	for i := range statsList {
-		s := &statsList[i]
-		
-		// Priority 1: High Savers
-		if s.profile.SavingRate >= 20 {
-			s.profile.Trait = "Si Rajin Menabung"
-			s.profile.Description = "Masa depan cerah di tanganmu. Rutin mengumpulkan pundi-pundi untuk target besar keluarga!"
-		} else if s.profile.SavingRate >= 10 {
-			s.profile.Trait = "Si Paling Hemat"
-			s.profile.Description = "Ahli efisiensi. Mampu menyisihkan dana meski banyak godaan belanja di sana-sini."
-		} else if s.debtPay > 0 && (maxDebtPay == 0 || s.debtPay >= maxDebtPay*0.8) {
-			// Priority 2: Debt Fighters
-			s.profile.Trait = "Si Pelunas Hutang"
-			s.profile.Description = "Gagah berani memberantas tunggakan. Menjaga skor kredit keluarga tetap bersih dan aman!"
-		} else if (durationDays <= 7 && s.txCount >= 3) || (durationDays > 7 && durationDays <= 30 && s.txCount >= 8) || (durationDays > 30 && s.txCount >= 15) {
-			// Priority 3: Diligent Recorders
-			s.profile.Trait = "Si Tukang Catat"
-			s.profile.Description = "Disiplin luar biasa! Setiap rupiah yang keluar masuk tidak luput dari pantauan ketatmu."
-		} else if s.profile.TotalSpend > 0 && s.profile.SavingRate < 5 {
-			// Priority 4: High Spenders / Needs improvement
-			s.profile.Trait = "Si Laper Mata"
-			s.profile.Description = "Waduh, dompet sering bocor nih! Coba cek lagi kategori 'Keinginan' minggu ini bosku."
-		} else {
-			// Default
-			s.profile.Trait = "Petualang Keuangan"
-			s.profile.Description = "Masih mencari ritme keuangan yang pas. Konsistensi mencatat adalah kunci kesuksesanmu!"
+		// Analysis priority
+		if profile.SavingRate >= 20 {
+			profile.Trait = "Si Rajin Menabung"
+			profile.Description = "Masa depan cerah di tanganmu. Rutin mengumpulkan pundi-pundi untuk target besar keluarga!"
+		} else if profile.SavingRate >= 10 {
+			profile.Trait = "Si Paling Hemat"
+			profile.Description = "Ahli efisiensi. Mampu menyisihkan dana meski banyak godaan belanja di sana-sini."
+		} else if s.DebtPay > 0 {
+			profile.Trait = "Si Pelunas Hutang"
+			profile.Description = "Gagah berani memberantas tunggakan. Menjaga skor kredit keluarga tetap bersih dan aman!"
+		} else if s.TxCount >= 5 {
+			profile.Trait = "Si Tukang Catat"
+			profile.Description = "Disiplin luar biasa! Setiap rupiah yang keluar masuk tidak luput dari pantauan ketatmu."
+		} else if profile.TotalSpend > 0 && profile.SavingRate < 5 {
+			profile.Trait = "Si Laper Mata"
+			profile.Description = "Waduh, dompet sering bocor nih! Coba cek lagi kategori 'Keinginan' minggu ini bosku."
 		}
 		
-		summary.MemberProfiles = append(summary.MemberProfiles, s.profile)
+		summary.MemberProfiles = append(summary.MemberProfiles, profile)
 	}
+
 
 	// 5. Dynamic Challenge Suggestion
 	if summary.MostExpensiveDay != "" && summary.Challenge == nil {

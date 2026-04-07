@@ -33,6 +33,8 @@ interface DashboardOverviewProps {
     familyMembers?: any[];
     familyRole?: string;
     currentUserId?: string;
+    filteredTotalIncome?: number;
+    filteredTotalExpense?: number;
 }
 
 const formatCompact = (val: number) => {
@@ -147,7 +149,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     familyMembers = [],
     familyRole = 'member',
     currentUserId,
-    assets = []
+    assets = [],
+    filteredTotalIncome = 0,
+    filteredTotalExpense = 0
 }) => {
     // Filter wallets: members only see their own
     const displayedWallets = (familyRole === 'head_of_family' || familyRole === 'treasurer')
@@ -198,7 +202,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 />
                 <StatCard
                     title="Pemasukan"
-                    value={`Rp ${(summary?.totalIncome || 0).toLocaleString('id-ID')}`}
+                    value={`Rp ${(filteredTotalIncome || 0).toLocaleString('id-ID')}`}
                     trend={`${(summary?.trendIncome || 0).toFixed(1)}%`}
                     trendUp={(summary?.trendIncome || 0) >= 0}
                     color="blue"
@@ -206,7 +210,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 />
                 <StatCard
                     title="Pengeluaran"
-                    value={`Rp ${(summary?.totalExpense || 0).toLocaleString('id-ID')}`}
+                    value={`Rp ${(filteredTotalExpense || 0).toLocaleString('id-ID')}`}
                     trend={`${Math.abs(summary?.trendExpense || 0).toFixed(1)}%`}
                     trendUp={(summary?.trendExpense || 0) < 0} // Expense trend up is bad for wallet, but "trendUp" as a UI prop usually means "is the number higher than before". Let's follow typical dashboard logic: green for good (income up, expense down).
                     color="red"

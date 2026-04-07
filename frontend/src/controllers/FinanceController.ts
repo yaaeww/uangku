@@ -2,42 +2,52 @@ import api from '../services/api';
 import { Transaction } from '../models';
 
 export const FinanceController = {
-    getMonthlyTransactions: async (month: number, year: number): Promise<Transaction[]> => {
-        const response = await api.get('/finance/transactions', { params: { month, year } });
-        return response.data.map((tx: any) => ({
-            id: tx.id,
-            familyId: tx.family_id,
-            userId: tx.user_id,
-            walletId: tx.wallet_id,
-            toWalletId: tx.to_wallet_id,
-            savingId: tx.saving_id,
-            goalId: tx.goal_id,
-            type: tx.type,
-            amount: tx.amount,
-            category: tx.category,
-            date: tx.date,
-            description: tx.description,
-            user: tx.user ? { fullName: tx.user.full_name } : undefined
-        }));
+    getMonthlyTransactions: async (month: number, year: number, week: number = 0, page: number = 1, limit: number = 25): Promise<{ data: Transaction[], total: number, totalIncome: number, totalExpense: number }> => {
+        const response = await api.get('/finance/transactions', { params: { month, year, week, page, limit } });
+        const { data, total, total_income, total_expense } = response.data;
+        return {
+            total,
+            totalIncome: total_income || 0,
+            totalExpense: total_expense || 0,
+            data: data.map((tx: any) => ({
+                id: tx.id,
+                familyId: tx.family_id,
+                userId: tx.user_id,
+                walletId: tx.wallet_id,
+                toWalletId: tx.to_wallet_id,
+                savingId: tx.saving_id,
+                goalId: tx.goal_id,
+                type: tx.type,
+                amount: tx.amount,
+                category: tx.category,
+                date: tx.date,
+                description: tx.description,
+                user: tx.user ? { fullName: tx.user.full_name } : undefined
+            }))
+        };
     },
 
-    getTransactionsByRange: async (startDate: string, endDate: string): Promise<Transaction[]> => {
-        const response = await api.get('/finance/transactions', { params: { start_date: startDate, end_date: endDate } });
-        return response.data.map((tx: any) => ({
-            id: tx.id,
-            familyId: tx.family_id,
-            userId: tx.user_id,
-            walletId: tx.wallet_id,
-            toWalletId: tx.to_wallet_id,
-            savingId: tx.saving_id,
-            goalId: tx.goal_id,
-            type: tx.type,
-            amount: tx.amount,
-            category: tx.category,
-            date: tx.date,
-            description: tx.description,
-            user: tx.user ? { fullName: tx.user.full_name } : undefined
-        }));
+    getTransactionsByRange: async (startDate: string, endDate: string, page: number = 1, limit: number = 25): Promise<{ data: Transaction[], total: number }> => {
+        const response = await api.get('/finance/transactions', { params: { start_date: startDate, end_date: endDate, page, limit } });
+        const { data, total } = response.data;
+        return {
+            total,
+            data: data.map((tx: any) => ({
+                id: tx.id,
+                familyId: tx.family_id,
+                userId: tx.user_id,
+                walletId: tx.wallet_id,
+                toWalletId: tx.to_wallet_id,
+                savingId: tx.saving_id,
+                goalId: tx.goal_id,
+                type: tx.type,
+                amount: tx.amount,
+                category: tx.category,
+                date: tx.date,
+                description: tx.description,
+                user: tx.user ? { fullName: tx.user.full_name } : undefined
+            }))
+        };
     },
 
     getDashboardSummary: async (month: number, year: number): Promise<any> => {

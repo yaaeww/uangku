@@ -225,19 +225,8 @@ func (ctrl *BlogController) UploadImage(c *gin.Context) {
 
 	// 3. Convert to WebP
 	if err := utils.ConvertToWebP(tempPath, filePath, 80); err != nil {
-		fmt.Printf("[UploadImage] WebP conversion failed, falling back to original: %v\n", err)
-		
-		// Fallback: Use original extension
-		finalFilename := fmt.Sprintf("blog_%d%s", time.Now().UnixNano(), ext)
-		finalPath := filepath.Join(uploadDir, finalFilename)
-		
-		if err := os.Rename(tempPath, finalPath); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save original image"})
-			return
-		}
-		
-		url := "/uploads/blog/" + finalFilename
-		c.JSON(http.StatusOK, gin.H{"url": url})
+		fmt.Printf("[UploadImage] WebP conversion failed: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengonversi gambar ke WebP"})
 		return
 	}
 

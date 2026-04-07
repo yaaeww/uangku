@@ -6,6 +6,7 @@ import (
 	"keuangan-keluarga/internal/models"
 	"keuangan-keluarga/internal/repositories"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,8 +15,8 @@ import (
 )
 
 type FinanceService interface {
-	GetMonthlyTransactions(familyID, userID uuid.UUID, role string, month int, year int) ([]models.Transaction, error)
-	GetTransactionsByRange(familyID, userID uuid.UUID, role string, startDate, endDate time.Time) ([]models.Transaction, error)
+	GetMonthlyTransactions(familyID, userID uuid.UUID, role string, month int, year int, week int, page, limit int) ([]models.Transaction, int64, float64, float64, error)
+	GetTransactionsByRange(familyID, userID uuid.UUID, role string, startDate, endDate time.Time, page, limit int) ([]models.Transaction, int64, float64, float64, error)
 	GetDashboardSummary(familyID, userID uuid.UUID, role string, month int, year int) (*repositories.DashboardSummary, error)
 	CreateTransaction(tx *models.Transaction) error
 	CreateBulkTransactions(txs []models.Transaction) error
@@ -24,6 +25,7 @@ type FinanceService interface {
 	GetBehaviorSummary(familyID uuid.UUID, period string) (*repositories.BehaviorSummary, error)
 	JoinChallenge(familyID uuid.UUID, challenge models.FamilyChallenge) error
 	UpdateFamilyBudget(familyID uuid.UUID, amount float64) error
+	GetByID(id uuid.UUID, familyID uuid.UUID, date time.Time) (*models.Transaction, error)
 
 	// Monthly Budget Plans
 	SetMonthlyBudget(familyID, userID uuid.UUID, month, year int, amount float64) error
@@ -61,12 +63,16 @@ func NewFinanceService(
 	}
 }
 
-func (s *financeService) GetTransactionsByRange(familyID, userID uuid.UUID, role string, startDate, endDate time.Time) ([]models.Transaction, error) {
-	return s.repo.GetTransactionsByRange(familyID, userID, role, startDate, endDate)
+func (s *financeService) GetTransactionsByRange(familyID, userID uuid.UUID, role string, startDate, endDate time.Time, page, limit int) ([]models.Transaction, int64, float64, float64, error) {
+	return s.repo.GetTransactionsByRange(familyID, userID, role, startDate, endDate, page, limit)
 }
 
-func (s *financeService) GetMonthlyTransactions(familyID, userID uuid.UUID, role string, month int, year int) ([]models.Transaction, error) {
-	return s.repo.GetMonthlyTransactions(familyID, userID, role, month, year)
+func (s *financeService) GetMonthlyTransactions(familyID, userID uuid.UUID, role string, month int, year int, week int, page, limit int) ([]models.Transaction, int64, float64, float64, error) {
+	return s.repo.GetMonthlyTransactions(familyID, userID, role, month, year, week, page, limit)
+}
+
+func (s *financeService) GetByID(id uuid.UUID, familyID uuid.UUID, date time.Time) (*models.Transaction, error) {
+	return s.repo.GetByID(id, familyID, date)
 }
 
 func (s *financeService) CreateBulkTransactions(txs []models.Transaction) error {
@@ -89,20 +95,66 @@ func (s *financeService) GetBehaviorSummary(familyID uuid.UUID, period string) (
 }
 
 func (s *financeService) GetCoachAnalysis(familyID, userID uuid.UUID, role string, month int, year int) (*repositories.CoachAnalysis, error) {
+	var (
+		summary    *repositories.DashboardSummary
+		sumErr     error
+		categories []models.BudgetCategory
+		goals      []models.Goal
+		assets     []models.Asset
+		behavior   *repositories.BehaviorSummary
+		user       models.User
+		wg         sync.WaitGroup
+	)
+
+	wg.Add(6)
+	
 	// 1. Gather Basic Summary
-	summary, err := s.repo.GetDashboardSummary(familyID, userID, role, month, year)
-	if err != nil {
-		return nil, err
+	go func() {
+		defer wg.Done()
+		summary, sumErr = s.repo.GetDashboardSummary(familyID, userID, role, month, year)
+	}()
+
+	// 2. Fetch Budget Categories
+	go func() {
+		defer wg.Done()
+		categories, _ = s.budgetRepo.GetBudgetCategories(familyID, month, year)
+	}()
+
+	// 3. Gather Goals
+	go func() {
+		defer wg.Done()
+		goals, _ = s.goalRepo.GetByFamilyID(familyID)
+	}()
+
+	// 4. Gather Assets
+	go func() {
+		defer wg.Done()
+		assets, _ = s.assetRepo.GetByFamilyID(familyID)
+	}()
+
+	// 5. Gather Score & Persona
+	go func() {
+		defer wg.Done()
+		behavior, _ = s.behaviorRepo.GetBehaviorSummary(familyID, "30d")
+	}()
+
+	// 6. Get User Info
+	go func() {
+		defer wg.Done()
+		config.DB.First(&user, "id = ?", userID)
+	}()
+
+	wg.Wait()
+
+	if sumErr != nil || summary == nil {
+		return nil, fmt.Errorf("failed to load dashboard summary: %v", sumErr)
 	}
 
-	categories, _ := s.budgetRepo.GetBudgetCategories(familyID, month, year)
 	catInfo := ""
 	for _, c := range categories {
 		catInfo += fmt.Sprintf("- %s: %s\n", c.Name, c.Type)
 	}
 
-	// 3. Gather Goals
-	goals, _ := s.goalRepo.GetByFamilyID(familyID)
 	goalInfo := ""
 	for _, g := range goals {
 		if g.Status == "active" {
@@ -113,8 +165,6 @@ func (s *financeService) GetCoachAnalysis(familyID, userID uuid.UUID, role strin
 		}
 	}
 
-	// 4. Gather Assets
-	assets, _ := s.assetRepo.GetByFamilyID(familyID)
 	assetInfo := "Aset Likuid:\n"
 	nonLiquidInfo := "Aset Non-Likuid:\n"
 	for _, a := range assets {
@@ -127,8 +177,6 @@ func (s *financeService) GetCoachAnalysis(familyID, userID uuid.UUID, role strin
 	}
 	assetInfo += "\n" + nonLiquidInfo
 
-	// 5. Gather Score & Persona - default to 30d for general analysis context
-	behavior, _ := s.behaviorRepo.GetBehaviorSummary(familyID, "30d")
 	score := 0
 	if behavior != nil {
 		score = behavior.Score
@@ -140,9 +188,6 @@ func (s *financeService) GetCoachAnalysis(familyID, userID uuid.UUID, role strin
 		categoryDetail += fmt.Sprintf("- %s: Rp%.0f\n", cat, total)
 	}
 
-	// 6. Get User Info (for name)
-	var user models.User
-	config.DB.First(&user, "id = ?", userID)
 
 	// 7. Prepare Multi-Layer Data for AI (v3.0 Elite Upgrade)
 	income := summary.TotalIncome
@@ -326,7 +371,10 @@ func (s *financeService) GetCoachAnalysis(familyID, userID uuid.UUID, role strin
 		analysis = &repositories.CoachAnalysis{Ringkasan: "Analisis cerdas sedang diproses."}
 	}
 
-	// Populate final analysis
+	// 8. Robust Fallback Assignment (v4.1 Elite Protection)
+	// Ensure status is NEVER empty to prevent frontend "analyzing" hang
+	if status == "" { status = "Stabil" }
+	
 	analysis.GelarUser = fmt.Sprintf("%s %s - %s", discipline, nature, consistency)
 	analysis.Status = status
 	analysis.DetailedRecommendations = detailedRecs
@@ -351,6 +399,7 @@ func (s *financeService) GetCoachAnalysis(familyID, userID uuid.UUID, role strin
 
 	return analysis, nil
 }
+
 
 func (s *financeService) JoinChallenge(familyID uuid.UUID, challenge models.FamilyChallenge) error {
 	return s.behaviorRepo.JoinChallenge(familyID, challenge)

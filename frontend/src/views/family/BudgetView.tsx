@@ -351,19 +351,22 @@ export const BudgetView = () => {
 
     const activeMember = familyMembers.find((m: any) => m.userId === activeMemberId) || {};
     const isAdmin = familyRole === 'head_of_family' || familyRole === 'treasurer';
+    const isMonitor = familyRole === 'viewer';
+    const canSeeAllBudgets = isAdmin || isMonitor;
 
     // Filter members to hide admins (KK/BDH) from the member list, but keep yourself in tabs
     const filteredMembers = familyMembers.filter((m: any) => 
         m.userId === currentUserId || (m.role !== 'head_of_family' && m.role !== 'treasurer')
     );
 
-    // Refetch categories when activeMemberId changes to support per-user budgets
+    // Refetch categories ONLY when activeMemberId changes to support per-user budgets
+    // selectedMonth/Year are handled by the parent FamilyDashboard's fetchData
     useEffect(() => {
         setIsEditingBudget(false);
         if (typeof refreshDashboard === 'function') {
             refreshDashboard('budget', activeMemberId);
         }
-    }, [activeMemberId, selectedMonth, selectedYear]);
+    }, [activeMemberId]);
 
     useEffect(() => {
         const lowerActiveId = String(activeMemberId).toLowerCase();
@@ -669,7 +672,7 @@ export const BudgetView = () => {
                 </div>
             </div>
 
-            {isAdmin && filteredMembers.some((m: any) => m.userId !== currentUserId) && (
+            {(canSeeAllBudgets || familyRole === 'member') && (
                 <div className="bg-[var(--surface-card)] rounded-[32px] p-6 sm:p-8 border border-[var(--border)] shadow-sm">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2 bg-dagang-accent/10 rounded-xl">
@@ -681,7 +684,16 @@ export const BudgetView = () => {
                         </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {filteredMembers.filter((m: any) => m.userId !== currentUserId).map((m: any) => {
+                        {familyMembers
+                            .filter((m: any) => {
+                                if (canSeeAllBudgets) return true;
+                                return m.userId === currentUserId;
+                            })
+                            .sort((a: any, b: any) => {
+                                const roleOrder: Record<string, number> = { 'head_of_family': 0, 'treasurer': 1, 'member': 2, 'viewer': 3 };
+                                return (roleOrder[a.role] ?? 99) - (roleOrder[b.role] ?? 99);
+                            })
+                            .map((m: any) => {
                             const memberSpent = summary?.memberSpent?.[m.userId] || 0;
                             const memberAllocated = budgetCategories.reduce((acc: number, cat: any) => {
                                 const catItems = (cat.items || []).filter((s: any) => (s.user_id || s.userId) === m.userId);
@@ -695,8 +707,13 @@ export const BudgetView = () => {
                                 <div key={m.id} className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--border)] transition-all hover:border-dagang-accent/30 flex flex-col justify-between">
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="font-bold text-[13px] truncate">{m.fullName || m.full_name || 'Member'}</div>
-                                        <div className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter ${m.role === 'head_of_family' ? 'bg-dagang-accent text-dagang-dark' : 'bg-black/10 text-[var(--text-muted)]'}`}>
-                                            {m.role === 'head_of_family' ? 'KK' : m.role === 'treasurer' ? 'BDH' : 'MBR'}
+                                        <div className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter ${
+                                            m.role === 'head_of_family' ? 'bg-dagang-accent text-dagang-dark' : 
+                                            m.role === 'treasurer' ? 'bg-dagang-green text-white' :
+                                            m.role === 'viewer' ? 'bg-dagang-accent/20 text-dagang-accent border border-dagang-accent/30' :
+                                            'bg-black/10 text-[var(--text-muted)]'
+                                        }`}>
+                                            {m.role === 'head_of_family' ? 'KK' : m.role === 'treasurer' ? 'BDH' : m.role === 'viewer' ? 'PTU' : 'MBR'}
                                         </div>
                                     </div>
                                     <div className="space-y-1">

@@ -73,13 +73,12 @@ export const CoachView: React.FC = () => {
             setLoading(true);
             try {
                 // Fetch basic coach analysis and blogs (usually monthly context)
-                FinanceController.getBlogs('published', 'edukasi')
-                    .then(data => setBlogs(data || []))
-                    .catch(e => console.error("Blog fetch failed", e));
-                
-                FinanceController.getCoachAnalysis(selectedMonth, selectedYear)
-                    .then(data => setAnalysis(data))
-                    .catch(e => console.error("Analysis fetch failed", e));
+                const [blogData, analysisData] = await Promise.all([
+                    FinanceController.getBlogs('published', 'edukasi'),
+                    FinanceController.getCoachAnalysis(selectedMonth, selectedYear)
+                ]);
+                setBlogs(blogData || []);
+                setAnalysis(analysisData);
             } catch (error) {
                 console.error("Failed to fetch static data", error);
             } finally {
@@ -106,9 +105,23 @@ export const CoachView: React.FC = () => {
     }, [selectedPeriod]);
 
     if (loading) return (
-        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-            <div className="w-12 h-12 border-4 border-[var(--primary)]/20 border-t-[var(--primary)] rounded-full animate-spin" />
-            <p className="text-sm font-bold text-[var(--text-muted)] opacity-60 tracking-widest uppercase">Menganalisis Perilaku Keuangan...</p>
+        <div className="flex flex-col items-center justify-center min-h-[500px] gap-8 animate-in fade-in zoom-in duration-500">
+            <div className="relative">
+                <div className="w-20 h-20 border-[6px] border-[var(--primary)]/10 border-t-[var(--primary)] rounded-full animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <Sparkles className="w-8 h-8 text-[var(--primary)] animate-pulse" />
+                </div>
+            </div>
+            <div className="flex flex-col items-center gap-3 text-center max-w-sm">
+                <p className="text-lg font-serif text-[var(--text-main)]">Menyusun Laporan Cerdas</p>
+                <div className="flex items-center gap-2 text-[10px] font-black text-[var(--text-muted)] opacity-50 uppercase tracking-[0.2em]">
+                    <Activity className="w-3 h-3 animate-bounce" />
+                    <span>Menganalisis Data Transaksi...</span>
+                </div>
+                <div className="w-48 h-1.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden mt-2">
+                    <div className="h-full bg-[var(--primary)] animate-progress-indefinite" />
+                </div>
+            </div>
         </div>
     );
 

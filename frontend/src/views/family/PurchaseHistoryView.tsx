@@ -56,8 +56,8 @@ export const PurchaseHistoryView = () => {
     };
 
     const filteredPayments = payments.filter(p => {
-        const matchesSearch = p.reference.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             p.plan_name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = (p.reference || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             (p.plan_name || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
         return matchesSearch && matchesStatus;
     });

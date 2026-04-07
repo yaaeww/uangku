@@ -17,16 +17,15 @@ func main() {
 	log.Println("Initializing server...")
 
 	// 1. Load configuration
-	log.Println("Loading configuration...")
 	config.LoadConfig()
 
 	// 2. Connect to Database
-	log.Println("Initializing database and running migrations (this may take a few seconds)...")
 	config.ConnectDatabase()
 
 	// 3. Initialize Router
-	log.Println("Initializing router...")
-	router := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.New()
+	router.Use(gin.Recovery())
 	router.SetTrustedProxies(nil) // Silence trusted proxies warning
 
 	// 4. Setup Routes

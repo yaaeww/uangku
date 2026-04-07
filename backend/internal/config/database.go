@@ -71,6 +71,7 @@ func ConnectDatabase() {
 		&models.Goal{},
 		&models.SupportReport{},
 		&models.BudgetPlan{},
+		&models.FamilyMonthlySummary{},
 	)
 	if err != nil {
 		log.Fatal("Failed to run migrations:", err)
@@ -201,11 +202,9 @@ func setupPartitionedTransactions() {
 	DB.Exec(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS goal_id UUID;`)
 
 	// 2. Create indices for faster lookups (SAS Method Indexing)
-	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_transactions_family_date ON transactions (family_id, date DESC);`)
-	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions (user_id);`)
-	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_transactions_wallet_id ON transactions (wallet_id);`)
-	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_transactions_saving_id ON transactions (saving_id);`)
-	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_transactions_goal_id ON transactions (goal_id);`)
+	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_transactions_performance_v4 ON transactions (family_id, date DESC, type);`)
+	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_transactions_category_agg ON transactions (family_id, category, type, date DESC);`)
+
 
 	// 3. Create dynamic monthly partitions
 	log.Println("Ensuring initial partitions exist (Jan 2024 - Future)...")

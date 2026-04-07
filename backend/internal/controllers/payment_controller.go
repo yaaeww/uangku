@@ -491,28 +491,18 @@ func (pc *PaymentController) UploadBankLogo(c *gin.Context) {
 	}
 	defer os.Remove(tempPath)
 
-	// 3. Prepare final path
-	webpName := fmt.Sprintf("logo-%s-%d.webp", strings.ToLower(strings.ReplaceAll(code, " ", "-")), time.Now().Unix())
-	webpPath := filepath.Join(finalFolder, webpName)
+	// 3. Prepare final WebP path
+	filename := fmt.Sprintf("logo-%s-%d.webp", strings.ToLower(strings.ReplaceAll(code, " ", "-")), time.Now().Unix())
+	filePath := filepath.Join(finalFolder, filename)
 
-	// 4. Convert to WebP
-	if err := utils.ConvertToWebP(tempPath, webpPath, 80); err != nil {
-		log.Printf("[UploadBankLogo] WebP Conversion Failed: %v. Falling back to original.", err)
-		// Fallback: Just copy the file if conversion fails
-		finalName := fmt.Sprintf("logo-%s-%d%s", strings.ToLower(strings.ReplaceAll(code, " ", "-")), time.Now().Unix(), ext)
-		fallbackPath := filepath.Join(finalFolder, finalName)
-		
-		input, _ := os.ReadFile(tempPath)
-		if err := os.WriteFile(fallbackPath, input, 0644); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save fallback image: " + err.Error()})
-			return
-		}
-		url := "/uploads/payments/" + finalName
-		c.JSON(http.StatusOK, gin.H{"url": url, "warning": "WebP conversion failed, using original format"})
+	// 4. Convert to WebP using our utility
+	if err := utils.ConvertToWebP(tempPath, filePath, 80); err != nil {
+		log.Printf("[UploadBankLogo] WebP Conversion Failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengonversi logo ke WebP"})
 		return
 	}
 
-	url := "/uploads/payments/" + webpName
+	url := "/uploads/payments/" + filename
 	c.JSON(http.StatusOK, gin.H{"url": url})
 }
 
@@ -551,25 +541,16 @@ func (pc *PaymentController) UploadProof(c *gin.Context) {
 	defer os.Remove(tempPath)
 
 	// 3. Convert to WebP
-	webpName := fmt.Sprintf("proof-%s-%d.webp", id[:8], time.Now().Unix())
-	webpPath := filepath.Join(finalFolder, webpName)
+	filename := fmt.Sprintf("proof-%s-%d.webp", id[:8], time.Now().Unix())
+	filePath := filepath.Join(finalFolder, filename)
 
-	var url string
-	if err := utils.ConvertToWebP(tempPath, webpPath, 80); err != nil {
-		log.Printf("[UploadProof] WebP Conversion Failed: %v. Falling back to original.", err)
-		// Fallback: Just copy the file if conversion fails
-		finalName := fmt.Sprintf("proof-%s-%d%s", id[:8], time.Now().Unix(), ext)
-		fallbackPath := filepath.Join(finalFolder, finalName)
-		
-		input, _ := os.ReadFile(tempPath)
-		if err := os.WriteFile(fallbackPath, input, 0644); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save fallback image: " + err.Error()})
-			return
-		}
-		url = "/uploads/payments/" + finalName
-	} else {
-		url = "/uploads/payments/" + webpName
+	if err := utils.ConvertToWebP(tempPath, filePath, 80); err != nil {
+		log.Printf("[UploadProof] WebP Conversion Failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengonversi bukti pembayaran ke WebP"})
+		return
 	}
+	
+	url := "/uploads/payments/" + filename
 	
 	// 4. Update Transaction
 	if err := config.DB.Model(&payment).Updates(map[string]interface{}{

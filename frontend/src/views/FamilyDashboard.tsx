@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     LayoutDashboard,
     Wallet,
@@ -20,7 +20,8 @@ import {
     Trash2,
     Landmark,
     MessageCircle,
-    Target as GoalIcon
+    Target as GoalIcon,
+    Calendar
 } from 'lucide-react';
 import { useModal } from '../providers/ModalProvider';
 import { NotificationController } from '../controllers/NotificationController';
@@ -69,6 +70,12 @@ export const FamilyDashboard = () => {
     const [familyMembers, setFamilyMembers] = useState<any[]>([]);
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [selectedWeek, setSelectedWeek] = useState(0); // 0 = All Weeks
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalTransactions, setTotalTransactions] = useState(0);
+    const [filteredTotalIncome, setFilteredTotalIncome] = useState(0);
+    const [filteredTotalExpense, setFilteredTotalExpense] = useState(0);
+    const [transactionsLimit] = useState(25);
 
     // Initial state for resetting
     const initialTxState = {
@@ -106,14 +113,15 @@ export const FamilyDashboard = () => {
 
     useEffect(() => {
         fetchCurrentUser();
-        fetchSummary(selectedMonth, selectedYear);
-        fetchWallets();
-        fetchSavings();
+        // fetchData will handle initial loading via the other useEffect
     }, []);
 
-    const fetchTransactions = async (month = selectedMonth, year = selectedYear) => {
-        const data = await FinanceController.getMonthlyTransactions(month, year);
+    const fetchTransactions = async (month = selectedMonth, year = selectedYear, week = selectedWeek, page = currentPage) => {
+        const { data, total, totalIncome, totalExpense } = await FinanceController.getMonthlyTransactions(month, year, week, page, transactionsLimit);
         setTransactions(data);
+        setTotalTransactions(total);
+        setFilteredTotalIncome(totalIncome);
+        setFilteredTotalExpense(totalExpense);
         return data;
     };
 
@@ -299,7 +307,7 @@ export const FamilyDashboard = () => {
 
     useEffect(() => {
         fetchData();
-    }, [selectedMonth, selectedYear]);
+    }, [selectedMonth, selectedYear, selectedWeek, currentPage]);
 
     const handleCreateTransaction = async () => {
         
@@ -617,7 +625,14 @@ export const FamilyDashboard = () => {
     };
 
     const location = useLocation();
-    const currentPath = location.pathname.split('/').pop() || 'overview';
+    const currentPath = useMemo(() => {
+        const pathParts = location.pathname.split('/');
+        const dashboardIndex = pathParts.indexOf('dashboard');
+        if (dashboardIndex !== -1 && pathParts.length > dashboardIndex + 1) {
+            return pathParts.slice(dashboardIndex + 1).join('/');
+        }
+        return 'overview';
+    }, [location.pathname]);
     const currentUserFamilyMember = familyMembers.find(m => m.userId === user?.id);
     const currentUserFamilyRole = currentUserFamilyMember?.role || (user as any)?.familyRole || 'member';
 
@@ -708,7 +723,7 @@ export const FamilyDashboard = () => {
                     <SidebarItem 
                         icon={History} 
                         label="Pembelian Paket" 
-                        active={currentPath === 'history'}
+                        active={currentPath === 'family/history'}
                         to={getPath('family/history')}
                         onClick={() => { }}
                     />
@@ -866,14 +881,23 @@ export const FamilyDashboard = () => {
                     setSelectedMonth,
                     selectedYear,
                     setSelectedYear,
+                    selectedWeek,
+                    setSelectedWeek,
                     summary,
+                    filteredTotalIncome,
+                    filteredTotalExpense,
                     wallets: wallets,
                     transactions,
+                    fetchTransactions,
                     savings,
                     debts,
                     user,
                     currentUserId: user?.id,
                     familyRole: currentUserFamilyRole,
+                    currentPage,
+                    setCurrentPage,
+                    totalTransactions,
+                    transactionsLimit,
                     activeTab,
                     setActiveTab,
                     newTx,
@@ -994,7 +1018,7 @@ export const FamilyDashboard = () => {
                         <Plus className="w-7 h-7" />
                     </button>
 
-                    <MobileNavLink to={getPath('transactions')} active={currentPath === 'transactions'} icon={History} />
+                    <MobileNavLink to={getPath('goals')} active={currentPath === 'goals'} icon={GoalIcon} />
                     <button
                         onClick={() => setIsMobileMenuOpen(true)}
                         className={`p-2 transition-all ${isMobileMenuOpen ? 'text-[var(--primary)] scale-110' : 'text-[var(--text-muted)] opacity-40'}`}
@@ -1131,8 +1155,8 @@ export const FamilyDashboard = () => {
 };
 
 const MobileNavLink = ({ to, active, icon: Icon }: { to: string, active: boolean, icon: any }) => (
-    <Link to={to} className={`p-2 transition-all ${active ? 'text-[var(--primary)] scale-110' : 'text-[var(--text-muted)] opacity-40'}`}>
-        <Icon className={`w-6 h-6 ${active ? 'fill-current opacity-20' : ''}`} />
+    <Link to={to} className={`p-2 transition-all flex flex-col items-center justify-center gap-1 ${active ? 'text-[var(--primary)] scale-110 drop-shadow-md' : 'text-[var(--text-muted)] opacity-50 hover:opacity-100'}`}>
+        <Icon className={`w-6 h-6 ${active ? 'stroke-[2.5px]' : 'stroke-2'}`} />
     </Link>
 );
 

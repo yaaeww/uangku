@@ -30,7 +30,14 @@ func (ctrl *FinanceController) ListTransactions(c *gin.Context) {
 	startDateStr := c.Query("start_date")
 	endDateStr := c.Query("end_date")
 
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
+	if page < 1 { page = 1 }
+	if limit < 1 { limit = 25 }
+
 	var transactions []models.Transaction
+	var total int64
+	var totalIncome, totalExpense float64
 	var err error
 
 	if startDateStr != "" && endDateStr != "" {
@@ -39,11 +46,12 @@ func (ctrl *FinanceController) ListTransactions(c *gin.Context) {
 		// Ensure end of day for endDate
 		endDate = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 999999999, time.UTC)
 		
-		transactions, err = ctrl.service.GetTransactionsByRange(familyID, userID, role, startDate, endDate)
+		transactions, total, totalIncome, totalExpense, err = ctrl.service.GetTransactionsByRange(familyID, userID, role, startDate, endDate, page, limit)
 	} else {
 		month, _ := strconv.Atoi(c.DefaultQuery("month", strconv.Itoa(int(time.Now().Month()))))
 		year, _ := strconv.Atoi(c.DefaultQuery("year", strconv.Itoa(time.Now().Year())))
-		transactions, err = ctrl.service.GetMonthlyTransactions(familyID, userID, role, month, year)
+		week, _ := strconv.Atoi(c.DefaultQuery("week", "0"))
+		transactions, total, totalIncome, totalExpense, err = ctrl.service.GetMonthlyTransactions(familyID, userID, role, month, year, week, page, limit)
 	}
 
 	if err != nil {
@@ -51,7 +59,14 @@ func (ctrl *FinanceController) ListTransactions(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, transactions)
+	c.JSON(http.StatusOK, gin.H{
+		"data":          transactions,
+		"total":         total,
+		"total_income":  totalIncome,
+		"total_expense": totalExpense,
+		"page":          page,
+		"limit":         limit,
+	})
 }
 
 func (ctrl *FinanceController) GetDashboardSummary(c *gin.Context) {
@@ -94,15 +109,9 @@ func (ctrl *FinanceController) CreateTransaction(c *gin.Context) {
 		return
 	}
 
-	// Reload to get association data (User)
-	role := c.GetString("family_role")
-	if reloadedTx, err := ctrl.service.GetMonthlyTransactions(tx.FamilyID, tx.UserID, role, int(tx.Date.Month()), tx.Date.Year()); err == nil {
-		for _, rtx := range reloadedTx {
-			if rtx.ID == tx.ID {
-				tx = rtx
-				break
-			}
-		}
+	// Reload to get association data (User) using efficient GetByID
+	if reloadedTx, err := ctrl.service.GetByID(tx.ID, tx.FamilyID, tx.Date); err == nil {
+		tx = *reloadedTx
 	}
 
 	c.JSON(http.StatusCreated, tx)
@@ -173,15 +182,9 @@ func (ctrl *FinanceController) UpdateTransaction(c *gin.Context) {
 		return
 	}
 
-	// Reload to get association data (User)
-	role = c.GetString("family_role")
-	if reloadedTx, err := ctrl.service.GetMonthlyTransactions(tx.FamilyID, tx.UserID, role, int(tx.Date.Month()), tx.Date.Year()); err == nil {
-		for _, rtx := range reloadedTx {
-			if rtx.ID == tx.ID {
-				tx = rtx
-				break
-			}
-		}
+	// Reload to get association data (User) using efficient GetByID
+	if reloadedTx, err := ctrl.service.GetByID(id, tx.FamilyID, tx.Date); err == nil {
+		tx = *reloadedTx
 	}
 
 	c.JSON(http.StatusOK, tx)

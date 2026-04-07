@@ -119,14 +119,14 @@ export const NotificationsView: React.FC = () => {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h2 className="text-[32px] font-serif leading-tight text-[var(--text-main)]">Notifikasi</h2>
+                    <h2 className="text-[28px] md:text-[32px] font-serif leading-tight text-[var(--text-main)]">Notifikasi</h2>
                     <p className="text-[var(--text-muted)] opacity-80 text-sm mt-1">Pantau aktivitas dan pengingat harianmu.</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 md:gap-3">
                     {notifications.some(n => !n.is_read) && (
                         <button 
                             onClick={handleMarkAllAsRead}
-                            className="px-5 py-3 text-[10px] font-black uppercase tracking-wider text-[var(--text-main)] bg-[var(--surface-card)] border border-[var(--border)] rounded-xl hover:bg-black/5 flex items-center gap-2 transition-all"
+                            className="flex-1 md:flex-none px-4 md:px-5 py-2.5 md:py-3 text-[10px] font-black uppercase tracking-wider text-[var(--text-main)] bg-[var(--surface-card)] border border-[var(--border)] rounded-xl hover:bg-black/5 flex items-center justify-center gap-2 transition-all"
                         >
                             <CheckCircle2 className="w-4 h-4" /> Baca Semua
                         </button>
@@ -134,7 +134,7 @@ export const NotificationsView: React.FC = () => {
                     {notifications.length > 0 && (
                         <button 
                             onClick={handleDeleteAll}
-                            className="px-5 py-3 text-[10px] font-black uppercase tracking-wider text-red-500 bg-red-500/5 border border-red-500/20 rounded-xl hover:bg-red-500/10 flex items-center gap-2 transition-all"
+                            className="flex-1 md:flex-none px-4 md:px-5 py-2.5 md:py-3 text-[10px] font-black uppercase tracking-wider text-red-500 bg-red-500/5 border border-red-500/20 rounded-xl hover:bg-red-500/10 flex items-center justify-center gap-2 transition-all"
                         >
                             <Trash2 className="w-4 h-4" /> Hapus Semua
                         </button>
@@ -144,9 +144,9 @@ export const NotificationsView: React.FC = () => {
 
             {/* Selection Toolbar (Floating if items selected) */}
             {selectedIds.length > 0 && (
-                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-white dark:bg-black border border-[var(--border)] rounded-2xl shadow-2xl px-6 py-4 flex items-center gap-8 animate-in slide-in-from-bottom-10 fade-in duration-300">
-                    <div className="flex items-center gap-4 border-r border-[var(--border)] pr-8">
-                        <span className="text-sm font-bold text-[var(--text-main)]">{selectedIds.length} terpilih</span>
+                <div className="fixed bottom-10 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-50 bg-white dark:bg-[#0A0A0A] border border-[var(--border)] rounded-2xl shadow-2xl p-4 md:px-6 md:py-4 flex flex-col md:flex-row items-center gap-4 md:gap-8 animate-in slide-in-from-bottom-10 fade-in duration-300">
+                    <div className="flex items-center justify-between w-full md:w-auto gap-4 md:border-r md:border-[var(--border)] md:pr-8">
+                        <span className="text-sm font-bold text-[var(--text-main)]">{selectedIds.length} <span className="md:hidden">Item </span>Terpilih</span>
                         <button 
                             onClick={() => setSelectedIds([])}
                             className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-main)]"
@@ -154,14 +154,12 @@ export const NotificationsView: React.FC = () => {
                             Batal
                         </button>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <button 
-                            onClick={handleDeleteSelected}
-                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors flex items-center gap-2 text-[11px] font-black uppercase"
-                        >
-                            <Trash2 className="w-4 h-4" /> Hapus terpilih
-                        </button>
-                    </div>
+                    <button 
+                        onClick={handleDeleteSelected}
+                        className="w-full md:w-auto py-2.5 md:p-2 bg-red-500 md:bg-transparent text-white md:text-red-500 hover:bg-red-600 md:hover:bg-red-500/10 rounded-xl md:rounded-lg transition-colors flex items-center justify-center gap-2 text-[11px] font-black uppercase shadow-lg shadow-red-500/20 md:shadow-none"
+                    >
+                        <Trash2 className="w-4 h-4" /> Hapus terpilih
+                    </button>
                 </div>
             )}
 
@@ -202,25 +200,14 @@ export const NotificationsView: React.FC = () => {
                                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border border-[var(--border)] ${getBgColor(n.type)}`}>
                                     {getIcon(n.type)}
                                 </div>
-                                <div className="flex-1 space-y-1">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className={`text-[15px] ${!n.is_read ? 'font-black' : 'font-bold'} text-[var(--text-main)]`}>
+                                <div className="flex-1 space-y-1 overflow-hidden">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-1 md:gap-3">
+                                        <h4 className={`text-[15px] ${!n.is_read ? 'font-black' : 'font-bold'} text-[var(--text-main)] truncate`}>
                                             {n.title}
                                         </h4>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-[10px] font-bold text-[var(--text-muted)] opacity-60 uppercase tracking-widest whitespace-nowrap">
-                                                {new Date(n.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} • {new Date(n.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                            <button 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDelete(n.id);
-                                                }}
-                                                className="p-2 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/5 rounded-lg transition-colors"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
+                                        <span className="text-[9px] md:text-[10px] font-bold text-[var(--text-muted)] opacity-60 uppercase tracking-widest whitespace-nowrap">
+                                            {new Date(n.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} • {new Date(n.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
                                     </div>
                                     <p className="text-sm text-[var(--text-main)] opacity-70 leading-relaxed max-w-2xl font-medium">
                                         {n.message}
