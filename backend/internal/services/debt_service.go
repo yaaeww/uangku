@@ -28,12 +28,22 @@ func addMonths(t time.Time, months int) time.Time {
 	if months == 0 {
 		return t
 	}
-	originalDay := t.Day()
-	newDate := t.AddDate(0, months, 0)
-	if newDate.Day() != originalDay {
-		newDate = newDate.AddDate(0, 0, -newDate.Day())
+	// Go's AddDate(0, months, 0) can overflow (e.g. Jan 31 -> March 3).
+	// We want Jan 31 -> Feb 28/29.
+	y, m, d := t.Date()
+	
+	// Create a date for the first of the target month
+	targetFirst := time.Date(y, m, 1, 0, 0, 0, 0, t.Location()).AddDate(0, months, 0)
+	
+	// Find the last day of the target month
+	lastDay := time.Date(targetFirst.Year(), targetFirst.Month()+1, 0, 0, 0, 0, 0, t.Location()).Day()
+	
+	targetDay := d
+	if targetDay > lastDay {
+		targetDay = lastDay
 	}
-	return newDate
+	
+	return time.Date(targetFirst.Year(), targetFirst.Month(), targetDay, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
 }
 
 func (s *debtService) calculateFirstDueDate(startDate time.Time, paymentDay int) time.Time {
@@ -65,16 +75,30 @@ func (s *debtService) calculateFirstDueDate(startDate time.Time, paymentDay int)
 }
 
 func (s *debtService) getNextInstallmentDate(currentDate time.Time, paymentDay int, interval int) time.Time {
-	next := currentDate.AddDate(0, interval, 0)
-	lastDay := time.Date(next.Year(), next.Month()+1, 0, 0, 0, 0, 0, next.Location()).Day()
+	if interval <= 0 {
+		return currentDate
+	}
+	
+	// Start from current date's Month/Year
+	y, m, _ := currentDate.Date()
+	
+	// Move to the first of the target month
+	targetFirst := time.Date(y, m, 1, 0, 0, 0, 0, currentDate.Location()).AddDate(0, interval, 0)
+	
+	// Find the last day of the target month
+	lastDay := time.Date(targetFirst.Year(), targetFirst.Month()+1, 0, 0, 0, 0, 0, currentDate.Location()).Day()
+	
 	targetDay := paymentDay
 	if targetDay <= 0 {
 		targetDay = currentDate.Day()
 	}
+	
+	// Cap the day to the last day of the month (e.g. if paymentDay is 31 and it's Feb)
 	if targetDay > lastDay {
 		targetDay = lastDay
 	}
-	return time.Date(next.Year(), next.Month(), targetDay, 0, 0, 0, 0, next.Location())
+	
+	return time.Date(targetFirst.Year(), targetFirst.Month(), targetDay, 0, 0, 0, 0, currentDate.Location())
 }
 
 type debtService struct {
@@ -101,13 +125,8 @@ func (s *debtService) GetByFamilyID(familyID uuid.UUID) ([]models.Debt, error) {
 	}
 
 	for i := range debts {
-		startOfPeriod := addMonths(debts[i].NextInstallmentDueDate, -debts[i].InstallmentIntervalMonths)
-		
-		var monthlyPaid float64
-		config.DB.Model(&models.DebtPayment{}).
-			Where("debt_id = ? AND date >= ?", debts[i].ID, startOfPeriod).
-			Select("COALESCE(SUM(amount), 0)").Scan(&monthlyPaid)
-		debts[i].PaidThisMonth = monthlyPaid
+		// Use the persisted CurrentCyclePaid which represents the surplus after advancing cycles
+		debts[i].PaidThisMonth = debts[i].CurrentCyclePaid
 	}
 
 	return debts, nil
@@ -485,17 +504,25 @@ func (s *debtService) recalculateNextInstallmentDate(tx *gorm.DB, debt *models.D
 			// Guardrail: don't advance beyond final maturity
 			if !debt.DueDate.IsZero() && debt.NextInstallmentDueDate.After(debt.DueDate) {
 				debt.NextInstallmentDueDate = debt.DueDate
+				debt.CurrentCyclePaid = totalCredit // Capture surplus
 				if err := tx.Save(debt).Error; err != nil {
 					return err
 				}
 				break 
 			}
 			
+			// Save progress in each loop to keep NextInstallmentDueDate and totalCredit (CurrentCyclePaid) synced
+			debt.CurrentCyclePaid = totalCredit 
 			if err := tx.Save(debt).Error; err != nil {
 				return err
 			}
 			// Continue loop to see if we still have enough credit for the NEXT month
 		} else {
+			// Loop ends, whatever is left in totalCredit is the progress for the current ACTIVE cycle
+			debt.CurrentCyclePaid = totalCredit
+			if err := tx.Save(debt).Error; err != nil {
+				return err
+			}
 			break
 		}
 	}
@@ -562,6 +589,11 @@ func (s *debtService) FullRecalculate(tx *gorm.DB, debtID uuid.UUID) error {
 				break
 			}
 		}
+		// Capture surplus after all possible advancements
+		debt.CurrentCyclePaid = totalCredit
+	} else {
+		// If not an installment debt, all payments count towards CurrentCyclePaid for display if needed
+		debt.CurrentCyclePaid = totalPaid
 	}
 
 	return tx.Save(&debt).Error

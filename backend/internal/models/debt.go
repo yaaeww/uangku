@@ -26,6 +26,7 @@ type Debt struct {
 	StartDate                time.Time `json:"start_date"`
 	PaymentDay               int       `gorm:"default:0" json:"payment_day"`
 	CreatedBy                uuid.UUID `gorm:"type:uuid" json:"created_by"`
+	CurrentCyclePaid        float64   `gorm:"type:decimal(12,2);not null;default:0" json:"current_cycle_paid"`
 	PaidThisMonth            float64   `gorm:"-" json:"paid_this_month"`
 	CreatedAt                time.Time `json:"created_at"`
 	Penalties                []DebtPenalty `gorm:"foreignKey:DebtID" json:"penalties,omitempty"`

@@ -46,6 +46,7 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [paymentError, setPaymentError] = useState<string | null>(null);
     const [isConfirming, setIsConfirming] = useState<boolean>(false);
+    const [showPaymentDetails, setShowPaymentDetails] = useState(false);
 
     const [newDebt, setNewDebt] = useState({
         name: '',
@@ -102,19 +103,36 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
             return;
         }
 
-        // 2. Check if amount exceeds remaining debt (but only if not already confirmed)
         const debt = debts.find(d => d.id === isPaying);
-        if (debt && payment.amount > debt.remainingAmount && !isConfirming) {
+        if (!debt) return;
+
+        // 2. Check principal overflow
+        if (!isConfirming && payment.amount > debt.remainingAmount) {
             setIsConfirming(true);
             return;
         }
 
         handleRecordPayment({ ...payment, debtId: isPaying });
-        setPayment({ amount: 0, walletId: wallets.filter(w => w.userId === currentUserId)[0]?.id || '', description: '', paymentDate: new Date().toISOString().split('T')[0] });
         setIsPaying(null);
+        setShowPaymentDetails(false);
         setIsConfirming(false);
         setPaymentError(null);
     };
+
+    // Reset state when closing payment modal
+    useEffect(() => {
+        if (!isPaying) {
+            setShowPaymentDetails(false);
+            setPayment({
+                amount: 0,
+                walletId: wallets.filter(w => w.userId === currentUserId)[0]?.id || '',
+                description: '',
+                paymentDate: new Date().toISOString().split('T')[0]
+            });
+            setPaymentError(null);
+            setIsConfirming(false);
+        }
+    }, [isPaying, wallets, currentUserId]);
 
     useEffect(() => {
         if (isPaying) {
@@ -630,174 +648,193 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
             {/* Payment Modal */}
             {isPaying && (() => {
                 const currentDebt = debts.find(d => d.id === isPaying);
+                if (!currentDebt) return null;
+
+                const isLate = (() => {
+                    const d = new Date(currentDebt.nextInstallmentDueDate);
+                    d.setHours(0, 0, 0, 0);
+                    const n = new Date();
+                    n.setHours(0, 0, 0, 0);
+                    return n > d;
+                })();
+
+                const currentPeriodTarget = currentDebt.installmentAmount + (isLate ? currentDebt.penaltyAmount : 0);
+                const shortfall = Math.max(0, currentPeriodTarget - (currentDebt.paidThisMonth || 0));
+
                 return (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6 bg-animate-in fade-in duration-300">
-                    <div className="bg-[var(--surface-card)] rounded-[40px] p-10 w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-300 border border-[var(--border)] max-h-[90vh] overflow-y-auto custom-scrollbar">
-                        <div className="flex justify-between items-start mb-2">
-                            <h3 className="text-2xl font-serif text-[var(--text-main)]">Cicil Hutang</h3>
-                            <button onClick={() => setIsPaying(null)} className="p-2 text-[var(--text-muted)] hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all">
-                                <X className="w-6 h-6" />
-                            </button>
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6 bg-animate-in fade-in duration-300">
+                        <div className="bg-[var(--surface-card)] rounded-[40px] p-8 w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-300 border border-[var(--border)] max-h-[90vh] overflow-y-auto custom-scrollbar">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h3 className="text-2xl font-serif text-[var(--text-main)] mb-1">Catat Pembayaran</h3>
+                                    <p className="text-xs font-bold text-[var(--text-muted)] opacity-60 uppercase tracking-widest leading-none flex items-center gap-1.5">
+                                        <Clock className="w-3.5 h-3.5" /> Untuk: {currentDebt.name}
+                                    </p>
+                                </div>
+                                <button onClick={() => setIsPaying(null)} className="p-2 text-[var(--text-muted)] hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-6">
+                                {/* Debt Settings Toggle Section */}
+                                <div className={`overflow-hidden border border-[var(--border)] rounded-3xl transition-all duration-500 ${showPaymentDetails ? 'bg-[var(--background)]' : 'bg-black/5 dark:bg-white/5'}`}>
+                                    <button 
+                                        onClick={() => setShowPaymentDetails(!showPaymentDetails)}
+                                        className="w-full px-6 py-4 flex items-center justify-between group"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                                                <Info className="w-4 h-4" />
+                                            </div>
+                                            <span className="text-xs font-black uppercase tracking-widest text-[var(--text-main)]">Rincian Aturan & Kontrak</span>
+                                        </div>
+                                        <Plus className={`w-4 h-4 text-[var(--text-muted)] transition-transform duration-300 ${showPaymentDetails ? 'rotate-45' : ''}`} />
+                                    </button>
+
+                                    {showPaymentDetails && (
+                                        <div className="px-6 pb-6 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="p-3 bg-black/5 dark:bg-white/5 rounded-2xl border border-[var(--border)]">
+                                                    <div className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">Mulai Hutang</div>
+                                                    <div className="text-sm font-bold text-[var(--text-main)]">{new Date(currentDebt.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                                                </div>
+                                                <div className="p-3 bg-black/5 dark:bg-white/5 rounded-2xl border border-[var(--border)]">
+                                                    <div className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">Jatuh Tempo Akhir</div>
+                                                    <div className="text-sm font-bold text-[var(--text-main)] text-red-500">{new Date(currentDebt.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                                                </div>
+                                                <div className="p-3 bg-black/5 dark:bg-white/5 rounded-2xl border border-[var(--border)]">
+                                                    <div className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">Jatuh Tempo Rutin</div>
+                                                    <div className="text-sm font-bold text-[var(--text-main)]">Tiap Tanggal {currentDebt.paymentDay}</div>
+                                                </div>
+                                                <div className="p-3 bg-black/5 dark:bg-white/5 rounded-2xl border border-[var(--border)]">
+                                                    <div className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">Interval</div>
+                                                    <div className="text-sm font-bold text-[var(--text-main)]">Tiap {currentDebt.installmentIntervalMonths} Bulan</div>
+                                                </div>
+                                            </div>
+                                            <div className="p-3 bg-red-500/5 rounded-2xl border border-red-500/20">
+                                                <div className="flex justify-between items-center">
+                                                    <div className="text-[9px] font-black text-red-500 uppercase tracking-widest">Denda Keterlambatan</div>
+                                                    <div className="text-sm font-black text-red-500">Rp {currentDebt.penaltyAmount.toLocaleString('id-ID')}</div>
+                                                </div>
+                                            </div>
+                                            <div className="text-[10px] text-[var(--text-muted)] italic leading-relaxed opacity-70">
+                                                "{currentDebt.description || 'Tidak ada deskripsi rincian kontrak.'}"
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Current Status Summary */}
+                                <div className="p-6 bg-emerald-500/5 border border-emerald-500/20 rounded-[32px]">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <div className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">Target: {getMonthNameFromDate(currentDebt.nextInstallmentDueDate)}</div>
+                                        <div className="px-2 py-0.5 bg-emerald-500 text-white text-[8px] font-black rounded-full uppercase tracking-widest">Aktif</div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-emerald-700/60 font-bold">Harus Dibayar</span>
+                                            <span className="font-black text-emerald-700">Rp {currentPeriodTarget.toLocaleString('id-ID')}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-emerald-700/60 font-bold">Sudah Masuk</span>
+                                            <span className="font-black text-emerald-500">Rp {(currentDebt.paidThisMonth || 0).toLocaleString('id-ID')}</span>
+                                        </div>
+                                        <div className="pt-2 border-t border-emerald-500/20 flex justify-between items-center">
+                                            <span className="text-xs font-black text-emerald-600 uppercase">Kekurangan</span>
+                                            <span className="text-xl font-heading font-black text-emerald-700">
+                                                Rp {shortfall.toLocaleString('id-ID')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {paymentError && (
+                                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-3 animate-in shake duration-500">
+                                        <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                                        <p className="text-sm text-red-600 font-bold leading-relaxed">{paymentError}</p>
+                                    </div>
+                                )}
+
+                                {isConfirming ? (
+                                    <div className="p-8 bg-amber-500/5 border border-amber-500/20 rounded-[32px] text-center space-y-6 animate-in zoom-in-95 duration-300">
+                                        <div className="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center text-white mx-auto shadow-xl shadow-amber-500/20 rotate-3">
+                                            <Info className="w-8 h-8" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <h4 className="text-xl font-serif text-[var(--text-main)]">Konfirmasi Nominal</h4>
+                                            <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+                                                Jumlah <span className="font-black text-[var(--text-main)]">Rp {payment.amount.toLocaleString('id-ID')}</span> melebihi sisa hutang (<span className="font-black text-[var(--text-main)]">Rp {currentDebt.remainingAmount.toLocaleString('id-ID')}</span>).
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col gap-3">
+                                            <button onClick={onPaymentSubmit} className="w-full py-4 bg-amber-500 text-white rounded-2xl font-bold hover:shadow-lg transition-all">Ya, Tetap Catat</button>
+                                            <button onClick={() => setIsConfirming(false)} className="w-full py-4 bg-black/5 text-[var(--text-muted)] rounded-2xl font-bold transition-all">Batal</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <form onSubmit={onPaymentSubmit} className="space-y-6">
+                                        <div className="space-y-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest">Tanggal Bayar</label>
+                                                    <input
+                                                        type="date"
+                                                        className="w-full px-5 py-3.5 bg-black/5 dark:bg-white/5 border border-[var(--border)] rounded-2xl outline-none focus:ring-2 focus:ring-[var(--primary)]/20 font-bold text-[var(--text-main)]"
+                                                        value={payment.paymentDate}
+                                                        onChange={(e) => setPayment({ ...payment, paymentDate: e.target.value })}
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest">Pilih Dompet</label>
+                                                    <select
+                                                        className="w-full px-5 py-3.5 bg-black/5 dark:bg-white/5 border border-[var(--border)] rounded-2xl outline-none focus:ring-2 focus:ring-[var(--primary)]/20 font-bold text-[var(--text-main)]"
+                                                        value={payment.walletId}
+                                                        onChange={(e) => setPayment({ ...payment, walletId: e.target.value })}
+                                                        required
+                                                    >
+                                                        <option value="">Dompet</option>
+                                                        {wallets.filter(w => w.userId === currentUserId).map(w => (
+                                                            <option key={w.id} value={w.id}>{w.name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest">Jumlah Pembayaran (Rp)</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full px-6 py-4 bg-black/5 dark:bg-white/5 border border-[var(--border)] rounded-2xl outline-none focus:ring-2 focus:ring-[var(--primary)]/30 font-bold text-2xl text-[var(--text-main)]"
+                                                    value={formatRupiah(payment.amount) || ''}
+                                                    onChange={(e) => setPayment({ ...payment, amount: parseRupiah(e.target.value) })}
+                                                    placeholder="0"
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest">Catatan</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full px-6 py-4 bg-black/5 dark:bg-white/5 border border-[var(--border)] rounded-2xl outline-none focus:ring-2 focus:ring-[var(--primary)]/20 font-bold text-[var(--text-main)]"
+                                                    value={payment.description}
+                                                    onChange={(e) => setPayment({ ...payment, description: e.target.value })}
+                                                    placeholder="Opsional..."
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-4 pt-2">
+                                            <button type="submit" className="flex-1 py-4 bg-[var(--text-main)] text-[var(--background)] rounded-2xl font-bold hover:opacity-90 transition-all shadow-xl shadow-black/10">Catat Pembayaran</button>
+                                            <button type="button" onClick={() => setIsPaying(null)} className="px-8 py-4 bg-black/5 text-[var(--text-muted)] rounded-2xl font-bold transition-all">Batal</button>
+                                        </div>
+                                    </form>
+                                )}
+                            </div>
                         </div>
-                        <p className="text-[var(--text-muted)] opacity-70 mb-6 text-sm">Pilih dompet dan masukkan jumlah yang ingin dibayarkan.</p>
-
-                         {currentDebt && (() => {
-                             const isLate = (() => {
-                                 if (!currentDebt.nextInstallmentDueDate) return false;
-                                 const d = new Date(currentDebt.nextInstallmentDueDate);
-                                 d.setHours(0, 0, 0, 0);
-                                 const n = new Date();
-                                 n.setHours(0, 0, 0, 0);
-                                 return n > d;
-                             })();
-                             const currentPeriodTarget = currentDebt.installmentAmount + (isLate ? currentDebt.penaltyAmount : 0);
-                             const shortfall = Math.max(0, currentPeriodTarget - (currentDebt.paidThisMonth || 0));
-
-                             return (
-                                 <div className="space-y-6">
-                                     {/* Professional Error Alert */}
-                                     {paymentError && (
-                                         <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
-                                             <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                                             <div className="flex-1">
-                                                 <div className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Peringatan Transaksi</div>
-                                                 <p className="text-sm text-[var(--text-main)] font-medium leading-relaxed">{paymentError}</p>
-                                             </div>
-                                             <button onClick={() => setPaymentError(null)} className="p-1 hover:bg-red-500/10 rounded-lg transition-all text-red-500">
-                                                 <X className="w-4 h-4" />
-                                             </button>
-                                         </div>
-                                     )}
-
-                                     {isConfirming ? (
-                                         /* Professional Confirmation UI */
-                                         <div className="p-8 bg-amber-500/5 border border-amber-500/20 rounded-[32px] text-center space-y-6 animate-in zoom-in-95 duration-500">
-                                             <div className="w-20 h-20 bg-amber-500 rounded-full flex items-center justify-center text-white mx-auto shadow-2xl shadow-amber-500/20 scale-110">
-                                                 <Info className="w-10 h-10" />
-                                             </div>
-                                             <div className="space-y-2">
-                                                 <h4 className="text-xl font-serif text-[var(--text-main)]">Konfirmasi Pembayaran Lebih</h4>
-                                                 <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-                                                     Jumlah bayar <span className="font-bold text-[var(--text-main)]">Rp {payment.amount.toLocaleString('id-ID')}</span> melebihi sisa hutang pokok (<span className="font-bold text-[var(--text-main)]">Rp {currentDebt.remainingAmount.toLocaleString('id-ID')}</span>). Apakah Anda yakin ingin melanjutkan?
-                                                 </p>
-                                             </div>
-                                             <div className="flex flex-col gap-3">
-                                                 <button 
-                                                     onClick={onPaymentSubmit}
-                                                     className="w-full py-4 bg-amber-500 text-white rounded-2xl font-bold hover:bg-amber-600 transition-all shadow-lg"
-                                                 >
-                                                     Ya, Lanjutkan Pembayaran
-                                                 </button>
-                                                 <button 
-                                                     onClick={() => setIsConfirming(false)}
-                                                     className="w-full py-4 bg-black/5 dark:bg-white/5 text-[var(--text-muted)] rounded-2xl font-bold hover:bg-black/10 transition-all"
-                                                 >
-                                                     Tidak, Ubah Nominal
-                                                 </button>
-                                             </div>
-                                         </div>
-                                     ) : (
-                                         <>
-                                                 <div className="p-6 bg-black/5 dark:bg-white/5 rounded-2xl border border-[var(--border)] border-dashed transition-all">
-                                                     <div className="text-[10px] font-black text-[var(--text-muted)] opacity-50 uppercase tracking-[0.15em] mb-4">Informasi Tagihan</div>
-                                                     <div className="space-y-3">
-                                                         <div className="flex justify-between items-center text-sm">
-                                                             <span className="text-[var(--text-muted)] font-bold">Total Sisa Hutang</span>
-                                                             <span className="font-heading font-black text-[var(--text-main)]">Rp {currentDebt.remainingAmount.toLocaleString('id-ID')}</span>
-                                                         </div>
-                                                         <div className="flex justify-between items-center text-sm">
-                                                             <span className="text-[var(--text-muted)] font-bold">Target Cicilan ({getMonthNameFromDate(currentDebt.nextInstallmentDueDate)})</span>
-                                                             <div className="text-right">
-                                                                 <div className="font-heading font-black text-[var(--text-main)]">Rp {currentPeriodTarget.toLocaleString('id-ID')}</div>
-                                                                 {isLate && (
-                                                                     <div className="text-[10px] text-red-500 font-bold uppercase tracking-tighter">Termasuk Denda Rp {currentDebt.penaltyAmount.toLocaleString('id-ID')}</div>
-                                                                 )}
-                                                             </div>
-                                                         </div>
-                                                         <div className="flex justify-between items-center text-sm">
-                                                             <span className="text-[var(--text-muted)] font-bold">Sudah Dibayar ({getMonthNameFromDate(currentDebt.nextInstallmentDueDate)})</span>
-                                                             <span className="font-heading font-black text-emerald-500">Rp {(currentDebt.paidThisMonth || 0).toLocaleString('id-ID')}</span>
-                                                         </div>
-                                                         <div className="pt-2 border-t border-[var(--border)] flex justify-between items-center">
-                                                             <span className="text-xs font-black text-amber-500 uppercase">Kekurangan Periode Ini</span>
-                                                             <span className="text-base font-heading font-black text-amber-500">
-                                                                 Rp {shortfall.toLocaleString('id-ID')}
-                                                             </span>
-                                                         </div>
-                                                     </div>
-                                                 </div>
-
-                                             <form onSubmit={onPaymentSubmit} className="space-y-6">
-                                                 <div className="space-y-2">
-                                                     <label className="text-xs font-black text-[var(--text-muted)] opacity-80 uppercase tracking-widest">Pilih Dompet Pembayar</label>
-                                                     <select
-                                                         className="w-full px-6 py-4 bg-black/5 dark:bg-white/5 border border-[var(--border)] rounded-2xl outline-none focus:ring-2 focus:ring-[var(--primary)]/20 font-bold text-[var(--text-main)]"
-                                                         value={payment.walletId}
-                                                         onChange={(e) => {
-                                                             setPayment({ ...payment, walletId: e.target.value });
-                                                             setPaymentError(null);
-                                                         }}
-                                                         required
-                                                     >
-                                                         <option value="" className="bg-[var(--surface-card)]">Pilih Wallet</option>
-                                                         {wallets
-                                                             .filter(w => w.userId === currentUserId)
-                                                             .map(w => (
-                                                                 <option key={w.id} value={w.id} className="bg-[var(--surface-card)]">
-                                                                     {w.name} (Saldo: Rp {w.balance.toLocaleString('id-ID')})
-                                                                 </option>
-                                                             ))
-                                                         }
-                                                     </select>
-                                                 </div>
-                                                 <div className="space-y-2">
-                                                     <label className="text-xs font-black text-[var(--text-muted)] opacity-80 uppercase tracking-widest">Jumlah Bayar (Rp)</label>
-                                                     <input
-                                                         type="text"
-                                                         className={`w-full px-6 py-4 bg-black/5 dark:bg-white/5 border rounded-2xl outline-none focus:ring-2 transition-all font-bold text-xl text-[var(--text-main)] ${
-                                                             paymentError ? 'border-red-500 focus:ring-red-500/20' : 'border-[var(--border)] focus:ring-[var(--primary)]/20'
-                                                         }`}
-                                                         value={formatRupiah(payment.amount) || ''}
-                                                         onChange={(e) => {
-                                                             setPayment({ ...payment, amount: parseRupiah(e.target.value) });
-                                                             setPaymentError(null);
-                                                         }}
-                                                         required
-                                                     />
-                                                     {(() => {
-                                                         const wallet = wallets.find(w => w.id === payment.walletId);
-                                                         if (wallet && payment.amount > wallet.balance) {
-                                                             return (
-                                                                 <p className="text-[10px] text-red-500 font-bold flex items-center gap-1 animate-in slide-in-from-top-1">
-                                                                     <AlertCircle className="w-3 h-3" /> Saldo dompet tidak mencukupi! (Sisa: Rp {wallet.balance.toLocaleString('id-ID')})
-                                                                 </p>
-                                                             );
-                                                         }
-                                                         return null;
-                                                     })()}
-                                                 </div>
-                                                 <div className="space-y-2">
-                                                     <label className="text-xs font-black text-[var(--text-muted)] opacity-80 uppercase tracking-widest">Catatan Pembayaran (Optional)</label>
-                                                     <input
-                                                         type="text"
-                                                         className="w-full px-6 py-4 bg-black/5 dark:bg-white/5 border border-[var(--border)] rounded-2xl outline-none focus:ring-2 focus:ring-[var(--primary)]/20 font-bold text-[var(--text-main)]"
-                                                         value={payment.description}
-                                                         onChange={(e) => setPayment({ ...payment, description: e.target.value })}
-                                                         placeholder="Misal: Cicilan bulan Maret"
-                                                     />
-                                                 </div>
-                                                 <div className="flex gap-4 pt-4">
-                                                     <button type="submit" className="flex-1 py-4 bg-[var(--primary)] text-white rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-black/10">Catat Pembayaran</button>
-                                                     <button type="button" onClick={() => setIsPaying(null)} className="px-8 py-4 bg-black/5 dark:bg-white/5 text-[var(--text-muted)] rounded-2xl font-bold hover:bg-red-500/10 hover:text-red-500 transition-all">Batal</button>
-                                                 </div>
-                                             </form>
-                                         </>
-                                     )}
-                                 </div>
-                             );
-                         })()}
                     </div>
-                </div>
                 );
             })()}
 
@@ -1058,4 +1095,15 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
             )}
         </div>
     );
+};
+
+const getMonthNameFromDate = (dateString?: string) => {
+    if (!dateString) return '-';
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '-';
+        return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    } catch (e) {
+        return '-';
+    }
 };
