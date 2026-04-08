@@ -110,7 +110,7 @@ export const SettingFormModal: React.FC<SettingFormModalProps> = ({
                                         <div className="flex flex-col items-center gap-2 p-4 bg-black/5 dark:bg-white/5 rounded-2xl border border-[var(--border)]">
                                             <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Preview Logo</span>
                                             <img 
-                                                src={localPreview || (String(value || '').startsWith('http') || String(value || '').startsWith('blob:') ? value : `${(import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/api\/v1\/?$/, '').replace(/\/$/, '')}${value}`)} 
+                                                src={localPreview || (String(value || '').startsWith('http') || String(value || '').startsWith('blob:') ? value : `${(import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/api\/v1\/?$/, '').replace(/\/$/, '')}${value}`)} 
                                                 alt="Logo Preview" 
                                                 className="h-12 object-contain"
                                                 onError={(e) => {

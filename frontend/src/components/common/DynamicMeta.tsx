@@ -15,7 +15,7 @@ export const DynamicMeta = () => {
         
         if (faviconUrl) {
             // Base URL for backend assets
-            const backendUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/api\/v1\/?$/, '').replace(/\/$/, '');
+            const backendUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/api\/v1\/?$/, '').replace(/\/$/, '');
             const fullUrl = String(faviconUrl).startsWith('http') ? String(faviconUrl) : `${backendUrl}${faviconUrl}`;
             
             let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");

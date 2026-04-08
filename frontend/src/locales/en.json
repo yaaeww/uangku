@@ -24,10 +24,10 @@
         "resourcesTitle": "Resources",
         "companyTitle": "Company",
         "features": {
-            "record": "Record Transactions",
-            "budgeting": "Budgeting",
-            "reports": "Financial Reports",
-            "multiUser": "Multi-User"
+            "record": "Shared Records",
+            "budgeting": "Budget & Savings",
+            "reports": "Debts & Assets",
+            "multiUser": "Family Management"
         },
         "resources": {
             "blog": "Blog & Tips"
@@ -58,12 +58,12 @@
         "title": "Everything Your Family Needs",
         "subtitle": "From daily logging to monthly reports — everything is available in one easy-to-use shared platform.",
         "items": [
-            { "title": "Collaborative Logging", "desc": "All family members can log income and expenses in real-time. Nothing gets missed." },
-            { "title": "Budget Planning", "desc": "Create budgets per category, monitor usage, and get notified when approaching the budget limit." },
-            { "title": "Goal Savings", "desc": "Plan savings for vacations, education, or emergency funds. Track progress together with the family." },
-            { "title": "Visual Reports", "desc": "Easy-to-understand financial charts and reports. Understand your family's spending patterns every month." },
-            { "title": "Multi User", "desc": "Invite your husband, wife, or children to the family workspace. Set roles and access for each member." },
-            { "title": "Bill Reminders", "desc": "Don't forget to pay bills. Set payment schedules and receive timely notifications." }
+            { "title": "Shared Transactions", "desc": "All family members can log income and expenses in real-time. Nothing gets missed." },
+            { "title": "Budget & Allocation", "desc": "Create categories, set limits, and get real-time alerts when you're approaching your spend limit." },
+            { "title": "Debt Management", "desc": "Track loans and debts. Set due date reminders to keep your family's credit score healthy." },
+            { "title": "Financial Goals", "desc": "Plan for a house, vacation, or emergency fund. Track your collective progress towards the target." },
+            { "title": "Asset Tracking", "desc": "Monitor your wealth growth from property, vehicles, gold savings to other various investments." },
+            { "title": "AI Coach & Analytics", "desc": "Get smart insights from our AI Coach and deep visual reports about your family's financial health." }
         ]
     },
     "howItWorksSection": {
