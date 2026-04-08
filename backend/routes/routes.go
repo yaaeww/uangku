@@ -56,8 +56,10 @@ func SetupRoutes(router *gin.Engine) {
 	assetRepo := repositories.NewAssetRepository()
 	budgetRepo := repositories.NewBudgetRepository()
 	aiService := services.NewAIService()
+	notificationService := services.NewNotificationService(mailService)
+	debtService := services.NewDebtService(notificationService)
 
-	financeService := services.NewFinanceService(financeRepo, walletRepo, behaviorRepo, assetRepo, goalRepo, budgetRepo, aiService)
+	financeService := services.NewFinanceService(financeRepo, walletRepo, behaviorRepo, assetRepo, goalRepo, budgetRepo, aiService, debtService)
 	financeController := controllers.NewFinanceController(financeService)
 
 	memberRepo := repositories.NewMemberRepository()
@@ -68,10 +70,7 @@ func SetupRoutes(router *gin.Engine) {
 
 	savingController := controllers.NewSavingController(savingService)
 
-	notificationService := services.NewNotificationService(mailService)
 	notificationController := controllers.NewNotificationController(notificationService)
-
-	debtService := services.NewDebtService(notificationService)
 	debtController := controllers.NewDebtController(debtService)
 
 	familyController := controllers.NewFamilyController()

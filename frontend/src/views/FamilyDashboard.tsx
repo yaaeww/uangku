@@ -220,8 +220,8 @@ export const FamilyDashboard = () => {
         }
     };
 
-    const fetchData = async () => {
-        setLoading(true);
+    const fetchData = async (isSilent: boolean = false) => {
+        if (!isSilent) setLoading(true);
         try {
             const now = new Date();
             // 1. Fetch Summary first as it contains family profile and member counts
@@ -257,7 +257,7 @@ export const FamilyDashboard = () => {
         } catch (error) {
             console.error("Failed to fetch dashboard data", error);
         } finally {
-            setLoading(false);
+            if (!isSilent) setLoading(false);
         }
     };
 
@@ -307,6 +307,16 @@ export const FamilyDashboard = () => {
 
     useEffect(() => {
         fetchData();
+        
+        // Add pooling interval for auto-refresh
+        const pollInterval = setInterval(() => {
+            // Only poll if tab is active to save resources
+            if (document.visibilityState === 'visible') {
+                fetchData(true); // Silent refresh
+            }
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(pollInterval);
     }, [selectedMonth, selectedYear, selectedWeek, currentPage]);
 
     const handleCreateTransaction = async () => {

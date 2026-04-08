@@ -39,6 +39,7 @@ import { useAuthStore } from './store/authStore';
 import { useSystemStore } from './store/systemStore';
 import { useOutletContext } from 'react-router-dom';
 import { useEffect } from 'react';
+import { useThemeStore } from './store/themeStore';
 
 // Import sub-views
 import { DashboardOverview } from './views/family/DashboardOverview';
@@ -151,9 +152,15 @@ function App() {
   const user = useAuthStore((state) => state.user);
   const { fetchSettings } = useSystemStore();
 
+  const { theme } = useThemeStore();
+
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   return (
     <ModalProvider>

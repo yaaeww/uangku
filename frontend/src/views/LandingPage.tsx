@@ -72,7 +72,7 @@ export const LandingPage = () => {
     const trialDuration = settings.trial_duration_days || "7";
 
     return (
-        <div className="bg-dagang-cream text-dagang-dark font-sans selection:bg-dagang-green-pale selection:text-dagang-green">
+        <div className="bg-dagang-cream text-[#0A1F18] font-sans selection:bg-dagang-green-pale selection:text-dagang-green">
             {/* Navigation */}
             <PublicHeader />
 
@@ -98,13 +98,13 @@ export const LandingPage = () => {
                         <div className="inline-flex items-center gap-2 bg-dagang-green-pale text-dagang-green px-4 py-1.5 rounded-full text-sm font-semibold mb-7 border border-dagang-green/15 before:content-['✦'] before:text-[10px]">
                             {t('hero.badge', { days: trialDuration })}
                         </div>
-                        <h1 className="font-heading text-h1 mobile:text-display-l desktop:text-display-xl leading-[1.05] text-dagang-dark mb-6" dangerouslySetInnerHTML={{ __html: t('hero.title') }} />
+                        <h1 className="font-heading text-h1 mobile:text-display-l desktop:text-display-xl leading-[1.05] text-[#0A1F18] mb-6" dangerouslySetInnerHTML={{ __html: t('hero.title') }} />
                         <motion.p 
                             initial={{ opacity: 0 }}
                             whileInView={{ opacity: 1 }}
                             transition={{ delay: 0.3, duration: 0.8 }}
                             viewport={{ once: true }}
-                            className="text-body-l text-dagang-gray leading-relaxed mb-11 max-w-[480px] mx-auto lg:mx-0"
+                            className="text-body-l text-[#334155] leading-relaxed mb-11 max-w-[480px] mx-auto lg:mx-0"
                         >
                             {t('hero.subtitle')}
                         </motion.p>
@@ -138,7 +138,7 @@ export const LandingPage = () => {
                                     </div>
                                 ))}
                             </div>
-                            <div className="text-[13px] text-dagang-gray" dangerouslySetInnerHTML={{ __html: t('hero.trust') }} />
+                            <div className="text-[13px] text-[#334155]" dangerouslySetInnerHTML={{ __html: t('hero.trust') }} />
                         </div>
                     </motion.div>
 
@@ -151,7 +151,7 @@ export const LandingPage = () => {
                     >
                         <div className="bg-white rounded-[24px] shadow-[0_32px_80px_rgba(0,0,0,0.12),0_4px_16px_rgba(0,0,0,0.06)] p-7 overflow-hidden">
                             <div className="flex justify-between items-center mb-5">
-                                <div className="text-[13px] font-semibold text-dagang-dark">{t('appPreview.familyBudi')}</div>
+                                <div className="text-[13px] font-semibold text-[#0A1F18]">{t('appPreview.familyBudi')}</div>
                                 <div className="bg-dagang-accent text-white text-[11px] font-bold px-2.5 py-1 rounded-full">{t('appPreview.trialBadge', { days: trialDuration })}</div>
                             </div>
 
@@ -166,14 +166,14 @@ export const LandingPage = () => {
                                     <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center text-sm">💚</div>
                                     <div>
                                         <div className="text-[13px] font-semibold">Rp 12,5 jt</div>
-                                        <div className="text-[11px] text-dagang-gray">{t('appPreview.income')}</div>
+                                        <div className="text-[11px] text-[#334155]">{t('appPreview.income')}</div>
                                     </div>
                                 </div>
                                 <div className="bg-dagang-cream rounded-[12px] p-3 flex items-center gap-2.5">
                                     <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center text-sm">❤️</div>
                                     <div>
                                         <div className="text-[13px] font-semibold">Rp 4,05 jt</div>
-                                        <div className="text-[11px] text-dagang-gray">{t('appPreview.expense')}</div>
+                                        <div className="text-[11px] text-[#334155]">{t('appPreview.expense')}</div>
                                     </div>
                                 </div>
                             </div>
@@ -184,7 +184,7 @@ export const LandingPage = () => {
                                         <div className="w-[28px] h-[28px] rounded-lg bg-dagang-green-pale flex items-center justify-center text-[12px]">🛒</div>
                                         <div>
                                             <div className="text-[12px] font-medium">{t('appPreview.groceries')}</div>
-                                            <div className="text-[11px] text-dagang-gray">{t('appPreview.today')}</div>
+                                            <div className="text-[11px] text-[#334155]">{t('appPreview.today')}</div>
                                         </div>
                                     </div>
                                     <div className="text-[12px] font-semibold text-red-500">- Rp 450k</div>
@@ -213,7 +213,7 @@ export const LandingPage = () => {
                             <div className="w-9 h-9 bg-amber-100 rounded-[10px] flex items-center justify-center text-base">📊</div>
                             <div className="text-[12px]">
                                 <strong className="block font-semibold">{t('appPreview.groceryBudget')}</strong>
-                                <span className="text-dagang-gray">{t('appPreview.budgetUsed')}</span>
+                                <span className="text-[#334155]">{t('appPreview.budgetUsed')}</span>
                             </div>
                         </motion.div>
                     </motion.div>
@@ -236,7 +236,7 @@ export const LandingPage = () => {
                     >
                         <div className="text-xs font-bold text-dagang-green tracking-[0.15em] uppercase mb-4 opacity-70">{t('featuresSection.label')}</div>
                         <h2 className="font-serif text-5xl mobile:text-h1 leading-[1.1] mb-6">{t('featuresSection.title')}</h2>
-                        <p className="text-dagang-gray text-lg max-w-[520px] leading-relaxed">
+                        <p className="text-[#334155] text-lg max-w-[520px] leading-relaxed">
                             {t('featuresSection.subtitle')}
                         </p>
                     </motion.div>
@@ -263,7 +263,7 @@ export const LandingPage = () => {
                             >
                                 <div className="w-[56px] h-[56px] rounded-[18px] bg-dagang-green-pale flex items-center justify-center text-[24px] mb-6 transition-transform group-hover:scale-110 duration-300 ring-4 ring-dagang-green/5">{f.icon}</div>
                                 <h3 className="text-[19px] font-bold mb-3">{f.title}</h3>
-                                <p className="text-[15px] text-dagang-gray leading-relaxed opacity-85">{f.desc}</p>
+                                <p className="text-[15px] text-[#334155] leading-relaxed opacity-85">{f.desc}</p>
                                 <div className="absolute bottom-0 left-0 right-0 h-[3.5px] bg-gradient-to-r from-dagang-green to-dagang-green-light scale-x-0 transition-transform group-hover:scale-x-100 origin-left duration-300" />
                             </motion.div>
                         ))}

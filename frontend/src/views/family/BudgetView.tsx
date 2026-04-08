@@ -366,7 +366,7 @@ export const BudgetView = () => {
         if (typeof refreshDashboard === 'function') {
             refreshDashboard('budget', activeMemberId);
         }
-    }, [activeMemberId]);
+    }, [activeMemberId, selectedMonth, selectedYear]);
 
     useEffect(() => {
         const lowerActiveId = String(activeMemberId).toLowerCase();
@@ -694,13 +694,15 @@ export const BudgetView = () => {
                                 return (roleOrder[a.role] ?? 99) - (roleOrder[b.role] ?? 99);
                             })
                             .map((m: any) => {
-                            const memberSpent = summary?.memberSpent?.[m.userId] || 0;
+                            const memberSpent = summary?.memberSpent?.[m.userId] ?? 0;
+                            const memberDebtSpent = summary?.member_debt_spent?.[m.userId] ?? summary?.memberDebtSpent?.[m.userId] ?? 0;
+                            const memberGoalSpent = summary?.member_goal_spent?.[m.userId] ?? summary?.memberGoalSpent?.[m.userId] ?? 0;
                             const memberAllocated = budgetCategories.reduce((acc: number, cat: any) => {
                                 const catItems = (cat.items || []).filter((s: any) => (s.user_id || s.userId) === m.userId);
                                 return acc + catItems.reduce((iAcc: number, item: any) => iAcc + (item.targetAmount || item.target_amount || 0), 0);
                             }, 0);
 
-                            const memberBudget = summary?.memberBudgets?.[String(m.userId).toLowerCase()] || summary?.memberBudgets?.[m.userId] || m.monthly_budget || 0;
+                            const memberBudget = summary?.memberBudgets?.[String(m.userId).toLowerCase()] ?? summary?.memberBudgets?.[m.userId] ?? m.monthly_budget ?? 0;
                             const spentPercent = memberBudget > 0 ? (memberSpent / memberBudget) * 100 : 0;
 
                             return (
@@ -727,7 +729,23 @@ export const BudgetView = () => {
                                         </div>
                                         <div className="flex justify-between text-[10px] font-medium">
                                             <span>Realisasi:</span>
-                                            <span className={`font-bold ${memberSpent > memberBudget ? 'text-red-500' : 'text-dagang-green'}`}>Rp {memberSpent.toLocaleString('id-ID')}</span>
+                                            <div className="text-right">
+                                                <span className={`font-bold ${memberSpent > memberBudget ? 'text-red-500' : 'text-dagang-green'}`}>
+                                                    Rp {memberSpent.toLocaleString('id-ID')}
+                                                </span>
+                                                <div className="flex flex-col items-end gap-0.5 mt-0.5">
+                                                    {memberDebtSpent > 0 && (
+                                                        <span className="text-[9px] opacity-70 block font-medium">
+                                                            (Lunas Hutang: Rp {memberDebtSpent.toLocaleString('id-ID')})
+                                                        </span>
+                                                    )}
+                                                    {memberGoalSpent > 0 && (
+                                                        <span className="text-[9px] opacity-70 block font-medium">
+                                                            (Tabung Goals: Rp {memberGoalSpent.toLocaleString('id-ID')})
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
                                         <div className="h-1.5 bg-black/10 rounded-full mt-2 overflow-hidden">
                                             <div

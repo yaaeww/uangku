@@ -17,7 +17,6 @@ type Goal struct {
 	Status         string    `gorm:"type:varchar(50);default:'active'" json:"status"` // 'active', 'achieved', 'converted'
 	Category       string    `json:"category"`
 	Emoji          string    `gorm:"type:varchar(50)" json:"emoji"`
-	Priority       string    `gorm:"type:varchar(20);default:medium" json:"priority"` // 'low', 'medium', 'high'
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }

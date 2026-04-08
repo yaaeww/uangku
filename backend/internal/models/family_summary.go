@@ -14,8 +14,10 @@ type FamilyMonthlySummary struct {
 	TotalExpense     float64   `gorm:"type:decimal(15,2);default:0" json:"total_expense"`
 	CategoryExpenses string    `gorm:"type:text" json:"category_expenses"` // JSON encoded map[string]float64
 	DailyActivity    string    `gorm:"type:text" json:"daily_activity"`    // JSON encoded map[int]DailyActivity
-	MemberSpending   string    `gorm:"type:text" json:"member_spending"`   // JSON encoded map[string]float64
-	LastUpdatedAt    time.Time `json:"last_updated_at"`
+	MemberSpending     string    `gorm:"type:text" json:"member_spending"`      // JSON encoded map[string]float64
+	MemberDebtSpending string    `gorm:"type:text" json:"member_debt_spending"` // JSON encoded map[string]float64
+	MemberGoalSpending string    `gorm:"type:text" json:"member_goal_spending"` // JSON encoded map[string]float64
+	LastUpdatedAt      time.Time `json:"last_updated_at"`
 }
 
 func (FamilyMonthlySummary) TableName() string {

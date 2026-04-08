@@ -23,6 +23,8 @@ type Debt struct {
 	LastPenaltyAppliedAt     time.Time `json:"last_penalty_applied_at"`
 	LastReminderSentAt       time.Time `json:"last_reminder_sent_at"`
 	Status                   string    `gorm:"type:varchar(20);not null;default:'active'" json:"status"`
+	StartDate                time.Time `json:"start_date"`
+	PaymentDay               int       `gorm:"default:0" json:"payment_day"`
 	CreatedBy                uuid.UUID `gorm:"type:uuid" json:"created_by"`
 	PaidThisMonth            float64   `gorm:"-" json:"paid_this_month"`
 	CreatedAt                time.Time `json:"created_at"`
@@ -48,6 +50,7 @@ type DebtPayment struct {
 	Date        time.Time `gorm:"type:date;not null" json:"date"`
 	Description string    `json:"description"`
 	IsLate      bool      `gorm:"default:false" json:"is_late"`
+	TransactionID *uuid.UUID `gorm:"type:uuid;index" json:"transaction_id,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 

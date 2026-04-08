@@ -38,6 +38,8 @@ type DashboardSummary struct {
 	UserBudget        float64               `json:"user_budget"`
 	TotalFamilyBudget float64               `json:"total_family_budget"`
 	MemberSpent       map[string]float64    `json:"member_spent"`
+	MemberDebtSpent   map[string]float64    `json:"member_debt_spent"`
+	MemberGoalSpent   map[string]float64    `json:"member_goal_spent"`
 	MemberBudgets     map[string]float64    `json:"member_budgets"`
 }
 
@@ -159,7 +161,7 @@ func (r *financeRepository) GetTransactionsByRange(familyID, userID uuid.UUID, r
 		switch res.Type {
 		case "income":
 			totalIncome += res.Sum
-		case "expense", "saving":
+		case "expense", "saving", "goal_allocation", "debt_payment":
 			totalExpense += res.Sum
 		}
 	}
@@ -208,6 +210,8 @@ func (r *financeRepository) GetDashboardSummary(familyID, userID uuid.UUID, role
 	summary.CategoryExpenses = make(map[string]float64)
 	summary.DailyActivity = make(map[int]DailyActivity)
 	summary.MemberSpent = make(map[string]float64)
+	summary.MemberDebtSpent = make(map[string]float64)
+	summary.MemberGoalSpent = make(map[string]float64)
 
 	startDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	endDate := startDate.AddDate(0, 1, 0)
@@ -215,19 +219,21 @@ func (r *financeRepository) GetDashboardSummary(familyID, userID uuid.UUID, role
 
 	var mSummary models.FamilyMonthlySummary
 	err := config.DB.Where("family_id = ? AND month = ? AND year = ?", familyID, month, year).First(&mSummary).Error
-	if err == nil && !isMemberOnly {
+	if err == nil && !isMemberOnly && mSummary.MemberDebtSpending != "" && mSummary.MemberGoalSpending != "" {
 		summary.TotalIncome = mSummary.TotalIncome
 		summary.TotalExpense = mSummary.TotalExpense
 		importJSON(mSummary.CategoryExpenses, &summary.CategoryExpenses)
 		importJSON(mSummary.DailyActivity, &summary.DailyActivity)
 		importJSON(mSummary.MemberSpending, &summary.MemberSpent)
+		importJSON(mSummary.MemberDebtSpending, &summary.MemberDebtSpent)
+		importJSON(mSummary.MemberGoalSpending, &summary.MemberGoalSpent)
 		summary.TotalBalance = summary.TotalIncome - summary.TotalExpense
 	} else {
 		// Calculate in real-time
 		r.calculateDashboardMetricsOnePass(familyID, userID, isMemberOnly, startDate, endDate, &summary)
 		
-		// If the summary is missing and we're not filtered for a member, trigger background sync for next time
-		if err == gorm.ErrRecordNotFound && !isMemberOnly {
+		// If the summary is missing or outdated (missing MemberGoalSpending), trigger background sync
+		if !isMemberOnly && (err == gorm.ErrRecordNotFound || (err == nil && mSummary.MemberGoalSpending == "")) {
 			go r.SyncMonthlySummary(familyID, month, year)
 		}
 	}
@@ -274,11 +280,14 @@ func (r *financeRepository) GetDashboardSummary(familyID, userID uuid.UUID, role
 
 func (r *financeRepository) calculateDashboardMetricsOnePass(familyID, userID uuid.UUID, isMemberOnly bool, start, end time.Time, s *DashboardSummary) {
 	type AggResult struct {
-		Type     string
-		UserID   string
-		Category string
-		Day      int
-		Total    float64
+		Type        string
+		UserID      string
+		Category    string
+		SavingID    *uuid.UUID
+		GoalID      *uuid.UUID
+		Description string
+		Day         int
+		Total       float64
 	}
 	var results []AggResult
 
@@ -287,6 +296,9 @@ func (r *financeRepository) calculateDashboardMetricsOnePass(familyID, userID uu
 			type,
 			user_id,
 			category,
+			saving_id,
+			goal_id,
+			description,
 			CAST(EXTRACT(DAY FROM date) AS INTEGER) as day,
 			SUM(amount) as total
 		`).
@@ -296,7 +308,7 @@ func (r *financeRepository) calculateDashboardMetricsOnePass(familyID, userID uu
 		query = query.Where("user_id = ?", userID)
 	}
 
-	query.Group("type, user_id, category, day").Scan(&results)
+	query.Group("type, user_id, category, saving_id, goal_id, description, day").Scan(&results)
 
 	for _, res := range results {
 		// 1. Totals
@@ -315,9 +327,26 @@ func (r *financeRepository) calculateDashboardMetricsOnePass(familyID, userID uu
 		}
 		s.DailyActivity[res.Day] = act
 
-		// 3. Member Spending (Non-Income)
+		// 3. Member Spending Metrics (Excluding Incomes)
 		if res.Type != "income" && res.UserID != "" {
-			s.MemberSpent[res.UserID] += res.Total
+			// A transaction is debt-related if it has the specific category OR prefix
+			isDebt := res.Category == "debt_payment" || strings.HasPrefix(res.Description, "Cicilan:")
+			
+			// A transaction is goal-related if it has the specific types OR is linked to saving/goal IDs
+			isGoal := res.Type == "saving" || res.Type == "goal_allocation" || 
+				  (res.SavingID != nil && *res.SavingID != uuid.Nil) || 
+				  (res.GoalID != nil && *res.GoalID != uuid.Nil) ||
+				  strings.HasPrefix(res.Description, "Alokasi dana untuk Goals")
+
+			if isDebt {
+				s.MemberDebtSpent[res.UserID] += res.Total
+			} else if isGoal {
+				s.MemberGoalSpent[res.UserID] += res.Total
+			} else if res.Type == "expense" {
+				// ONLY 'expense' types contribute to pure budget realization
+				// Internal transfers or other non-expense types are excluded from realization
+				s.MemberSpent[res.UserID] += res.Total
+			}
 		}
 
 		// 4. Category Breakdown (Non-Income, TOP 5 handled in UI usually, but let's aggregate all)
@@ -410,6 +439,8 @@ func (r *financeRepository) SyncMonthlySummary(familyID uuid.UUID, month, year i
 	summary.CategoryExpenses = make(map[string]float64)
 	summary.DailyActivity = make(map[int]DailyActivity)
 	summary.MemberSpent = make(map[string]float64)
+	summary.MemberDebtSpent = make(map[string]float64)
+	summary.MemberGoalSpent = make(map[string]float64)
 
 	r.calculateDashboardMetricsOnePass(familyID, uuid.Nil, false, startDate, endDate, &summary)
 
@@ -418,8 +449,10 @@ func (r *financeRepository) SyncMonthlySummary(familyID uuid.UUID, month, year i
 		TotalIncome: summary.TotalIncome, TotalExpense: summary.TotalExpense,
 		CategoryExpenses: exportJSON(summary.CategoryExpenses),
 		DailyActivity: exportJSON(summary.DailyActivity),
-		MemberSpending: exportJSON(summary.MemberSpent),
-		LastUpdatedAt: time.Now(),
+		MemberSpending:     exportJSON(summary.MemberSpent),
+		MemberDebtSpending: exportJSON(summary.MemberDebtSpent),
+		MemberGoalSpending: exportJSON(summary.MemberGoalSpent),
+		LastUpdatedAt:      time.Now(),
 	}
 	return config.DB.Save(&mSummary).Error
 }

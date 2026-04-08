@@ -55,6 +55,8 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
         installmentIntervalMonths: 0,
         installmentAmount: 0,
         penaltyAmount: 0,
+        startDate: new Date().toISOString().split('T')[0],
+        paymentDay: new Date().getDate(),
         nextInstallmentDueDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0] // Default one month from now
     });
 
@@ -72,6 +74,7 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
             installmentIntervalMonths: Number(newDebt.installmentIntervalMonths) || 0,
             installmentAmount: Number(newDebt.installmentAmount) || 0,
             penaltyAmount: Number(newDebt.penaltyAmount) || 0,
+            paymentDay: Number(newDebt.paymentDay) || new Date().getDate(),
             nextInstallmentDueDate: newDebt.nextInstallmentDueDate || newDebt.dueDate
         });
         setNewDebt({ 
@@ -82,6 +85,8 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
             installmentIntervalMonths: 0,
             installmentAmount: 0,
             penaltyAmount: 0,
+            startDate: new Date().toISOString().split('T')[0],
+            paymentDay: new Date().getDate(),
             nextInstallmentDueDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0]
         });
         setIsAdding(false);
@@ -162,6 +167,19 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
         }
     };
 
+    const handleDeleteHistoryItem = async (transactionId: string, date: string) => {
+        if (!window.confirm("Apakah Anda yakin ingin menghapus pembayaran ini? Saldo dompet akan dikembalikan secara otomatis.")) return;
+        
+        try {
+            await FinanceController.deleteTransaction(transactionId, date);
+            if (viewHistory) {
+                await handleViewHistory(viewHistory);
+            }
+        } catch (error: any) {
+            alert("Gagal menghapus riwayat: " + error.message);
+        }
+    };
+
     const getStatusIcon = (status: string) => {
         switch (status) {
             case 'paid': return <CheckCircle2 className="w-4 h-4" />;
@@ -178,7 +196,7 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
         }
     };
 
-    const getPeriodStatus = (nextDueDate: string, paidThisMonth: number, installmentAmount: number, status?: string) => {
+    const getPeriodStatus = (nextDueDate: string, paidThisMonth: number, installmentAmount: number, penaltyAmount: number, status?: string) => {
         if (status === 'paid') return { label: 'LUNAS', color: 'emerald', icon: <CheckCircle2 className="w-4 h-4" /> };
         
         const now = new Date();
@@ -186,8 +204,9 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
         const due = new Date(nextDueDate);
         due.setHours(0, 0, 0, 0);
         const isOverdue = now > due;
+        const currentTarget = isOverdue ? (installmentAmount + penaltyAmount) : installmentAmount;
 
-        if (paidThisMonth >= installmentAmount && installmentAmount > 0) {
+        if (paidThisMonth >= currentTarget && installmentAmount > 0) {
             return { label: 'LUNAS', color: 'emerald', icon: <CheckCircle2 className="w-4 h-4" /> };
         }
 
@@ -253,6 +272,16 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
                                 />
                             </div>
                             <div className="space-y-2">
+                                <label className="text-[12px] font-bold text-[var(--text-muted)] opacity-80 uppercase tracking-widest">Mulai Hutang</label>
+                                <input
+                                    type="date"
+                                    value={newDebt.startDate}
+                                    onChange={(e) => setNewDebt({ ...newDebt, startDate: e.target.value })}
+                                    className="w-full px-5 py-3.5 bg-black/5 dark:bg-white/5 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all font-bold text-[var(--text-main)]"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
                                 <label className="text-[12px] font-bold text-[var(--text-muted)] opacity-80 uppercase tracking-widest">Jatuh Tempo Akhir</label>
                                 <input
                                     type="date"
@@ -261,6 +290,25 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
                                     className="w-full px-5 py-3.5 bg-black/5 dark:bg-white/5 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-red-500/20 outline-none transition-all font-bold text-[var(--text-main)]"
                                     required
                                 />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-[var(--border)] border-dashed">
+                            <div className="space-y-2">
+                                <label className="text-[12px] font-bold text-[var(--text-muted)] opacity-80 uppercase tracking-widest flex items-center gap-2">
+                                    Tanggal Bayar Tiap Bulan
+                                    <span className="text-[9px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded-full">1-31</span>
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="31"
+                                    value={newDebt.paymentDay}
+                                    onChange={(e) => setNewDebt({ ...newDebt, paymentDay: parseInt(e.target.value) })}
+                                    className="w-full px-5 py-3.5 bg-black/5 dark:bg-white/5 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all font-bold text-[var(--text-main)]"
+                                    required
+                                />
+                                <p className="text-[10px] text-[var(--text-muted)] opacity-60">Sistem akan menyesuaikan jika bulan tersebut tidak memiliki tanggal yang dipilih (misal: 31 di Feb).</p>
                             </div>
                         </div>
 
@@ -363,12 +411,9 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
                 {debts.map((debt) => {
                     const nextDue = new Date(debt.nextInstallmentDueDate || new Date());
                     const today = new Date();
-                    const isCaughtUp = nextDue > today && (nextDue.getMonth() > today.getMonth() || nextDue.getFullYear() > today.getFullYear());
-                    
-                    const status = getPeriodStatus(debt.nextInstallmentDueDate, debt.paidThisMonth, debt.installmentAmount, debt.status);
-                    const monthName = isCaughtUp ? 
-                        new Date(today.getFullYear(), today.getMonth(), 1).toLocaleDateString('id-ID', { month: 'long' }) : 
-                        getMonthNameFromDate(debt.nextInstallmentDueDate);
+                    const status = getPeriodStatus(debt.nextInstallmentDueDate, debt.paidThisMonth, debt.installmentAmount, debt.penaltyAmount, debt.status);
+                    const isCaughtUp = status.label === 'LUNAS';
+                    const monthName = getMonthNameFromDate(debt.nextInstallmentDueDate);
                     
                     let colorClass = 'text-blue-500 bg-blue-500/10 border-blue-500/20';
                     if (isCaughtUp) {
@@ -416,6 +461,8 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
                                                     installmentIntervalMonths: debt.installmentIntervalMonths,
                                                     installmentAmount: debt.installmentAmount,
                                                     penaltyAmount: debt.penaltyAmount,
+                                                    startDate: debt.startDate ? new Date(debt.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                                                    paymentDay: debt.paymentDay || 1,
                                                     nextInstallmentDueDate: debt.nextInstallmentDueDate
                                                 })}
                                                 className="p-1.5 text-[var(--text-muted)] hover:text-blue-500 hover:bg-blue-500/10 rounded-lg transition-all"
@@ -454,8 +501,8 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
                                             </div>
                                             <div className="mt-2 flex flex-col gap-1.5">
                                                 <div className={`text-[10px] font-black px-2 py-1 rounded-lg border w-fit flex items-center gap-1.5 ${colorClass}`}>
-                                                    {isCaughtUp ? <CheckCircle2 className="w-4 h-4" /> : status.icon}
-                                                    TAGIHAN {monthName.toUpperCase()}: {isCaughtUp ? 'LUNAS' : status.label}
+                                                    {status.icon}
+                                                    TAGIHAN {monthName.toUpperCase()}: {status.label}
                                                 </div>
                                                 {isCaughtUp && (
                                                     <p className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 mt-1 animate-in slide-in-from-left-2">
@@ -595,7 +642,14 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
                         <p className="text-[var(--text-muted)] opacity-70 mb-6 text-sm">Pilih dompet dan masukkan jumlah yang ingin dibayarkan.</p>
 
                          {currentDebt && (() => {
-                             const isLate = currentDebt.nextInstallmentDueDate && new Date(currentDebt.nextInstallmentDueDate) < new Date();
+                             const isLate = (() => {
+                                 if (!currentDebt.nextInstallmentDueDate) return false;
+                                 const d = new Date(currentDebt.nextInstallmentDueDate);
+                                 d.setHours(0, 0, 0, 0);
+                                 const n = new Date();
+                                 n.setHours(0, 0, 0, 0);
+                                 return n > d;
+                             })();
                              const currentPeriodTarget = currentDebt.installmentAmount + (isLate ? currentDebt.penaltyAmount : 0);
                              const shortfall = Math.max(0, currentPeriodTarget - (currentDebt.paidThisMonth || 0));
 
@@ -644,34 +698,34 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
                                          </div>
                                      ) : (
                                          <>
-                                             <div className="p-6 bg-black/5 dark:bg-white/5 rounded-2xl border border-[var(--border)] border-dashed transition-all">
-                                                 <div className="text-[10px] font-black text-[var(--text-muted)] opacity-50 uppercase tracking-[0.15em] mb-4">Informasi Tagihan</div>
-                                                 <div className="space-y-3">
-                                                     <div className="flex justify-between items-center text-sm">
-                                                         <span className="text-[var(--text-muted)] font-bold">Total Sisa Hutang</span>
-                                                         <span className="font-heading font-black text-[var(--text-main)]">Rp {currentDebt.remainingAmount.toLocaleString('id-ID')}</span>
-                                                     </div>
-                                                     <div className="flex justify-between items-center text-sm">
-                                                         <span className="text-[var(--text-muted)] font-bold">Target Cicilan ({getCurrentMonthName()})</span>
-                                                         <div className="text-right">
-                                                             <div className="font-heading font-black text-[var(--text-main)]">Rp {currentPeriodTarget.toLocaleString('id-ID')}</div>
-                                                             {isLate && (
-                                                                 <div className="text-[10px] text-red-500 font-bold uppercase tracking-tighter">Termasuk Denda Rp {currentDebt.penaltyAmount.toLocaleString('id-ID')}</div>
-                                                             )}
+                                                 <div className="p-6 bg-black/5 dark:bg-white/5 rounded-2xl border border-[var(--border)] border-dashed transition-all">
+                                                     <div className="text-[10px] font-black text-[var(--text-muted)] opacity-50 uppercase tracking-[0.15em] mb-4">Informasi Tagihan</div>
+                                                     <div className="space-y-3">
+                                                         <div className="flex justify-between items-center text-sm">
+                                                             <span className="text-[var(--text-muted)] font-bold">Total Sisa Hutang</span>
+                                                             <span className="font-heading font-black text-[var(--text-main)]">Rp {currentDebt.remainingAmount.toLocaleString('id-ID')}</span>
+                                                         </div>
+                                                         <div className="flex justify-between items-center text-sm">
+                                                             <span className="text-[var(--text-muted)] font-bold">Target Cicilan ({getMonthNameFromDate(currentDebt.nextInstallmentDueDate)})</span>
+                                                             <div className="text-right">
+                                                                 <div className="font-heading font-black text-[var(--text-main)]">Rp {currentPeriodTarget.toLocaleString('id-ID')}</div>
+                                                                 {isLate && (
+                                                                     <div className="text-[10px] text-red-500 font-bold uppercase tracking-tighter">Termasuk Denda Rp {currentDebt.penaltyAmount.toLocaleString('id-ID')}</div>
+                                                                 )}
+                                                             </div>
+                                                         </div>
+                                                         <div className="flex justify-between items-center text-sm">
+                                                             <span className="text-[var(--text-muted)] font-bold">Sudah Dibayar ({getMonthNameFromDate(currentDebt.nextInstallmentDueDate)})</span>
+                                                             <span className="font-heading font-black text-emerald-500">Rp {(currentDebt.paidThisMonth || 0).toLocaleString('id-ID')}</span>
+                                                         </div>
+                                                         <div className="pt-2 border-t border-[var(--border)] flex justify-between items-center">
+                                                             <span className="text-xs font-black text-amber-500 uppercase">Kekurangan Periode Ini</span>
+                                                             <span className="text-base font-heading font-black text-amber-500">
+                                                                 Rp {shortfall.toLocaleString('id-ID')}
+                                                             </span>
                                                          </div>
                                                      </div>
-                                                     <div className="flex justify-between items-center text-sm">
-                                                         <span className="text-[var(--text-muted)] font-bold">Sudah Dibayar ({getCurrentMonthName()})</span>
-                                                         <span className="font-heading font-black text-emerald-500">Rp {(currentDebt.paidThisMonth || 0).toLocaleString('id-ID')}</span>
-                                                     </div>
-                                                     <div className="pt-2 border-t border-[var(--border)] flex justify-between items-center">
-                                                         <span className="text-xs font-black text-amber-500 uppercase">Kekurangan Bulan Ini</span>
-                                                         <span className="text-base font-heading font-black text-amber-500">
-                                                             Rp {shortfall.toLocaleString('id-ID')}
-                                                         </span>
-                                                     </div>
                                                  </div>
-                                             </div>
 
                                              <form onSubmit={onPaymentSubmit} className="space-y-6">
                                                  <div className="space-y-2">
@@ -811,10 +865,23 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
+                                                <div className="flex items-center gap-4">
                                                     <div className={`text-sm font-bold ${isPayment ? 'text-emerald-600' : 'text-red-600'}`}>
                                                         {isPayment ? '-' : '+'} Rp {h.amount.toLocaleString('id-ID')}
                                                     </div>
+                                                    
+                                                    {isPayment && h.transactionId && canManageDebt && (
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteHistoryItem(h.transactionId, h.date);
+                                                            }}
+                                                            className="p-2 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                            title="Hapus Pembayaran"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
@@ -826,9 +893,9 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
                         <div className="pt-8 mt-4 border-t border-[var(--border)]">
                             <button 
                                 onClick={() => setViewHistory(null)} 
-                                className="w-full py-4 bg-[var(--text-main)] text-white rounded-2xl font-bold hover:opacity-90 transition-all"
+                                className="w-full py-4 bg-[var(--primary)] text-white rounded-3xl font-black text-sm hover:opacity-90 transition-all uppercase tracking-widest shadow-lg shadow-[var(--primary)]/20"
                             >
-                                Tutup
+                                Selesai
                             </button>
                         </div>
                     </div>
@@ -850,7 +917,7 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
                         </div>
 
                         <form onSubmit={onEditSubmit} className="space-y-6">
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[12px] font-bold text-[var(--text-muted)] opacity-80 uppercase tracking-widest">Nama Hutang</label>
                                     <input
@@ -862,15 +929,41 @@ export const DebtView: React.FC<DebtViewProps & { handleDeleteDebt: (id: string)
                                     />
                                 </div>
                                 <div className="space-y-2">
+                                    <label className="text-[12px] font-bold text-[var(--text-muted)] opacity-80 uppercase tracking-widest">Mulai Hutang</label>
+                                    <input
+                                        type="date"
+                                        value={isEditing.startDate ? isEditing.startDate.split('T')[0] : ''}
+                                        onChange={(e) => setIsEditing({ ...isEditing, startDate: e.target.value })}
+                                        className="w-full px-5 py-3.5 bg-black/5 dark:bg-white/5 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all font-bold text-[var(--text-main)]"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
                                     <label className="text-[12px] font-bold text-[var(--text-muted)] opacity-80 uppercase tracking-widest">Jatuh Tempo Akhir</label>
                                     <input
                                         type="date"
                                         value={isEditing.dueDate ? isEditing.dueDate.split('T')[0] : ''}
                                         onChange={(e) => setIsEditing({ ...isEditing, dueDate: e.target.value })}
-                                        className="w-full px-5 py-3.5 bg-black/5 dark:bg-white/5 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--primary)]/20 outline-none transition-all font-bold text-[var(--text-main)]"
+                                        className="w-full px-5 py-3.5 bg-black/5 dark:bg-white/5 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-red-500/20 outline-none transition-all font-bold text-[var(--text-main)]"
                                         required
                                     />
                                 </div>
+                            </div>
+
+                            <div className="space-y-2 pt-4 border-t border-[var(--border)] border-dashed">
+                                <label className="text-[12px] font-bold text-[var(--text-muted)] opacity-80 uppercase tracking-widest flex items-center gap-2">
+                                    Tanggal Bayar Tiap Bulan
+                                    <span className="text-[9px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded-full">1-31</span>
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="31"
+                                    value={isEditing.paymentDay}
+                                    onChange={(e) => setIsEditing({ ...isEditing, paymentDay: parseInt(e.target.value) })}
+                                    className="w-full px-5 py-3.5 bg-black/5 dark:bg-white/5 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all font-bold text-[var(--text-main)]"
+                                    required
+                                />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-[var(--border)] border-dashed">

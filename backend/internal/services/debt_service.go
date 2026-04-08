@@ -21,17 +21,60 @@ type DebtService interface {
 	RecordPayment(payment *models.DebtPayment, userID uuid.UUID, familyID uuid.UUID) error
 	Delete(id uuid.UUID, userID uuid.UUID, familyRole string) error
 	GetDebtHistory(debtID uuid.UUID) ([]interface{}, error)
+	FullRecalculate(tx *gorm.DB, debtID uuid.UUID) error
 }
 
 func addMonths(t time.Time, months int) time.Time {
+	if months == 0 {
+		return t
+	}
 	originalDay := t.Day()
 	newDate := t.AddDate(0, months, 0)
 	if newDate.Day() != originalDay {
-		// Month overflow occurred (e.g. March 31 + 1 month = May 1)
-		// Roll back to the last day of the intended month
 		newDate = newDate.AddDate(0, 0, -newDate.Day())
 	}
 	return newDate
+}
+
+func (s *debtService) calculateFirstDueDate(startDate time.Time, paymentDay int) time.Time {
+	if paymentDay <= 0 {
+		return addMonths(startDate, 1) // Fallback to 1 month later
+	}
+	
+	// Try the payment day in current month
+	first := time.Date(startDate.Year(), startDate.Month(), paymentDay, 0, 0, 0, 0, startDate.Location())
+	
+	// If the payment day this month has passed or is today, move to next month
+	if !first.After(startDate) {
+		first = first.AddDate(0, 1, 0)
+		// Ensure day is correct for next month (handle 31st vs 30th)
+		lastDay := time.Date(first.Year(), first.Month()+1, 0, 0, 0, 0, 0, first.Location()).Day()
+		targetDay := paymentDay
+		if targetDay > lastDay {
+			targetDay = lastDay
+		}
+		first = time.Date(first.Year(), first.Month(), targetDay, 0, 0, 0, 0, first.Location())
+	} else {
+		// Even if it's after, handle overflow for current month just in case
+		lastDay := time.Date(first.Year(), first.Month()+1, 0, 0, 0, 0, 0, first.Location()).Day()
+		if paymentDay > lastDay {
+			first = time.Date(first.Year(), first.Month(), lastDay, 0, 0, 0, 0, first.Location())
+		}
+	}
+	return first
+}
+
+func (s *debtService) getNextInstallmentDate(currentDate time.Time, paymentDay int, interval int) time.Time {
+	next := currentDate.AddDate(0, interval, 0)
+	lastDay := time.Date(next.Year(), next.Month()+1, 0, 0, 0, 0, 0, next.Location()).Day()
+	targetDay := paymentDay
+	if targetDay <= 0 {
+		targetDay = currentDate.Day()
+	}
+	if targetDay > lastDay {
+		targetDay = lastDay
+	}
+	return time.Date(next.Year(), next.Month(), targetDay, 0, 0, 0, 0, next.Location())
 }
 
 type debtService struct {
@@ -58,13 +101,11 @@ func (s *debtService) GetByFamilyID(familyID uuid.UUID) ([]models.Debt, error) {
 	}
 
 	for i := range debts {
-		// Calculate target for current window
-		// Window: (NextInstallmentDueDate - Interval) < date <= NextInstallmentDueDate
 		startOfPeriod := addMonths(debts[i].NextInstallmentDueDate, -debts[i].InstallmentIntervalMonths)
 		
 		var monthlyPaid float64
 		config.DB.Model(&models.DebtPayment{}).
-			Where("debt_id = ? AND date > ?", debts[i].ID, startOfPeriod).
+			Where("debt_id = ? AND date >= ?", debts[i].ID, startOfPeriod).
 			Select("COALESCE(SUM(amount), 0)").Scan(&monthlyPaid)
 		debts[i].PaidThisMonth = monthlyPaid
 	}
@@ -91,14 +132,15 @@ func (s *debtService) GetDebtHistory(debtID uuid.UUID) ([]interface{}, error) {
 
 	// Combine and sort by date descending
 	type activity struct {
-		ID          uuid.UUID `json:"id"`
-		Type        string    `json:"type"` // 'payment' or 'penalty'
-		Amount      float64   `json:"amount"`
-		Date        time.Time `json:"date"`
-		Description string    `json:"description"`
-		UserName    string    `json:"userName,omitempty"`
-		WalletId    uuid.UUID `json:"walletId,omitempty"`
-		IsLate      bool      `json:"isLate"`
+		ID            uuid.UUID  `json:"id"`
+		Type          string     `json:"type"` // 'payment' or 'penalty'
+		Amount        float64    `json:"amount"`
+		Date          time.Time  `json:"date"`
+		Description   string     `json:"description"`
+		UserName      string     `json:"userName,omitempty"`
+		WalletId      uuid.UUID  `json:"walletId,omitempty"`
+		TransactionId *uuid.UUID `json:"transactionId,omitempty"`
+		IsLate        bool       `json:"isLate"`
 	}
 
 	var history []interface{}
@@ -108,14 +150,15 @@ func (s *debtService) GetDebtHistory(debtID uuid.UUID) ([]interface{}, error) {
 			name = p.User.FullName
 		}
 		history = append(history, activity{
-			ID:          p.ID,
-			Type:        "payment",
-			Amount:      p.Amount,
-			Date:        p.Date,
-			Description: p.Description,
-			UserName:    name,
-			WalletId:    p.WalletID,
-			IsLate:      p.IsLate,
+			ID:            p.ID,
+			Type:          "payment",
+			Amount:        p.Amount,
+			Date:          p.Date,
+			Description:   p.Description,
+			UserName:      name,
+			WalletId:      p.WalletID,
+			TransactionId: p.TransactionID,
+			IsLate:        p.IsLate,
 		})
 	}
 
@@ -142,10 +185,14 @@ func (s *debtService) Create(debt *models.Debt, userID uuid.UUID) error {
 	debt.RemainingAmount = debt.TotalAmount
 	debt.PaidAmount = 0
 	debt.Status = "active"
+	
+	if debt.StartDate.IsZero() {
+		debt.StartDate = time.Now()
+	}
 
 	if debt.InstallmentIntervalMonths > 0 {
 		if debt.NextInstallmentDueDate.IsZero() {
-			debt.NextInstallmentDueDate = addMonths(time.Now(), debt.InstallmentIntervalMonths)
+			debt.NextInstallmentDueDate = s.calculateFirstDueDate(debt.StartDate, debt.PaymentDay)
 		}
 	}
 
@@ -164,16 +211,35 @@ func (s *debtService) Update(debt *models.Debt, userID uuid.UUID, familyRole str
 		return errors.New("anda tidak memiliki izin untuk mengubah hutang ini. Hanya pembuat hutang yang diperbolehkan.")
 	}
 
-	// Update non-balance fields
-	return config.DB.Model(debt).Updates(map[string]interface{}{
-		"name":                          debt.Name,
-		"due_date":                      debt.DueDate,
-		"description":                   debt.Description,
-		"installment_interval_months":   debt.InstallmentIntervalMonths,
-		"installment_amount":            debt.InstallmentAmount,
-		"penalty_amount":                debt.PenaltyAmount,
-		"next_installment_due_date":     debt.NextInstallmentDueDate,
+	// Update fields
+	debt.RemainingAmount = debt.TotalAmount - existing.PaidAmount
+	if debt.RemainingAmount < 0 {
+		debt.RemainingAmount = 0
+	}
+
+	err := config.DB.Model(debt).Updates(map[string]interface{}{
+		"name":                        debt.Name,
+		"total_amount":                debt.TotalAmount,
+		"remaining_amount":            debt.RemainingAmount,
+		"due_date":                    debt.DueDate,
+		"description":                 debt.Description,
+		"installment_interval_months": debt.InstallmentIntervalMonths,
+		"next_installment_due_date":   debt.NextInstallmentDueDate,
+		"start_date":                  debt.StartDate,
+		"payment_day":                 debt.PaymentDay,
 	}).Error
+	if err != nil {
+		return err
+	}
+
+	// 3. Trigger recalculation to see if we need to advance cycles based on existing payments
+	return config.DB.Transaction(func(tx *gorm.DB) error {
+		var updated models.Debt
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&updated, "id = ?", debt.ID).Error; err != nil {
+			return err
+		}
+		return s.recalculateNextInstallmentDate(tx, &updated)
+	})
 }
 
 func (s *debtService) RecordPayment(payment *models.DebtPayment, userID uuid.UUID, familyID uuid.UUID) error {
@@ -188,106 +254,8 @@ func (s *debtService) RecordPayment(payment *models.DebtPayment, userID uuid.UUI
 		if payment.Amount <= 0 {
 			return errors.New("jumlah pembayaran harus lebih dari 0")
 		}
-		if payment.Amount > debt.RemainingAmount {
-			return errors.New("jumlah pembayaran melebihi sisa hutang")
-		}
 
-		// 3. Get Wallet with Lock
-		var wallet models.Wallet
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&wallet, "id = ? AND family_id = ?", payment.WalletID, familyID).Error; err != nil {
-			return errors.New("dompet tidak ditemukan")
-		}
-
-		if wallet.Balance < payment.Amount {
-			return errors.New("saldo dompet tidak mencukupi")
-		}
-
-		// 4. Update Wallet Balance
-		wallet.Balance -= payment.Amount
-		if err := tx.Save(&wallet).Error; err != nil {
-			return err
-		}
-
-		// 5. Update Debt
-		debt.PaidAmount += payment.Amount
-		debt.RemainingAmount -= payment.Amount
-		if debt.RemainingAmount < 0 {
-			debt.RemainingAmount = 0
-		}
-		
-		// 7. Record Payment
-		if payment.Date.IsZero() {
-			payment.Date = time.Now()
-		}
-		
-		// Set IsLate if paid after deadline
-		if debt.InstallmentIntervalMonths > 0 {
-			today := payment.Date.Truncate(24 * time.Hour)
-			deadline := debt.NextInstallmentDueDate.Truncate(24 * time.Hour)
-			if today.After(deadline) {
-				payment.IsLate = true
-			}
-		}
-
-		payment.UserID = userID
-		if err := tx.Create(payment).Error; err != nil {
-			return err
-		}
-
-		// 8. Specialized Late Notification
-		if payment.IsLate {
-			var members []models.FamilyMember
-			tx.Where("family_id = ?", familyID).Find(&members)
-			for _, m := range members {
-				notif := &models.Notification{
-					UserID:  m.UserID,
-					Type:    "alert",
-					Title:   "Pembayaran Cicilan (Terlambat)",
-					Message: fmt.Sprintf("Pembayaran cicilan '%s' telah diterima namun melewati batas waktu. Denda tetap berlaku pada riwayat hutang.", debt.Name),
-				}
-				tx.Create(notif)
-			}
-		}
-
-		// 9. Unified Advancement Logic (Universal: handles late, early, and multi-payments)
-		// Everything paid since the conclusion of the previous period is "Credit" for future installments.
-		if debt.InstallmentIntervalMonths > 0 {
-			startOfEvaluationPeriod := addMonths(debt.NextInstallmentDueDate, -debt.InstallmentIntervalMonths)
-			var totalCredit float64
-			tx.Model(&models.DebtPayment{}).
-				Where("debt_id = ? AND date > ?", debt.ID, startOfEvaluationPeriod).
-				Select("COALESCE(SUM(amount), 0)").Scan(&totalCredit)
-
-			// We keep advancing as long as we have enough credit to clear the current period
-			// the current period's target dynamically includes penalty if we are currently late for it.
-			for {
-				target := debt.InstallmentAmount
-				if time.Now().After(debt.NextInstallmentDueDate) {
-					target += debt.PenaltyAmount
-				}
-
-				if totalCredit >= target && debt.RemainingAmount >= 0 {
-					totalCredit -= target
-					newDueDate := addMonths(debt.NextInstallmentDueDate, debt.InstallmentIntervalMonths)
-					
-					// Guardrail: don't advance beyond final maturity
-					if !debt.DueDate.IsZero() && newDueDate.After(debt.DueDate) {
-						debt.NextInstallmentDueDate = debt.DueDate
-						tx.Save(&debt)
-						break 
-					} else {
-						debt.NextInstallmentDueDate = newDueDate
-						tx.Save(&debt)
-					}
-					
-					// If we still have credit, we continue for the next month (which might not be late anymore)
-				} else {
-					break
-				}
-			}
-		}
-
-		// 7. Create Transaction
+		// 3. Create Transaction
 		transaction := &models.Transaction{
 			FamilyID:    familyID,
 			UserID:      userID,
@@ -295,14 +263,37 @@ func (s *debtService) RecordPayment(payment *models.DebtPayment, userID uuid.UUI
 			Type:        "expense",
 			Amount:      payment.Amount,
 			Category:    "debt_payment",
+			DebtID:      &debt.ID,
 			Date:        payment.Date,
 			Description: "Cicilan: " + debt.Name + ". " + payment.Description,
 		}
+
 		if err := tx.Create(transaction).Error; err != nil {
 			return err
 		}
 
-		return nil
+		// 4. Create associated DebtPayment record for history
+		paymentRecord := &models.DebtPayment{
+			DebtID:        debt.ID,
+			WalletID:      payment.WalletID,
+			UserID:        userID,
+			Amount:        payment.Amount,
+			Date:          payment.Date,
+			Description:   payment.Description,
+			TransactionID: &transaction.ID,
+		}
+		if err := tx.Create(paymentRecord).Error; err != nil {
+			return err
+		}
+
+		// 5. Update Wallet Balance
+		if err := tx.Model(&models.Wallet{}).Where("id = ?", payment.WalletID).
+			Update("balance", gorm.Expr("balance - ?", payment.Amount)).Error; err != nil {
+			return err
+		}
+
+		// 6. Full recalculate of debt progress to ensure consistency
+		return s.FullRecalculate(tx, debt.ID)
 	})
 }
 
@@ -446,7 +437,132 @@ func (s *debtService) applyPenalties(tx *gorm.DB, familyID uuid.UUID) error {
 			}
 		}
 		// DO NOT advance NextInstallmentDueDate here anymore.
-		// It only advances in RecordPayment when LUNAS is reached.
+		// It only advances in RecordPayment or Update when LUNAS is reached.
 	}
 	return nil
+}
+
+func (s *debtService) recalculateNextInstallmentDate(tx *gorm.DB, debt *models.Debt) error {
+	if debt.InstallmentIntervalMonths <= 0 {
+		return nil
+	}
+
+	// Calculate total amount paid across ALL time to properly handle multi-month advancements
+	// without double-counting based on overlapping windows.
+	var totalPaidAllTime float64
+	tx.Model(&models.DebtPayment{}).
+		Where("debt_id = ?", debt.ID).
+		Select("COALESCE(SUM(amount), 0)").Scan(&totalPaidAllTime)
+
+	// To find current credit, we need to know how much should have been paid up to the PREVIOUS installment date
+	// But it's simpler to just use the original RecordPayment logic: 
+	// find everything paid since the cycle *before* the current NextInstallmentDueDate.
+	
+	startOfEvaluationPeriod := addMonths(debt.NextInstallmentDueDate, -debt.InstallmentIntervalMonths)
+	var totalCredit float64
+	tx.Model(&models.DebtPayment{}).
+		Where("debt_id = ? AND date >= ?", debt.ID, startOfEvaluationPeriod).
+		Select("COALESCE(SUM(amount), 0)").Scan(&totalCredit)
+
+	// Loop to potentially advance multiple cycles (early/multi-payments)
+	for {
+		// Target: Pokok + Denda (H+1 Logic: if today is strictly AFTER the deadline day)
+		target := debt.InstallmentAmount
+		
+		today := time.Now().Truncate(24 * time.Hour)
+		deadline := debt.NextInstallmentDueDate.Truncate(24 * time.Hour)
+		
+		if today.After(deadline) {
+			target += debt.PenaltyAmount
+		}
+
+		// Use a small epsilon or round for the comparison to avoid float issues
+		if totalCredit >= (target - 0.01) && debt.RemainingAmount >= 0 {
+			totalCredit -= target // SUBTRACT credit so we don't double count in next loop
+			
+			debt.NextInstallmentDueDate = s.getNextInstallmentDate(debt.NextInstallmentDueDate, debt.PaymentDay, debt.InstallmentIntervalMonths)
+			
+			// Guardrail: don't advance beyond final maturity
+			if !debt.DueDate.IsZero() && debt.NextInstallmentDueDate.After(debt.DueDate) {
+				debt.NextInstallmentDueDate = debt.DueDate
+				if err := tx.Save(debt).Error; err != nil {
+					return err
+				}
+				break 
+			}
+			
+			if err := tx.Save(debt).Error; err != nil {
+				return err
+			}
+			// Continue loop to see if we still have enough credit for the NEXT month
+		} else {
+			break
+		}
+	}
+	return nil
+}
+
+func (s *debtService) FullRecalculate(tx *gorm.DB, debtID uuid.UUID) error {
+	var debt models.Debt
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&debt, "id = ?", debtID).Error; err != nil {
+		return err
+	}
+
+	// 1. Reset balances based on Original Principal + Penalties
+	var totalPenalties float64
+	tx.Model(&models.DebtPenalty{}).Where("debt_id = ?", debtID).Select("COALESCE(SUM(amount), 0)").Scan(&totalPenalties)
+	
+	// Assuming TotalAmount in DB was already tracking increments, but for safety:
+	// We need a baseline "OriginalAmount". If we don't have one, we assume current TotalAmount minus penalties?
+	// Actually, let's just use the current TotalAmount as the "Target" since it grows with penalties.
+	
+	var totalPaid float64
+	tx.Model(&models.DebtPayment{}).Where("debt_id = ?", debtID).Select("COALESCE(SUM(amount), 0)").Scan(&totalPaid)
+	
+	debt.PaidAmount = totalPaid
+	debt.RemainingAmount = debt.TotalAmount - totalPaid
+	if debt.RemainingAmount < 0 {
+		debt.RemainingAmount = 0
+		debt.Status = "paid"
+	} else {
+		debt.Status = "active"
+	}
+
+	// 2. Reset and Re-advance NextInstallmentDueDate
+	debt.NextInstallmentDueDate = s.calculateFirstDueDate(debt.StartDate, debt.PaymentDay)
+	
+	// Run advancement logic using the remaining payments
+	startOfEvaluationPeriod := addMonths(debt.NextInstallmentDueDate, -debt.InstallmentIntervalMonths)
+	var totalCredit float64
+	tx.Model(&models.DebtPayment{}).
+		Where("debt_id = ? AND date >= ?", debt.ID, startOfEvaluationPeriod).
+		Select("COALESCE(SUM(amount), 0)").Scan(&totalCredit)
+
+	// advancement logic (copied from recalculate but starting fresh)
+	if debt.InstallmentIntervalMonths > 0 {
+		for {
+			target := debt.InstallmentAmount
+			// H+1 Logic: if today is strictly AFTER the deadline day
+			today := time.Now().Truncate(24 * time.Hour)
+			deadline := debt.NextInstallmentDueDate.Truncate(24 * time.Hour)
+			
+			if today.After(deadline) {
+				target += debt.PenaltyAmount
+			}
+
+			if totalCredit >= (target - 0.01) && debt.RemainingAmount >= 0 {
+				totalCredit -= target 
+				debt.NextInstallmentDueDate = s.getNextInstallmentDate(debt.NextInstallmentDueDate, debt.PaymentDay, debt.InstallmentIntervalMonths)
+				
+				if !debt.DueDate.IsZero() && debt.NextInstallmentDueDate.After(debt.DueDate) {
+					debt.NextInstallmentDueDate = debt.DueDate
+					break 
+				}
+			} else {
+				break
+			}
+		}
+	}
+
+	return tx.Save(&debt).Error
 }

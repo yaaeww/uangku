@@ -116,18 +116,18 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
     return (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-dagang-dark/60 backdrop-blur-md" onClick={onClose} />
-            <div className="relative bg-[#F9FAFB] w-full max-w-[550px] max-h-[90vh] overflow-y-auto rounded-[32px] shadow-2xl animate-in zoom-in-95 duration-300 custom-scrollbar">
+            <div className="relative bg-[var(--surface-card)] w-full max-w-[550px] max-h-[90vh] overflow-y-auto rounded-[32px] shadow-2xl animate-in zoom-in-95 duration-300 custom-scrollbar border border-[var(--border)]">
                 
                 {/* Header */}
-                <div className="px-8 py-6 border-b border-black/5 flex items-center justify-between bg-white">
+                <div className="px-8 py-6 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface)]">
                     <div>
                         <h3 className="text-xl font-black text-dagang-dark">Scanner Struk</h3>
                         <p className="text-[10px] text-dagang-gray font-black uppercase tracking-widest opacity-40">
                             {step === 'upload' ? 'Upload Struk' : step === 'scanning' ? 'Membaca Struk' : 'Review Nominal'}
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-2.5 bg-dagang-cream/50 rounded-xl hover:bg-dagang-cream transition-all">
-                        <X className="w-5 h-5 text-dagang-gray" />
+                    <button onClick={onClose} className="p-2.5 bg-[var(--surface-card)] border border-[var(--border)] rounded-xl hover:bg-[var(--primary)] hover:text-white transition-all">
+                        <X className="w-5 h-5" />
                     </button>
                 </div>
 
@@ -150,8 +150,8 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                             <div className="w-20 h-20 bg-dagang-green-pale text-dagang-green rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform shadow-lg shadow-dagang-green/5">
                                 <Camera className="w-8 h-8" />
                             </div>
-                            <h4 className="text-xl font-black text-dagang-dark mb-2">Ambil Foto atau Upload</h4>
-                            <p className="text-sm text-dagang-gray max-w-[240px] mx-auto leading-relaxed">System akan otomatis mencari <b>Total Harga</b> dari struk Anda.</p>
+                            <h4 className="text-xl font-black text-[var(--text-main)] mb-2">Ambil Foto atau Upload</h4>
+                            <p className="text-sm text-[var(--text-muted)] max-w-[240px] mx-auto leading-relaxed">System akan otomatis mencari <b>Total Harga</b> dari struk Anda.</p>
                             <input 
                                 type="file" 
                                 ref={fileInputRef} 
@@ -171,8 +171,8 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                                 </div>
                             </div>
                             <div>
-                                <h4 className="text-lg font-black text-dagang-dark">Menganalisa Struk...</h4>
-                                <p className="text-sm text-dagang-gray/60 mt-1">Lagi cari angka totalnya nih bosku.</p>
+                                <h4 className="text-lg font-black text-[var(--text-main)]">Menganalisa Struk...</h4>
+                                <p className="text-sm text-[var(--text-muted)] mt-1">Lagi cari angka totalnya nih bosku.</p>
                             </div>
                             {previewUrl && (
                                 <img src={previewUrl} className="w-40 h-52 object-cover mx-auto rounded-3xl shadow-xl grayscale opacity-50 border-4 border-white" alt="Scan Preview" />
@@ -198,7 +198,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
                             <div className="flex gap-4">
                                 <button
                                     onClick={() => setStep('upload')}
-                                    className="flex-1 py-4 bg-white border border-black/5 rounded-2xl text-[12px] font-black uppercase tracking-widest text-dagang-gray flex items-center justify-center gap-3 hover:bg-dagang-cream/50 transition-all shadow-sm"
+                                    className="flex-1 py-4 bg-[var(--surface)] border border-[var(--border)] rounded-2xl text-[12px] font-black uppercase tracking-widest text-[var(--text-main)] flex items-center justify-center gap-3 hover:bg-[var(--surface-card)] transition-all shadow-sm"
                                 >
                                     <RotateCcw className="w-4 h-4" /> Ulangi
                                 </button>

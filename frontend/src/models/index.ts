@@ -33,7 +33,7 @@ export interface Transaction {
     toWalletId: string | null;
     savingId?: string | null;
     goalId?: string | null;
-    type: 'income' | 'expense' | 'transfer' | 'saving' | 'goal_allocation';
+    type: 'income' | 'expense' | 'transfer' | 'saving' | 'goal_allocation' | 'debt_payment';
     amount: number;
     fee?: number;
     category: string | null;
@@ -59,8 +59,13 @@ export interface Debt {
     familyId: string;
     name: string;
     totalAmount: number;
+    paidAmount: number;
     remainingAmount: number;
-    dueDate: string;
+    startDate: string;
+    paymentDay: number;
+    installmentIntervalMonths: number;
+    nextInstallmentDueDate: string;
+    status: string;
     createdAt: string;
 }
 

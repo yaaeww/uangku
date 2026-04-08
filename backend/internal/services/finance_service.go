@@ -6,6 +6,7 @@ import (
 	"keuangan-keluarga/internal/models"
 	"keuangan-keluarga/internal/repositories"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -41,6 +42,7 @@ type financeService struct {
 	goalRepo     repositories.GoalRepository
 	budgetRepo   repositories.BudgetRepository
 	aiService    AIService
+	debtService  DebtService
 }
 
 func NewFinanceService(
@@ -51,6 +53,7 @@ func NewFinanceService(
 	goalRepo repositories.GoalRepository,
 	budgetRepo repositories.BudgetRepository,
 	aiService AIService,
+	debtService DebtService,
 ) FinanceService {
 	return &financeService{
 		repo:         repo,
@@ -60,6 +63,7 @@ func NewFinanceService(
 		goalRepo:     goalRepo,
 		budgetRepo:   budgetRepo,
 		aiService:    aiService,
+		debtService:  debtService,
 	}
 }
 
@@ -159,9 +163,7 @@ func (s *financeService) GetCoachAnalysis(familyID, userID uuid.UUID, role strin
 	for _, g := range goals {
 		if g.Status == "active" {
 			progress := (g.CurrentBalance / g.TargetAmount) * 100
-			prio := g.Priority
-			if prio == "" { prio = "medium" }
-			goalInfo += fmt.Sprintf("- %s: %.1f%% terisi (Target: Rp%.0f, Prioritas: %s)\n", g.Name, progress, g.TargetAmount, prio)
+			goalInfo += fmt.Sprintf("- %s: %.1f%% terisi (Target: Rp%.0f)\n", g.Name, progress, g.TargetAmount)
 		}
 	}
 
@@ -536,11 +538,20 @@ func (s *financeService) UpdateTransaction(id uuid.UUID, date time.Time, request
 	
 	if err := dbTx.Create(updatedTx).Error; err != nil {
 		log.Printf("[ERROR] Failed to create new record: %v", err)
-		dbTx.Rollback()
 		return err
 	}
 
-	return dbTx.Commit().Error
+	if err := dbTx.Commit().Error; err != nil {
+		return err
+	}
+
+	// Async sync summaries for both old and new dates (in case of month change)
+	go s.repo.SyncMonthlySummary(updatedTx.FamilyID, int(oldTx.Date.Month()), oldTx.Date.Year())
+	if oldTx.Date.Month() != updatedTx.Date.Month() || oldTx.Date.Year() != updatedTx.Date.Year() {
+		go s.repo.SyncMonthlySummary(updatedTx.FamilyID, int(updatedTx.Date.Month()), updatedTx.Date.Year())
+	}
+
+	return nil
 }
 
 func (s *financeService) revertTransactionWithDB(dbTx *gorm.DB, tx *models.Transaction) error {
@@ -551,9 +562,7 @@ func (s *financeService) revertTransactionWithDB(dbTx *gorm.DB, tx *models.Trans
 		if err := dbTx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&wallet, "id = ?", tx.WalletID).Error; err != nil {
 			return err
 		}
-		if wallet.Balance < tx.Amount {
-			return fmt.Errorf("gagal menghapus: saldo %s tidak cukup untuk ditarik kembali", wallet.Name)
-		}
+		// Note: We allow negative balance during revert to unblock data correction
 		wallet.Balance -= tx.Amount
 		return dbTx.Save(&wallet).Error
 
@@ -578,6 +587,19 @@ func (s *financeService) revertTransactionWithDB(dbTx *gorm.DB, tx *models.Trans
 				}
 			}
 		}
+
+		// Also handle debt payment revert if it's an expense linked to a debt
+		if tx.DebtID != nil && *tx.DebtID != uuid.Nil {
+			// 1. Delete associated DebtPayment record
+			if err := dbTx.Unscoped().Where("transaction_id = ?", tx.ID).Delete(&models.DebtPayment{}).Error; err != nil {
+				return err
+			}
+			// 2. Full recalculate of debt progress to ensure consistency
+			if err := s.debtService.FullRecalculate(dbTx, *tx.DebtID); err != nil {
+				return err
+			}
+		}
+
 		return nil
 
 	case "transfer":
@@ -591,9 +613,7 @@ func (s *financeService) revertTransactionWithDB(dbTx *gorm.DB, tx *models.Trans
 			if err := dbTx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&toWallet, "id = ?", *tx.ToWalletID).Error; err != nil {
 				return err
 			}
-			if toWallet.Balance < tx.Amount {
-				return fmt.Errorf("gagal menghapus: saldo %s tidak cukup untuk dikembalikan", toWallet.Name)
-			}
+			// Note: We allow negative balance during revert to unblock data correction
 			toWallet.Balance -= tx.Amount
 			if err := dbTx.Save(&toWallet).Error; err != nil {
 				return err
@@ -614,9 +634,7 @@ func (s *financeService) revertTransactionWithDB(dbTx *gorm.DB, tx *models.Trans
 			if err := dbTx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&saving, "id = ?", *tx.SavingID).Error; err != nil {
 				return err
 			}
-			if saving.CurrentBalance < tx.Amount {
-				return fmt.Errorf("gagal menghapus: saldo alokasi %s tidak cukup", saving.Name)
-			}
+			// Note: We allow negative balance during revert to unblock data correction
 			saving.CurrentBalance -= tx.Amount
 			if err := dbTx.Save(&saving).Error; err != nil {
 				return err
@@ -634,9 +652,7 @@ func (s *financeService) revertTransactionWithDB(dbTx *gorm.DB, tx *models.Trans
 			if err := dbTx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&goal, "id = ?", *tx.GoalID).Error; err != nil {
 				return err
 			}
-			if goal.CurrentBalance < tx.Amount {
-				return fmt.Errorf("gagal menghapus: saldo alokasi goal %s tidak cukup", goal.Name)
-			}
+			// Note: We allow negative balance during revert to unblock data correction
 			goal.CurrentBalance -= tx.Amount
 			if err := dbTx.Save(&goal).Error; err != nil {
 				return err
@@ -644,6 +660,30 @@ func (s *financeService) revertTransactionWithDB(dbTx *gorm.DB, tx *models.Trans
 		}
 		wallet.Balance += tx.Amount
 		return dbTx.Save(&wallet).Error
+
+	case "debt_payment":
+		var wallet models.Wallet
+		if err := dbTx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&wallet, "id = ?", tx.WalletID).Error; err != nil {
+			return err
+		}
+		
+		// Money returns to wallet
+		wallet.Balance += tx.Amount
+		if err := dbTx.Save(&wallet).Error; err != nil {
+			return err
+		}
+
+		if tx.DebtID != nil {
+			// 1. Delete associated DebtPayment record
+			if err := dbTx.Where("transaction_id = ?", tx.ID).Delete(&models.DebtPayment{}).Error; err != nil {
+				return err
+			}
+			// 2. Full recalculate of debt progress
+			if err := s.debtService.FullRecalculate(dbTx, *tx.DebtID); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 	return nil
 }
@@ -685,6 +725,37 @@ func (s *financeService) applyTransactionImpactWithDB(dbTx *gorm.DB, tx *models.
 				// We allow negative balance (over-budget/over-allocation)
 				saving.CurrentBalance -= tx.Amount
 				if err := dbTx.Save(&saving).Error; err != nil {
+					return err
+				}
+			}
+		}
+
+		// Also handle debt payment impact if it's an expense linked to a debt
+		if tx.DebtID != nil && *tx.DebtID != uuid.Nil {
+			// 1. Create a new DebtPayment record (only if category matches debt_payment - case insensitive)
+			if strings.EqualFold(tx.Category, "debt_payment") {
+				payment := &models.DebtPayment{
+					DebtID:        *tx.DebtID,
+					WalletID:      tx.WalletID,
+					UserID:        tx.UserID,
+					Amount:        tx.Amount,
+					Date:          tx.Date,
+					Description:   tx.Description,
+					TransactionID: &tx.ID,
+				}
+
+				// Check if this payment already exists via TransactionID to avoid duplicates
+				var existing models.DebtPayment
+				if err := dbTx.Where("transaction_id = ?", tx.ID).First(&existing).Error; err != nil {
+					if err := dbTx.Create(payment).Error; err != nil {
+						return err
+					}
+				}
+
+				// 2. Full recalculate of debt progress. This is the SINGLE SOURCE OF TRUTH.
+				// It handles PaidAmount, RemainingAmount, Status, and NextInstallmentDueDate 
+				// by scanning all payment records.
+				if err := s.debtService.FullRecalculate(dbTx, *tx.DebtID); err != nil {
 					return err
 				}
 			}

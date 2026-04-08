@@ -260,7 +260,7 @@ const TransactionRow = React.memo(({
                 </td>
                 <td className="px-6 py-5">
                     <div className="flex items-center justify-center gap-2">
-                        {(tx.userId === currentUserId && familyRole !== 'viewer') ? (
+                        {(tx.userId === currentUserId && familyRole !== 'viewer' && tx.category !== 'debt_payment' && tx.category !== 'DEBT_PAYMENT') ? (
                             <>
                                 <button 
                                     onClick={() => {
@@ -348,7 +348,7 @@ const TransactionRow = React.memo(({
                             </div>
                             
                             <div className="flex items-center gap-1 ml-2">
-                                {(tx.userId === currentUserId && familyRole !== 'viewer') ? (
+                                {(tx.userId === currentUserId && familyRole !== 'viewer' && tx.category !== 'debt_payment' && tx.category !== 'DEBT_PAYMENT') ? (
                                     <>
                                         <button 
                                             onClick={() => {
@@ -461,7 +461,7 @@ export const TransactionsView = ({
         if (activeTab === 'income') {
             result = result.filter(tx => tx.type === 'income');
         } else if (activeTab === 'expense') {
-            result = result.filter(tx => tx.type === 'expense' || tx.type === 'saving');
+            result = result.filter(tx => tx.type === 'expense' || tx.type === 'saving' || tx.type === 'goal_allocation' || tx.type === 'debt_payment');
         } else {
             result = result.filter(tx => tx.type === 'transfer');
         }

@@ -59,7 +59,6 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
     const [targetAmount, setTargetAmount] = useState(0);
     const [category, setCategory] = useState('');
     const [emoji, setEmoji] = useState('🎯');
-    const [priority, setPriority] = useState('medium');
     const [assetType, setAssetType] = useState('fixed');
 
     // Fund States
@@ -80,7 +79,6 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
         setTargetAmount(goal.targetAmount);
         setCategory(goal.category || '');
         setEmoji(goal.emoji || '🎯');
-        setPriority(goal.priority || 'medium');
         setIsModalOpen(true);
     };
 
@@ -113,7 +111,6 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
         setTargetAmount(0);
         setCategory('');
         setEmoji('🎯');
-        setPriority('medium');
         setEditGoalId(null);
         setIsModalOpen(false);
         setIsConvertModalOpen(false);
@@ -136,8 +133,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
             name,
             targetAmount,
             category,
-            emoji,
-            priority
+            emoji
         };
 
         if (editGoalId) {
@@ -233,15 +229,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
                                 </div>
                             )}
 
-                            {goal.priority && (
-                                <div className={`absolute top-8 left-8 z-20 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${
-                                    goal.priority === 'high' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                                    goal.priority === 'medium' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
-                                    'bg-blue-500/10 text-blue-500 border-blue-500/20'
-                                }`}>
-                                    {goal.priority}
-                                </div>
-                            )}
+
 
                             <div className="flex items-center justify-between mb-6">
                                 <div className="w-14 h-14 bg-black/5 dark:bg-white/5 rounded-2xl flex items-center justify-center text-3xl shadow-inner">
@@ -414,27 +402,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({
                                     />
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em] ml-2">Prioritas</label>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        {['low', 'medium', 'high'].map(prio => (
-                                            <button
-                                                key={prio}
-                                                type="button"
-                                                onClick={() => setPriority(prio)}
-                                                className={`py-3 rounded-2xl border-2 text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                    priority === prio 
-                                                    ? (prio === 'high' ? 'border-red-500 bg-red-500 text-white' : 
-                                                       prio === 'medium' ? 'border-amber-500 bg-amber-500 text-white' : 
-                                                       'border-blue-500 bg-blue-500 text-white')
-                                                    : 'border-transparent bg-black/5 dark:bg-white/5 text-[var(--text-muted)] hover:bg-black/10'
-                                                }`}
-                                            >
-                                                {prio}
-                                            </button>
-                                        )) }
-                                    </div>
-                                </div>
+
 
                                 <button type="submit" className="w-full py-5 bg-[var(--primary)] text-white rounded-[24px] font-black text-[15px] uppercase tracking-[0.2em] hover:opacity-90 transition-all shadow-xl shadow-[var(--primary)]/30 mt-4">
                                     {editGoalId ? 'Simpan Perubahan' : 'Luncurkan Goal'}
