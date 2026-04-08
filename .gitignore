@@ -1,0 +1,47 @@
+# --- Lingkungan ---
+.env
+.env.local
+.env.*.local
+
+# --- Sistem & IDE ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- Binary & Build ---
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+dist-ssr/
+build/
+backend/main
+backend/main.exe
+tmp/
+temp/
+_tmp/
+
+# --- Database ---
+*.sql
+*.sqlite
+*.db
+
+# --- Logs ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# --- Dependencies ---
+node_modules/
+vendor/
+pkg/
