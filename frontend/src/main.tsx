@@ -18,10 +18,32 @@ import { registerSW } from 'virtual:pwa-register'
 // Register PWA service worker for "Add to Home Screen" support
 registerSW({ immediate: true })
 
+// 🤫 Global Silence for "Extension Garbage" Errors
+const SILENCED_ERRORS = [
+  'Could not establish connection. Receiving end does not exist.',
+  'ResizeObserver loop limit exceeded',
+  'Extension context invalidated'
+];
+
+window.addEventListener('unhandledrejection', (event) => {
+  const msg = event.reason?.message || String(event.reason);
+  if (SILENCED_ERRORS.some(err => msg.includes(err))) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+});
+
 window.onerror = (msg, url, line) => {
+  const message = String(msg);
+  if (SILENCED_ERRORS.some(err => message.includes(err))) {
+    return true; // Suppress
+  }
+
   console.error('FRONTEND ERROR:', msg, 'at', url, ':', line);
   const root = document.getElementById('root');
-  if (root) root.innerHTML = `<div style="padding:20px;color:red;"><h1>FRONTEND CRASH</h1><pre>${msg}</pre></div>`;
+  if (root && !url?.includes('chrome-extension')) { // Don't crash on extension errors
+    root.innerHTML = `<div style="padding:20px;color:red;"><h1>FRONTEND CRASH</h1><pre>${msg}</pre></div>`;
+  }
 };
 
 createRoot(document.getElementById('root')!).render(

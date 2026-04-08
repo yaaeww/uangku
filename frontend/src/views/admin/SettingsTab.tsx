@@ -116,7 +116,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                         {s.value ? (
                             <div className="w-12 h-12 bg-black/5 dark:bg-white/5 rounded-lg border border-[var(--border)] overflow-hidden flex items-center justify-center p-2 group relative">
                                 <img 
-                                    src={String(s.value || '').startsWith('http') ? s.value : `${(import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/api\/v1\/?$/, '').replace(/\/$/, '')}${s.value}`} 
+                                    src={String(s.value || '').startsWith('http') ? s.value : `${(import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/api\/v1\/?$/, '').replace(/\/$/, '')}${s.value}`} 
                                     className="max-w-full max-h-full object-contain transition-transform group-hover:scale-110"
                                     onError={(e) => {
                                         (e.target as HTMLImageElement).src = 'https://via.placeholder.com/48?text=Error';
