@@ -894,6 +894,7 @@ export const FamilyDashboard = () => {
                     selectedWeek,
                     setSelectedWeek,
                     summary,
+                    loading,
                     filteredTotalIncome,
                     filteredTotalExpense,
                     wallets: wallets,

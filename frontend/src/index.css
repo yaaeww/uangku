@@ -14,10 +14,8 @@
   --text-muted: #334155;
   --text-faint: #64748B;
   --border: #CBD5E1;
-  --sidebar-bg: #F0F9F5;
-  --sidebar-text: #064E3B; /* Slightly greener dark text */
-  --sidebar-text-muted: #475569;
-  --sidebar-border: rgba(26, 107, 74, 0.1);
+  --bg-cream: #FAF8F3;
+  --bg-deep: #0A1F18;
   --card-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.05);
 }
 
@@ -37,6 +35,8 @@
   --sidebar-text: #FFFFFF;
   --sidebar-text-muted: rgba(255, 255, 255, 0.5);
   --sidebar-border: rgba(255, 255, 255, 0.05);
+  --bg-cream: #06130F;
+  --bg-deep: #06130F;
   --card-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.3);
 }
 

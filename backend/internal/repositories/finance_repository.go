@@ -238,19 +238,17 @@ func (r *financeRepository) GetDashboardSummary(familyID, userID uuid.UUID, role
 		}
 	}
 
+	// 1. Fetch family data synchronously to avoid race conditions in dependees (like calculateBudgets)
+	config.DB.Preload("Members.User").First(&summary.Family, "id = ?", familyID)
+	summary.MemberCount = int64(len(summary.Family.Members))
+	config.DB.First(&summary.Plan, "name = ?", summary.Family.SubscriptionPlan)
+
 	var wg sync.WaitGroup
-	wg.Add(6)
+	wg.Add(5)
 
 	go func() {
 		defer wg.Done()
 		summary.TrendBalance, summary.TrendIncome, summary.TrendExpense = r.calculateTrends(familyID, startDate)
-	}()
-
-	go func() {
-		defer wg.Done()
-		config.DB.Preload("Members.User").First(&summary.Family, "id = ?", familyID)
-		summary.MemberCount = int64(len(summary.Family.Members))
-		config.DB.First(&summary.Plan, "name = ?", summary.Family.SubscriptionPlan)
 	}()
 
 	go func() {
@@ -340,8 +338,10 @@ func (r *financeRepository) calculateDashboardMetricsOnePass(familyID, userID uu
 
 			if isDebt {
 				s.MemberDebtSpent[res.UserID] += res.Total
+				s.MemberSpent[res.UserID] += res.Total // Add to aggregate realization
 			} else if isGoal {
 				s.MemberGoalSpent[res.UserID] += res.Total
+				s.MemberSpent[res.UserID] += res.Total // Add to aggregate realization
 			} else if res.Type == "expense" {
 				// ONLY 'expense' types contribute to pure budget realization
 				// Internal transfers or other non-expense types are excluded from realization

@@ -377,17 +377,27 @@ export const BudgetView = () => {
     }, [activeMemberId, selectedMonth, selectedYear]);
 
     useEffect(() => {
+        // Prevent resetting to 0 if we are loading and already have a value
+        if (context.loading && totalBudget > 0) return;
+
         const lowerActiveId = String(activeMemberId).toLowerCase();
+        
+        // Priority 1: From summary.memberBudgets (calculated summary)
         if (summary?.memberBudgets && summary.memberBudgets[lowerActiveId] !== undefined) {
             setTotalBudget(summary.memberBudgets[lowerActiveId]);
         } else if (summary?.memberBudgets && summary.memberBudgets[activeMemberId] !== undefined) {
             setTotalBudget(summary.memberBudgets[activeMemberId]);
-        } else if (activeMemberId === currentUserId) {
-            setTotalBudget(summary?.userBudget || 0);
-        } else if (activeMember) {
-            setTotalBudget(activeMember.monthly_budget || 0);
+        } 
+        // Priority 2: From summary.userBudget (direct current user summary)
+        else if (activeMemberId === currentUserId && summary?.userBudget !== undefined) {
+            setTotalBudget(summary.userBudget);
+        } 
+        // Priority 3: From activeMember.monthly_budget (fallback to profile data)
+        else if (activeMember && activeMember.monthly_budget !== undefined) {
+            setTotalBudget(activeMember.monthly_budget);
         }
-    }, [activeMemberId, summary?.userBudget, summary?.memberBudgets, activeMember]);
+        // If everything fails and loading is finished, only then set to 0 or keep old
+    }, [activeMemberId, summary?.userBudget, summary?.memberBudgets, activeMember, context.loading]);
 
     const handleUpdateActiveMemberBudget = async () => {
         try {
@@ -702,11 +712,22 @@ export const BudgetView = () => {
                                 return (roleOrder[a.role] ?? 99) - (roleOrder[b.role] ?? 99);
                             })
                             .map((m: any) => {
-                            const memberSpent = summary?.memberSpent?.[m.userId] ?? 0;
-                            const memberDebtSpent = summary?.member_debt_spent?.[m.userId] ?? summary?.memberDebtSpent?.[m.userId] ?? 0;
-                            const memberGoalSpent = summary?.member_goal_spent?.[m.userId] ?? summary?.memberGoalSpent?.[m.userId] ?? 0;
+                            const memberTransactions = (context.transactions || []).filter((tx: any) => 
+                                String(tx.userId || tx.user_id) === String(m.userId) &&
+                                (tx.type === 'expense' || tx.type === 'saving' || tx.type === 'goal_allocation' || tx.type === 'debt_payment')
+                            );
+                            const memberSpent = memberTransactions.reduce((acc: number, tx: any) => acc + tx.amount, 0);
+                            
+                            const memberDebtSpent = memberTransactions
+                                .filter((tx: any) => tx.type === 'debt_payment')
+                                .reduce((acc: number, tx: any) => acc + tx.amount, 0);
+                                
+                            const memberGoalSpent = memberTransactions
+                                .filter((tx: any) => tx.type === 'saving' || tx.type === 'goal_allocation')
+                                .reduce((acc: number, tx: any) => acc + tx.amount, 0);
+
                             const memberAllocated = budgetCategories.reduce((acc: number, cat: any) => {
-                                const catItems = (cat.items || []).filter((s: any) => (s.user_id || s.userId) === m.userId);
+                                const catItems = (cat.items || []).filter((s: any) => String(s.user_id || s.userId) === String(m.userId));
                                 return acc + catItems.reduce((iAcc: number, item: any) => iAcc + (item.targetAmount || item.target_amount || 0), 0);
                             }, 0);
 

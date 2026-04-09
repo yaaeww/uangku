@@ -25,8 +25,9 @@ export default {
                     green: 'var(--primary)',
                     'green-light': '#2d9668',
                     'green-pale': '#e8f5ee',
-                    cream: '#faf8f3',
-                    dark: 'var(--foreground)',
+                    cream: 'var(--bg-cream)',
+                    dark: 'var(--text-main)',
+                    deep: 'var(--bg-deep)',
                     gray: 'var(--text-muted)',
                     accent: 'var(--accent)',
                     // Emerald Harmony Tokens

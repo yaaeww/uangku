@@ -62,9 +62,9 @@ export const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-dagang-cream text-dagang-dark font-sans flex flex-col md:flex-row">
+        <div className="min-h-screen bg-dagang-cream text-dagang-dark font-sans flex flex-col md:flex-row transition-colors duration-300">
             {/* Left Panel - Branding */}
-            <div className="hidden md:flex md:w-[40%] bg-dagang-dark p-12 lg:p-16 flex-col justify-between relative overflow-hidden">
+            <div className="hidden md:flex md:w-[40%] bg-dagang-deep p-12 lg:p-16 flex-col justify-between relative overflow-hidden">
                 <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-dagang-green/20 blur-[120px] rounded-full" />
 
                 <Link to="/" className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity relative z-10">
@@ -102,7 +102,7 @@ export const LoginPage = () => {
                 <div className="absolute top-6 right-6 md:top-12 md:right-12">
                     <button
                         onClick={toggleLanguage}
-                        className="p-2.5 rounded-full bg-white border border-black/5 text-dagang-gray hover:text-dagang-green transition-all flex items-center gap-2 shadow-sm"
+                        className="p-2.5 rounded-full bg-[var(--surface-card)] border border-[var(--border)] text-dagang-gray hover:text-dagang-green transition-all flex items-center gap-2 shadow-sm"
                     >
                         <Globe className="w-4 h-4" />
                         <span className="text-[11px] font-bold uppercase">{i18n.language}</span>
@@ -134,7 +134,7 @@ export const LoginPage = () => {
                                 <input
                                     type="email"
                                     required
-                                    className="w-full pl-12 pr-4 py-4 bg-white border-1.5 border-black/5 rounded-2xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none shadow-sm"
+                                    className="w-full pl-12 pr-4 py-4 bg-[var(--surface-card)] border-[1.5px] border-[var(--border)] rounded-2xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none shadow-sm text-[var(--text-main)]"
                                     placeholder={t('auth.login.emailPlaceholder')}
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -158,7 +158,7 @@ export const LoginPage = () => {
                                 <input
                                     type="password"
                                     required
-                                    className="w-full pl-12 pr-4 py-4 bg-white border-1.5 border-black/5 rounded-2xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none shadow-sm"
+                                    className="w-full pl-12 pr-4 py-4 bg-[var(--surface-card)] border-[1.5px] border-[var(--border)] rounded-2xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none shadow-sm text-[var(--text-main)]"
                                     placeholder={t('auth.login.passwordPlaceholder')}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
@@ -191,8 +191,8 @@ export const LoginPage = () => {
                         </button>
                     </form>
 
-                    <div className="mt-12 pt-8 border-t border-black/5 flex items-center justify-center gap-6 opacity-40">
-                        <div className="flex items-center gap-1.5 grayscale">
+                    <div className="mt-12 pt-8 border-t border-[var(--border)] flex items-center justify-center gap-6 opacity-40">
+                        <div className="flex items-center gap-1.5 grayscale text-[var(--text-main)]">
                             <ShieldCheck className="w-4 h-4" />
                             <span className="text-[11px] font-bold tracking-widest uppercase">{t('auth.login.safeSecure')}</span>
                         </div>

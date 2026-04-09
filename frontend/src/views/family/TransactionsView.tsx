@@ -1316,35 +1316,139 @@ const BulkTransactionModal = ({ isOpen, onClose, wallets, savings, goals, handle
 
     const addRow = () => setRows([...rows, { ...rows[rows.length - 1], amount: 0, description: '', category: '', savingId: '', goalId: '' }]);
     const removeRow = (index: number) => rows.length > 1 && setRows(rows.filter((_, i) => i !== index));
-    const updateRow = (index: number, field: string, value: any) => {
+    const updateRow = (index: number, updates: any) => {
         const newRows = [...rows];
-        newRows[index][field] = value;
+        newRows[index] = { ...newRows[index], ...updates };
         setRows(newRows);
     };
 
     return (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={onClose} />
-            <div className="relative bg-[var(--surface-card)] w-full max-w-[1000px] max-h-[92vh] overflow-y-auto rounded-[32px] border border-[var(--border)] p-10">
-                <div className="flex items-center justify-between mb-10">
-                    <h3 className="text-[28px] font-black text-[var(--text-main)]">Input Massal</h3>
-                    <button onClick={onClose} className="p-2.5 bg-black/5 rounded-xl"><X className="w-5 h-5" /></button>
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-2 mobile:p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
+            <div className="relative bg-[var(--surface-card)] w-full max-w-[1100px] max-h-[92vh] overflow-y-auto rounded-[40px] border border-[var(--border)] shadow-2xl animate-in zoom-in-95 duration-300 custom-scrollbar">
+                <div className="sticky top-0 bg-[var(--surface-card)]/80 backdrop-blur-xl z-20 px-8 py-6 border-b border-[var(--border)] flex items-center justify-between">
+                    <div>
+                        <h3 className="text-2xl font-black text-[var(--text-main)]">Input Massal</h3>
+                        <p className="text-[10px] text-[var(--text-muted)] font-bold opacity-50 uppercase tracking-[0.2em] mt-1">Tambahkan banyak transaksi sekaligus dengan cepat</p>
+                    </div>
+                    <button onClick={onClose} className="p-3 bg-black/5 dark:bg-white/5 rounded-2xl hover:bg-black/10 dark:hover:bg-white/10 transition-all">
+                        <X className="w-5 h-5 text-[var(--text-muted)]" />
+                    </button>
                 </div>
-                <div className="space-y-4">
-                    {rows.map((row, idx) => (
-                        <div key={idx} className="flex gap-4 items-center bg-black/5 p-4 rounded-2xl">
-                             <input type="date" value={row.date} onChange={(e) => updateRow(idx, 'date', e.target.value)} className="bg-transparent font-bold text-xs outline-none" />
-                             <input type="text" value={formatRupiah(row.amount)} onChange={(e) => updateRow(idx, 'amount', parseRupiah(e.target.value))} placeholder="Rp 0" className="bg-transparent font-black text-sm outline-none w-32" />
-                             <select value={row.type} onChange={(e) => updateRow(idx, 'type', e.target.value)} className="bg-transparent font-bold text-xs outline-none">
-                                <option value="expense">Keluar</option>
-                                <option value="income">Masuk</option>
-                             </select>
-                             <input type="text" value={row.description} onChange={(e) => updateRow(idx, 'description', e.target.value)} placeholder="Catatan" className="flex-1 bg-transparent font-bold text-xs outline-none" />
-                             <button onClick={() => removeRow(idx)} className="text-red-500"><Trash2 className="w-4 h-4" /></button>
-                        </div>
-                    ))}
-                    <button onClick={addRow} className="w-full py-4 border-2 border-dashed border-[var(--border)] rounded-2xl font-black text-[11px] uppercase tracking-widest">+ Tambah Baris</button>
-                    <button onClick={() => handleBulkCreateTransactions(rows)} className="w-full py-4 bg-dagang-green text-white rounded-2xl font-black uppercase tracking-widest">Simpan Semua</button>
+
+                <div className="p-8">
+                    <div className="overflow-x-auto min-w-full pb-6">
+                        <table className="w-full border-separate border-spacing-y-3">
+                            <thead>
+                                <tr className="text-left">
+                                    <th className="px-4 pb-2 text-[10px] font-black text-[var(--text-muted)] opacity-40 uppercase tracking-widest w-[140px]">Tanggal</th>
+                                    <th className="px-4 pb-2 text-[10px] font-black text-[var(--text-muted)] opacity-40 uppercase tracking-widest w-[80px]">Tipe</th>
+                                    <th className="px-4 pb-2 text-[10px] font-black text-[var(--text-muted)] opacity-40 uppercase tracking-widest w-[160px]">Jumlah</th>
+                                    <th className="px-4 pb-2 text-[10px] font-black text-[var(--text-muted)] opacity-40 uppercase tracking-widest w-[160px]">Dompet</th>
+                                    <th className="px-4 pb-2 text-[10px] font-black text-[var(--text-muted)] opacity-40 uppercase tracking-widest min-w-[220px]">Kategori</th>
+                                    <th className="px-4 pb-2 text-[10px] font-black text-[var(--text-muted)] opacity-40 uppercase tracking-widest">Catatan</th>
+                                    <th className="w-[50px]"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {rows.map((row, idx) => (
+                                    <tr key={idx} className="bg-black/5 dark:bg-white/5 group hover:bg-black/10 transition-all">
+                                        <td className="px-4 py-3 first:rounded-l-2xl">
+                                            <input 
+                                                type="date" 
+                                                value={row.date} 
+                                                onChange={(e) => updateRow(idx, { date: e.target.value })} 
+                                                className="bg-transparent font-bold text-xs outline-none w-full text-[var(--text-main)]" 
+                                            />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <select 
+                                                value={row.type} 
+                                                onChange={(e) => updateRow(idx, { type: e.target.value })} 
+                                                className="bg-transparent font-black text-[10px] uppercase tracking-tighter outline-none text-[var(--text-main)] cursor-pointer"
+                                            >
+                                                <option value="expense">Keluar</option>
+                                                <option value="income">Masuk</option>
+                                            </select>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <input 
+                                                type="text" 
+                                                value={formatRupiah(row.amount)} 
+                                                onChange={(e) => updateRow(idx, { amount: parseRupiah(e.target.value) })} 
+                                                placeholder="Rp 0" 
+                                                className={`bg-transparent font-black text-sm outline-none w-full ${row.type === 'income' ? 'text-dagang-green' : 'text-red-500'}`} 
+                                            />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <select
+                                                value={row.walletId}
+                                                onChange={(e) => updateRow(idx, { walletId: e.target.value })}
+                                                className="bg-transparent font-bold text-xs outline-none w-full text-[var(--text-main)] cursor-pointer"
+                                            >
+                                                {wallets.filter((w: any) => (w.userId || w.user_id) === currentUserId).map((w: any) => (
+                                                    <option key={w.id} value={w.id}>{w.name}</option>
+                                                ))}
+                                            </select>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <CategorySelector
+                                                value={row.category}
+                                                savingId={row.savingId}
+                                                goalId={row.goalId}
+                                                onChange={(name: string, sid: string, gid: string) => {
+                                                    let updatedType = row.type;
+                                                    if (gid && row.type === 'expense') updatedType = 'goal_allocation';
+                                                    else if (sid && row.type === 'expense') updatedType = 'saving';
+                                                    else if (!gid && !sid && row.type === 'expense') updatedType = 'expense';
+                                                    updateRow(idx, { category: name, savingId: sid, goalId: gid, type: updatedType });
+                                                }}
+                                                savings={savings}
+                                                goals={goals}
+                                                type={row.type}
+                                                incomeCategories={incomeCategories}
+                                                budgetCategories={budgetCategories}
+                                                currentUserId={currentUserId}
+                                            />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <input 
+                                                type="text" 
+                                                value={row.description} 
+                                                onChange={(e) => updateRow(idx, { description: e.target.value })} 
+                                                placeholder="cth. Belanja Mingguan" 
+                                                className="bg-transparent font-bold text-xs outline-none w-full text-[var(--text-main)]" 
+                                            />
+                                        </td>
+                                        <td className="px-4 py-3 last:rounded-r-2xl text-center">
+                                            <button 
+                                                onClick={() => removeRow(idx)} 
+                                                className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-40 group-hover:opacity-100"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="mt-6 flex flex-col mobile:flex-row gap-4">
+                        <button 
+                            onClick={addRow} 
+                            className="flex-1 py-5 border-2 border-dashed border-[var(--border)] rounded-[24px] font-black text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)] hover:border-dagang-green hover:text-dagang-green hover:bg-dagang-green/5 transition-all flex items-center justify-center gap-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Tambah Baris
+                        </button>
+                        <button 
+                            onClick={() => handleBulkCreateTransactions(rows)} 
+                            className="flex-1 py-5 bg-dagang-green text-white rounded-[24px] font-black uppercase tracking-[0.2em] shadow-xl shadow-dagang-green/20 hover:bg-dagang-green-light hover:-translate-y-1 transition-all"
+                        >
+                            Simpan Semua
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

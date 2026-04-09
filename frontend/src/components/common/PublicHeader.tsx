@@ -20,9 +20,9 @@ export const PublicHeader = () => {
     };
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-4 sm:px-6 py-3 sm:py-5 md:px-[60px] bg-[#faf8f3]/92 backdrop-blur-md border-b border-dagang-green/10">
+        <nav className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-4 sm:px-6 py-3 sm:py-5 md:px-[60px] bg-dagang-cream/92 backdrop-blur-md border-b border-dagang-green/10 transition-colors duration-500">
             <Link to="/" className="hover:opacity-80 transition-opacity shrink-0">
-                <Logo forceTheme="light" />
+                <Logo />
             </Link>
 
             <ul className="hidden lg:flex gap-9 list-none">

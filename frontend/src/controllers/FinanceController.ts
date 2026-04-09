@@ -124,16 +124,16 @@ export const FinanceController = {
 
     createBulkTransactions: async (txs: any[]): Promise<any> => {
         const payload = txs.map(tx => ({
-            description: tx.description,
-            wallet_id: tx.walletId,
+            description: tx.description || '',
+            wallet_id: tx.walletId || null,
             to_wallet_id: tx.toWalletId || null,
             saving_id: tx.savingId || null,
             goal_id: tx.goalId || null,
-            amount: tx.amount,
-            category: tx.category,
-            type: tx.type,
-            date: tx.date,
-            fee: tx.fee || 0
+            amount: Number(tx.amount) || 0,
+            category: tx.category || '',
+            type: tx.type || 'expense',
+            date: tx.date || new Date().toISOString().split('T')[0],
+            fee: Number(tx.fee) || 0
         }));
         const response = await api.post('/finance/transactions/bulk', payload);
         return response.data;
