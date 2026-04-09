@@ -57,7 +57,10 @@ const CategoryRow = ({
     const totalTarget = catSavings.reduce((acc: number, s: any) => acc + (s.targetAmount || s.target_amount || 0), 0);
     const totalUsed = catSavings.reduce((acc: number, s: any) => {
         const sSpent = (context.transactions || [])
-            .filter((tx: any) => (tx.type === 'expense' || tx.type === 'saving' || tx.type === 'goal_allocation') && (tx.savingId === s.id || tx.saving_id === s.id))
+            .filter((tx: any) => 
+                (tx.type === 'expense' || tx.type === 'saving' || tx.type === 'goal_allocation' || tx.type === 'debt_payment') && 
+                (String(tx.savingId) === String(s.id) || String(tx.saving_id) === String(s.id))
+            )
             .reduce((tAcc: number, tx: any) => tAcc + tx.amount, 0);
         return acc + sSpent;
     }, 0);
@@ -171,14 +174,16 @@ const CategoryRow = ({
                 </div>
             </div>
 
-            <div className="space-y-2">
-                <div className="h-3 bg-black/5 rounded-full overflow-hidden relative shadow-inner">
+            <div className="space-y-3">
+                <div className="h-4 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden relative shadow-inner border border-[var(--border)]">
+                    {/* Allocation Goal Bar (Faint) */}
                     <div
-                        className={`absolute inset-y-0 left-0 transition-all duration-1000 opacity-20 ${cat.color.replace('text', 'bg')}`}
+                        className={`absolute inset-y-0 left-0 transition-all duration-1000 opacity-20 ${ (cat.color || 'text-dagang-green').replace('text', 'bg')}`}
                         style={{ width: `${Math.min(progress, 100)}%` }}
                     />
+                    {/* Actual Usage Bar (Solid) */}
                     <div
-                        className={`absolute inset-y-0 left-0 transition-all duration-1000 ${cat.color.replace('text', 'bg')}`}
+                        className={`absolute inset-y-0 left-0 transition-all duration-1000 ${ (cat.color || 'text-dagang-green').replace('text', 'bg')} shadow-lg`}
                         style={{ width: `${Math.min(usedProgress, 100)}%` }}
                     />
                 </div>
@@ -194,7 +199,10 @@ const CategoryRow = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {catSavings.map((s: any) => {
                     const sSpent = (context.transactions || [])
-                        .filter((tx: any) => (tx.type === 'expense' || tx.type === 'saving' || tx.type === 'goal_allocation') && (tx.savingId === s.id || tx.saving_id === s.id))
+                        .filter((tx: any) => 
+                            (tx.type === 'expense' || tx.type === 'saving' || tx.type === 'goal_allocation' || tx.type === 'debt_payment') && 
+                            (String(tx.savingId) === String(s.id) || String(tx.saving_id) === String(s.id))
+                        )
                         .reduce((acc: number, tx: any) => acc + tx.amount, 0);
 
                     const targetVal = s.targetAmount || s.target_amount || 0;

@@ -205,7 +205,7 @@ const TransactionRow = React.memo(({
     setIsSingleModalOpen: (open: boolean) => void,
     handleDeleteTransaction: (id: string, date: string) => void
 }) => {
-    const isIncome = tx.type === 'income' || tx.type === 'saving';
+    const isIncome = tx.type === 'income';
     const isTransfer = tx.type === 'transfer';
     const wallet = wallets.find(w => w.id === tx.walletId);
     
@@ -254,7 +254,7 @@ const TransactionRow = React.memo(({
                     </div>
                 </td>
                 <td className="px-6 py-5 text-right">
-                    <span className={`text-[15px] font-black tracking-tight ${isIncome ? 'text-dagang-green' : 'text-red-500'}`}>
+                    <span className={`text-[15px] font-black tracking-tight ${isIncome ? 'text-dagang-green' : (tx.type === 'transfer' ? 'text-blue-500' : 'text-red-500')}`}>
                         {isIncome ? '+' : '-'} Rp {tx.amount.toLocaleString('id-ID')}
                     </span>
                 </td>
@@ -331,7 +331,7 @@ const TransactionRow = React.memo(({
                                     </div>
                                 </div>
                             </div>
-                            <span className={`text-[14px] shrink-0 whitespace-nowrap font-black tracking-tight mt-1 ${isIncome ? 'text-dagang-green' : 'text-red-500'}`}>
+                            <span className={`text-[14px] shrink-0 whitespace-nowrap font-black tracking-tight mt-1 ${isIncome ? 'text-dagang-green' : (tx.type === 'transfer' ? 'text-blue-500' : 'text-red-500')}`}>
                                 {isIncome ? '+' : '-'} Rp {tx.amount.toLocaleString('id-ID')}
                             </span>
                         </div>
