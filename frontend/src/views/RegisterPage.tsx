@@ -277,14 +277,14 @@ export const RegisterPage = () => {
             <div className="flex-1 p-6 sm:p-12 md:p-[64px] flex flex-col justify-center bg-[var(--bg-cream)] text-[var(--text-main)] transition-colors duration-500">
                 <div className="max-w-[540px] mx-auto w-full">
                     {step < 3 && (
-                        <a href="/" className="inline-flex items-center gap-2 text-[var(--text-muted)] text-sm hover:text-dagang-green transition-colors mb-12">
+                        <Link to="/" className="inline-flex items-center gap-2 text-[var(--text-muted)] text-sm hover:text-dagang-green transition-colors mb-12">
                             <ArrowLeft className="w-4 h-4" /> {t('auth.register.backToHome')}
-                        </a>
+                        </Link>
                     )}
                     <div className="mb-10">
                         <h1 className="font-serif text-[32px] sm:text-[38px] mb-2 leading-tight text-[var(--text-main)]">{t('auth.register.heading')}</h1>
                         <p className="text-[var(--text-muted)] text-sm">
-                            {t('auth.register.haveAccount')} <a href="/login" className="text-dagang-green font-semibold hover:underline ml-1">{t('auth.register.loginHere')}</a>
+                            {t('auth.register.haveAccount')} <Link to="/login" className="text-dagang-green font-semibold hover:underline ml-1">{t('auth.register.loginHere')}</Link>
                         </p>
                     </div>
 
@@ -501,9 +501,9 @@ export const RegisterPage = () => {
                             </div>
                             <h2 className="text-2xl font-serif mb-3">{t('auth.register.welcomeHeading')}</h2>
                             <p className="text-dagang-gray mb-8">{t('auth.register.welcomeDesc')}</p>
-                            <a href="/login" className="block w-full py-4.5 bg-dagang-dark text-white rounded-xl text-base font-bold hover:bg-black transition-all">
+                            <Link to="/login" className="block w-full py-4.5 bg-dagang-dark text-white rounded-xl text-base font-bold hover:bg-black transition-all">
                                 {t('auth.register.goToPortal')}
-                            </a>
+                            </Link>
                         </div>
                     )}
 

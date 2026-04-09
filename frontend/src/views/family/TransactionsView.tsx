@@ -34,6 +34,8 @@ import { BudgetController } from '../../controllers/BudgetController';
 import { useModal } from '../../providers/ModalProvider';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { PremiumPeriodSelector } from '../../components/common/PremiumPeriodSelector';
+
 
 
 interface TransactionsViewProps {
@@ -654,7 +656,8 @@ export const TransactionsView = ({
                     <AlertCircle className="w-5 h-5 shrink-0" />
                     <div className="flex-1 text-sm">
                         <span className="font-bold">Pengingat:</span> Laporan transaksi untuk periode 
-                        {selectedWeek > 0 ? ` Minggu ${selectedWeek}` : ''} Bulan {selectedMonth} Tahun {selectedYear} belum diekspor. Unduh sekarang untuk keperluan arsip!
+                        {selectedWeek > 0 ? ` Minggu ${selectedWeek}` : ''} Bulan {new Date(2000, selectedMonth - 1, 1).toLocaleDateString('id-ID', { month: 'long' })} Tahun {selectedYear || '-'} belum diekspor. Unduh sekarang untuk keperluan arsip!
+
                     </div>
                 </div>
             )}
@@ -712,24 +715,29 @@ export const TransactionsView = ({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3 w-full mobile:w-auto overflow-x-auto mobile:overflow-x-visible pb-2 mobile:pb-0 custom-scrollbar">
-                        <FilterDropdown
-                            label="Semua Bulan"
-                            value={selectedMonth.toString()}
+                        <PremiumPeriodSelector
+                            label="Bulan"
+                            variant="dark"
+                            value={selectedMonth}
                             onChange={(v) => { setSelectedMonth(parseInt(v)); setCurrentPage(1); }}
                             options={[
                                 { label: 'Januari', value: '1' }, { label: 'Februari', value: '2' }, { label: 'Maret', value: '3' },
                                 { label: 'April', value: '4' }, { label: 'Mei', value: '5' }, { label: 'Juni', value: '6' },
                                 { label: 'Juli', value: '7' }, { label: 'Agustus', value: '8' }, { label: 'September', value: '9' },
                                 { label: 'Oktober', value: '10' }, { label: 'November', value: '11' }, { label: 'Desember', value: '12' }
-                            ].filter(m => m.value !== 'all')}
-                            icon={Calendar}
+                            ]}
                         />
-                        <FilterDropdown
+                        <PremiumPeriodSelector
                             label="Tahun"
-                            value={selectedYear.toString()}
+                            variant="dark"
+                            value={selectedYear}
                             onChange={(v) => { setSelectedYear(parseInt(v)); setCurrentPage(1); }}
-                            options={Array.from({ length: 21 }, (_, i) => ({ label: (new Date().getFullYear() - 10 + i).toString(), value: (new Date().getFullYear() - 10 + i).toString() }))}
+                            options={Array.from({ length: 21 }, (_, i) => ({ 
+                                label: (new Date().getFullYear() - 10 + i).toString(), 
+                                value: (new Date().getFullYear() - 10 + i).toString() 
+                            }))}
                         />
+
                         <FilterDropdown
                             label="Semua Minggu"
                             value={selectedWeek.toString()}

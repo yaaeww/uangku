@@ -17,6 +17,7 @@ export default defineConfig({
         background_color: '#F4EFE6',
         display: 'standalone',
         start_url: '/',
+        scope: '/',
         icons: [
           {
             src: 'pwa-192x192.png',

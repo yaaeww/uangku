@@ -225,6 +225,11 @@ func setupPartitionedTransactions() {
 // This allows on-demand partition creation for any date (past or future).
 func EnsurePartitionForDate(db *gorm.DB, date time.Time) error {
 	year := date.Year()
+	// Sanity check: Don't create partitions for unrealistic dates
+	if year < 2020 || year > 2100 {
+		return fmt.Errorf("invalid year for partition: %d", year)
+	}
+
 	month := int(date.Month())
 
 	tableName := fmt.Sprintf("transactions_%d_%02d", year, month)
@@ -234,10 +239,11 @@ func EnsurePartitionForDate(db *gorm.DB, date time.Time) error {
 	endTarget := time.Date(year, date.Month()+1, 1, 0, 0, 0, 0, time.UTC)
 	endDate := endTarget.Format("2006-01-02")
 
+	// Use explicit DATE casting to avoid ambiguity in Postgres
 	query := fmt.Sprintf(`
 		CREATE TABLE IF NOT EXISTS %s 
 		PARTITION OF transactions 
-		FOR VALUES FROM ('%s') TO ('%s');
+		FOR VALUES FROM ('%s'::DATE) TO ('%s'::DATE);
 	`, tableName, startDate, endDate)
 
 	if err := db.Exec(query).Error; err != nil {
@@ -245,6 +251,7 @@ func EnsurePartitionForDate(db *gorm.DB, date time.Time) error {
 	}
 	return nil
 }
+
 
 func seedDefaultSettings() {
 	defaultSettings := []models.SystemSetting{

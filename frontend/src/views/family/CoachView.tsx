@@ -451,11 +451,9 @@ export const CoachView: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {blogs.length > 0 ? blogs.map((blog: any) => (
-                        <a 
+                        <Link 
                             key={blog.id}
-                            href={`/blog/${blog.slug}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            to={`/blog/${blog.slug}`}
                             className="bg-[var(--surface-card)] rounded-[32px] border border-[var(--border)] overflow-hidden shadow-sm hover:shadow-xl hover:shadow-black/[0.03] transition-all group flex flex-col"
                         >
                             <div className="relative h-48 overflow-hidden bg-black/5">
@@ -495,7 +493,7 @@ export const CoachView: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
-                        </a>
+                        </Link>
                     )) : (
                         <div className="col-span-full py-12 text-center bg-black/5 dark:bg-white/5 rounded-[32px] border-2 border-dashed border-[var(--border)]">
                             <FileText className="w-8 h-8 mx-auto mb-3 opacity-20" />

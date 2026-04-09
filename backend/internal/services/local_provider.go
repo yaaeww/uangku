@@ -247,10 +247,25 @@ func (p *LocalOCRProvider) extractDate(text string) string {
 		return fmt.Sprintf("%s-%02s-%02s", m[1], m[2], m[3])
 	}
 
-	// 2. Try DD-MM-YYYY or DD/MM/YYYY
-	reCommon := regexp.MustCompile(`(\d{1,2})[-/](\d{1,2})[-/](\d{4})`)
+	// 2. Try DD-MM-YYYY or DD/MM/YY (2 or 4 digits year)
+	// Improved to handle 2-digit years
+	reCommon := regexp.MustCompile(`(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})`)
 	if m := reCommon.FindStringSubmatch(text); m != nil {
-		return fmt.Sprintf("%s-%02s-%02s", m[3], m[2], m[1])
+		day := m[1]
+		month := m[2]
+		year := m[3]
+		
+		if len(year) == 2 {
+			// Normalize 2-digit year (e.g. "23" -> "2023")
+			// We assume 2000s for anything < 70, otherwise 1900s
+			yearInt, _ := strconv.Atoi(year)
+			if yearInt < 70 {
+				year = fmt.Sprintf("20%02d", yearInt)
+			} else {
+				year = fmt.Sprintf("19%02d", yearInt)
+			}
+		}
+		return fmt.Sprintf("%s-%02s-%02s", year, month, day)
 	}
 
 	// 3. Try Indonesian format with month names (e.g., 9 APRIL 2021)
@@ -264,11 +279,18 @@ func (p *LocalOCRProvider) extractDate(text string) string {
 
 	upperText := strings.ToUpper(text)
 	for monthName, monthNum := range months {
-		reMonth := regexp.MustCompile(fmt.Sprintf(`(\d{1,2})\s*%s\s*(\d{4})`, monthName))
+		reMonth := regexp.MustCompile(fmt.Sprintf(`(\d{1,2})\s*%s\s*(\d{2,4})`, monthName))
 		if m := reMonth.FindStringSubmatch(upperText); m != nil {
-			return fmt.Sprintf("%s-%s-%02s", m[2], monthNum, m[1])
+			day := m[1]
+			year := m[2]
+			if len(year) == 2 {
+				yearInt, _ := strconv.Atoi(year)
+				if yearInt < 70 { year = fmt.Sprintf("20%02d", yearInt) } else { year = fmt.Sprintf("19%02d", yearInt) }
+			}
+			return fmt.Sprintf("%s-%s-%02s", year, monthNum, day)
 		}
 	}
 
 	return ""
 }
+

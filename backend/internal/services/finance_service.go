@@ -408,13 +408,28 @@ func (s *financeService) JoinChallenge(familyID uuid.UUID, challenge models.Fami
 }
 
 func (s *financeService) CreateTransaction(tx *models.Transaction) error {
+	// IMPORTANT: Ensure database partition exists for the transaction date BEFORE starting transaction
+	// to avoid DDL locking issues inside a long-running transaction.
+	if err := config.EnsurePartitionForDate(config.DB, tx.Date); err != nil {
+		return fmt.Errorf("gagal menyiapkan basis data untuk tanggal ini: %w", err)
+	}
+
 	dbTx := config.DB.Begin()
 	if err := s.createTransactionWithDB(dbTx, tx); err != nil {
 		dbTx.Rollback()
 		return err
 	}
-	return dbTx.Commit().Error
+	
+	if err := dbTx.Commit().Error; err != nil {
+		return err
+	}
+
+	// Trigger async sync 
+	go s.repo.SyncMonthlySummary(tx.FamilyID, int(tx.Date.Month()), tx.Date.Year())
+	
+	return nil
 }
+
 
 func (s *financeService) DeleteTransaction(id uuid.UUID, familyID uuid.UUID, date time.Time, requestingUserID uuid.UUID, role string) error {
 	dbTx := config.DB.Begin()
@@ -727,8 +742,13 @@ func (s *financeService) applyTransactionImpactWithDB(dbTx *gorm.DB, tx *models.
 				if err := dbTx.Save(&saving).Error; err != nil {
 					return err
 				}
+			} else {
+				// If saving record not found, we don't return error but log it. 
+				// This handles cases where a budget item was deleted but transaction still points to its ID.
+				log.Printf("[WARNING] Linked Saving ID %s not found for transaction %s. Skipping balance update.", tx.SavingID, tx.ID)
 			}
 		}
+
 
 		// Also handle debt payment impact if it's an expense linked to a debt
 		if tx.DebtID != nil && *tx.DebtID != uuid.Nil {

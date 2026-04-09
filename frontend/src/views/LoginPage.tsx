@@ -111,12 +111,12 @@ export const LoginPage = () => {
 
                 <div className="max-w-[420px] mx-auto w-full">
                     <div className="mb-10">
-                        <a href="/" className="inline-flex items-center gap-2 text-[var(--text-muted)] text-xs font-semibold hover:text-dagang-green transition-colors mb-8">
+                        <Link to="/" className="inline-flex items-center gap-2 text-[var(--text-muted)] text-xs font-semibold hover:text-dagang-green transition-colors mb-8">
                             <ArrowLeft className="w-4 h-4" /> {t('auth.login.backToHome')}
-                        </a>
+                        </Link>
                         <h1 className="font-serif text-[42px] mb-2 leading-none text-[var(--text-main)]">{t('auth.login.heading')}</h1>
                         <p className="text-[var(--text-muted)] text-sm">
-                            {t('auth.login.noAccount')}<a href="/register" className="text-dagang-green font-bold hover:underline ml-1">{t('auth.login.startTrial')}</a>
+                            {t('auth.login.noAccount')}<Link to="/register" className="text-dagang-green font-bold hover:underline ml-1">{t('auth.login.startTrial')}</Link>
                         </p>
                     </div>
 
