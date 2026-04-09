@@ -30,6 +30,7 @@ import { formatRupiah, parseRupiah } from '../../utils/formatters';
 import { Calculator as CalculatorComp } from '../../components/Calculator';
 import { ReceiptScannerModal } from '../../components/family/ReceiptScannerModal';
 import { FinanceController } from '../../controllers/FinanceController';
+import { BudgetController } from '../../controllers/BudgetController';
 import { useModal } from '../../providers/ModalProvider';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -727,7 +728,7 @@ export const TransactionsView = ({
                             label="Tahun"
                             value={selectedYear.toString()}
                             onChange={(v) => { setSelectedYear(parseInt(v)); setCurrentPage(1); }}
-                            options={Array.from({ length: 5 }, (_, i) => ({ label: (new Date().getFullYear() - 2 + i).toString(), value: (new Date().getFullYear() - 2 + i).toString() }))}
+                            options={Array.from({ length: 21 }, (_, i) => ({ label: (new Date().getFullYear() - 10 + i).toString(), value: (new Date().getFullYear() - 10 + i).toString() }))}
                         />
                         <FilterDropdown
                             label="Semua Minggu"
@@ -957,7 +958,7 @@ const TransactionTab = ({ active, onClick, icon: Icon, label, color }: { active:
     </button>
 );
 
-const CategorySelector = ({ value, savingId, goalId, onChange, savings, goals, type, incomeCategories, budgetCategories, currentUserId }: any) => {
+const CategorySelector = ({ value, savingId, goalId, onChange, savings, goals, type, incomeCategories, budgetCategories, currentUserId, isLoading }: any) => {
     const { familyName } = useParams();
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
@@ -982,18 +983,22 @@ const CategorySelector = ({ value, savingId, goalId, onChange, savings, goals, t
                        goalId ? (goals || []).find((g: any) => g.id === goalId) : null;
     const isIncome = type === 'income';
     const activeIncomeCategories = incomeCategories || DEFAULT_INCOME_CATEGORIES;
-    const displayText = selectedItem ? `${selectedItem.emoji || (goalId ? '🎯' : '💰')} ${selectedItem.name}` : (value || (isIncome ? 'Pilih sumber pemasukan...' : 'Pilih kategori...'));
+    const displayText = selectedItem ? `${selectedItem.emoji || (goalId ? '🎯' : '💰')} ${selectedItem.name}` : (value || (isIncome ? 'Pilih sumber pemasukan...' : (isLoading ? 'Memuat kategori...' : 'Pilih kategori...')));
 
     return (
         <div className="relative">
             <div
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full px-6 py-4 bg-black/5 dark:bg-white/5 rounded-2xl flex items-center justify-between cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-all font-bold"
+                onClick={() => !isLoading && setIsOpen(!isOpen)}
+                className={`w-full px-6 py-4 bg-black/5 dark:bg-white/5 rounded-2xl flex items-center justify-between cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-all font-bold ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
             >
                 <span className={`${!value && !savingId ? 'text-[var(--text-muted)] opacity-60' : 'text-[var(--text-main)]'}`}>
                     {displayText}
                 </span>
-                <ChevronDown className={`w-5 h-5 text-[var(--text-muted)] opacity-50 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                {isLoading ? (
+                    <div className="w-5 h-5 border-2 border-dagang-green border-t-transparent rounded-full animate-spin" />
+                ) : (
+                    <ChevronDown className={`w-5 h-5 text-[var(--text-muted)] opacity-50 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                )}
             </div>
 
             {isOpen && (
@@ -1152,6 +1157,47 @@ const SingleTransactionModal = ({
     familyMembers
 }: any) => {
     const { showAlert } = useModal();
+    const navigate = useNavigate();
+    const { familyName } = useParams();
+
+    // Local state for period-specific budget categories
+    const [localBudgetCategories, setLocalBudgetCategories] = useState<any[]>([]);
+    const [localSavings, setLocalSavings] = useState<any[]>([]);
+    const [isPeriodLoading, setIsPeriodLoading] = useState(false);
+
+    // Calculate month/year from newTx.date
+    const txDateObj = useMemo(() => {
+        if (!newTx.date) return new Date();
+        const [y, m, d] = newTx.date.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    }, [newTx.date]);
+    
+    const txMonth = txDateObj.getMonth() + 1;
+    const txYear = txDateObj.getFullYear();
+    const monthName = txDateObj.toLocaleString('id-ID', { month: 'long' });
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const fetchPeriodData = async () => {
+            setIsPeriodLoading(true);
+            try {
+                const cats = await BudgetController.getCategories(txMonth, txYear, currentUserId);
+                setLocalBudgetCategories(cats || []);
+                
+                // Extract items from categories
+                const allItems = (cats || []).flatMap((c: any) => c.items || []);
+                setLocalSavings(allItems);
+            } catch (err) {
+                console.error("Gagal mengambil kategori untuk periode ini:", err);
+            } finally {
+                setIsPeriodLoading(false);
+            }
+        };
+
+        fetchPeriodData();
+    }, [isOpen, txMonth, txYear, currentUserId]);
+
     if (!isOpen) return null;
 
     const handleSubmit = async () => {
@@ -1202,6 +1248,24 @@ const SingleTransactionModal = ({
                             color="text-blue-500"
                         />
                     </div>
+
+                    {/* Period Warning Banner */}
+                    {!isPeriodLoading && activeTab === 'expense' && localBudgetCategories.length === 0 && (
+                        <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <AlertCircle className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
+                            <div className="space-y-2">
+                                <p className="text-xs font-bold text-orange-600 leading-relaxed">
+                                    Budget untuk <span className="underline">{monthName} {txYear}</span> belum diatur. Kategori pengeluaran mungkin tidak tersedia.
+                                </p>
+                                <button 
+                                    onClick={() => navigate(`/${encodeURIComponent(familyName || '')}/dashboard/budget?month=${txMonth}&year=${txYear}`)}
+                                    className="text-[10px] font-black uppercase tracking-widest text-orange-500 hover:text-orange-600 flex items-center gap-1 transition-colors"
+                                >
+                                    Atur Sekarang <Plus className="w-3 h-3" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 mobile:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
@@ -1273,12 +1337,13 @@ const SingleTransactionModal = ({
                                         else if (!gid && !sid && activeTab === 'expense') updatedType = 'expense';
                                         setNewTx({ ...newTx, category: name, savingId: sid, goalId: gid, type: updatedType as any });
                                     }}
-                                    savings={savings}
+                                    savings={localSavings}
                                     goals={goals}
                                     type={newTx.type}
                                     incomeCategories={incomeCategories}
-                                    budgetCategories={budgetCategories}
+                                    budgetCategories={localBudgetCategories}
                                     currentUserId={currentUserId}
+                                    isLoading={isPeriodLoading}
                                 />
                             )}
                         </div>

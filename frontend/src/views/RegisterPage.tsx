@@ -236,7 +236,7 @@ export const RegisterPage = () => {
     return (
         <div className="min-h-screen bg-dagang-cream text-dagang-dark font-sans flex flex-col md:flex-row">
             {/* Left Panel - Hero Branding */}
-            <div className="w-full md:w-[42%] bg-gradient-to-br from-dagang-dark to-[#1e3d2b] p-10 md:p-[56px] flex flex-col justify-between relative overflow-hidden md:sticky md:top-0 md:h-screen">
+            <div className="w-full md:w-[42%] bg-gradient-to-br from-dagang-deep to-[#0C1A13] p-10 md:p-[56px] flex flex-col justify-between relative overflow-hidden md:sticky md:top-0 md:h-screen">
                 <div className="absolute top-[-100px] right-[-100px] w-[300px] md:w-[400px] h-[300px] md:h-[400px] bg-dagang-green/30 blur-[100px] rounded-full" />
                 <div className="absolute bottom-[-80px] left-[-80px] w-[200px] md:w-[300px] h-[200px] md:h-[300px] bg-dagang-accent/5 blur-[80px] rounded-full" />
  
@@ -274,18 +274,17 @@ export const RegisterPage = () => {
             </div>
  
             {/* Right Panel - Form */}
-            <div className="flex-1 p-6 sm:p-12 md:p-[64px] flex flex-col justify-center bg-dagang-cream">
+            <div className="flex-1 p-6 sm:p-12 md:p-[64px] flex flex-col justify-center bg-[var(--bg-cream)] text-[var(--text-main)] transition-colors duration-500">
                 <div className="max-w-[540px] mx-auto w-full">
                     {step < 3 && (
-                        <a href="/" className="inline-flex items-center gap-2 text-dagang-gray text-sm hover:text-dagang-green transition-colors mb-12">
+                        <a href="/" className="inline-flex items-center gap-2 text-[var(--text-muted)] text-sm hover:text-dagang-green transition-colors mb-12">
                             <ArrowLeft className="w-4 h-4" /> {t('auth.register.backToHome')}
                         </a>
                     )}
-
                     <div className="mb-10">
-                        <h1 className="font-serif text-[32px] sm:text-[38px] mb-2 leading-tight">{t('auth.register.heading')}</h1>
-                        <p className="text-dagang-gray text-sm">
-                            {t('auth.register.haveAccount')} <a href="/login" className="text-dagang-green font-semibold hover:underline">{t('auth.register.loginHere')}</a>
+                        <h1 className="font-serif text-[32px] sm:text-[38px] mb-2 leading-tight text-[var(--text-main)]">{t('auth.register.heading')}</h1>
+                        <p className="text-[var(--text-muted)] text-sm">
+                            {t('auth.register.haveAccount')} <a href="/login" className="text-dagang-green font-semibold hover:underline ml-1">{t('auth.register.loginHere')}</a>
                         </p>
                     </div>
 
@@ -296,15 +295,15 @@ export const RegisterPage = () => {
                             return (
                             <Fragment key={num}>
                                 <div className="flex items-center gap-2 flex-shrink-0">
-                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-all ${step === num ? 'bg-dagang-green text-white shadow-lg shadow-dagang-green/20' : step > num ? 'bg-dagang-green/10 text-dagang-green' : 'bg-black/5 text-dagang-gray'}`}>
+                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-all ${step === num ? 'bg-dagang-green text-white shadow-lg shadow-dagang-green/20' : step > num ? 'bg-dagang-green/10 text-dagang-green' : 'bg-[var(--surface-card)] text-[var(--text-muted)] border border-[var(--border)]'}`}>
                                         {step > num ? '✓' : num}
                                     </div>
-                                    <div className={`text-[11px] font-bold uppercase tracking-wider whitespace-nowrap ${step === num ? 'text-dagang-green' : 'text-dagang-gray'}`}>
+                                    <div className={`text-[11px] font-bold uppercase tracking-wider whitespace-nowrap ${step === num ? 'text-dagang-green' : 'text-[var(--text-muted)] opacity-60'}`}>
                                         {label}
                                     </div>
                                 </div>
                                 {num < 4 && (
-                                    <div className={`h-[1px] w-4 sm:w-8 flex-shrink-0 ${step > num ? 'bg-dagang-green' : 'bg-black/10'}`} />
+                                    <div className={`h-[1px] w-4 sm:w-8 flex-shrink-0 ${step > num ? 'bg-dagang-green' : 'bg-[var(--border)] opacity-30'}`} />
                                 )}
                             </Fragment>
                         )})}
@@ -348,53 +347,53 @@ export const RegisterPage = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[13px] font-semibold text-dagang-dark">{t('auth.register.fullName')} <span className="text-red-500">*</span></label>
-                                    <div className="relative">
-                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dagang-gray/60" />
-                                        <input required type="text" placeholder={t('auth.register.fullNamePlaceholder')} value={formData.fullName} onChange={e => setFormData({ ...formData, fullName: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-white border-1.5 border-black/10 rounded-xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none" />
+                                    <div className="relative group">
+                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-60 group-focus-within:text-dagang-green group-focus-within:opacity-100 transition-colors" />
+                                        <input required type="text" placeholder={t('auth.register.fullNamePlaceholder')} value={formData.fullName} onChange={e => setFormData({ ...formData, fullName: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-[var(--surface-card)] border border-[var(--border)] rounded-xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none text-[var(--text-main)]" />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[13px] font-semibold text-dagang-dark">{t('auth.register.whatsapp')} <span className="text-red-500">*</span></label>
-                                    <div className="relative">
-                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dagang-gray/60" />
-                                        <input required type="tel" placeholder={t('auth.register.whatsappPlaceholder')} value={formData.phoneNumber} onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-white border-1.5 border-black/10 rounded-xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none" />
+                                    <div className="relative group">
+                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-60 group-focus-within:text-dagang-green group-focus-within:opacity-100 transition-colors" />
+                                        <input required type="tel" placeholder={t('auth.register.whatsappPlaceholder')} value={formData.phoneNumber} onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-[var(--surface-card)] border border-[var(--border)] rounded-xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none text-[var(--text-main)]" />
                                     </div>
                                 </div>
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-[13px] font-semibold text-dagang-dark">{t('auth.register.email')} <span className="text-red-500">*</span></label>
-                                <div className="relative">
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dagang-gray/60" />
-                                    <input required type="email" placeholder={t('auth.register.emailPlaceholder')} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value.toLowerCase().trim() })} className="w-full pl-11 pr-4 py-3 bg-white border-1.5 border-black/10 rounded-xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none" />
+                                <div className="relative group">
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-60 group-focus-within:text-dagang-green group-focus-within:opacity-100 transition-colors" />
+                                    <input required type="email" placeholder={t('auth.register.emailPlaceholder')} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value.toLowerCase().trim() })} className="w-full pl-11 pr-4 py-3 bg-[var(--surface-card)] border border-[var(--border)] rounded-xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none text-[var(--text-main)]" />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[13px] font-semibold text-dagang-dark">{t('auth.register.password')} <span className="text-red-500">*</span></label>
-                                    <div className="relative">
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dagang-gray/60" />
-                                        <input required type="password" placeholder={t('auth.register.passwordPlaceholder')} value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-white border-1.5 border-black/10 rounded-xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none" />
+                                    <div className="relative group">
+                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-60 group-focus-within:text-dagang-green group-focus-within:opacity-100 transition-colors" />
+                                        <input required type="password" placeholder={t('auth.register.passwordPlaceholder')} value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-[var(--surface-card)] border border-[var(--border)] rounded-xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none text-[var(--text-main)]" />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[13px] font-semibold text-dagang-dark">{t('auth.register.confirmPassword')} <span className="text-red-500">*</span></label>
-                                    <div className="relative">
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dagang-gray/60" />
-                                        <input required type="password" placeholder={t('auth.register.confirmPasswordPlaceholder')} value={formData.confirmPassword} onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-white border-1.5 border-black/10 rounded-xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none" />
+                                    <div className="relative group">
+                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-60 group-focus-within:text-dagang-green group-focus-within:opacity-100 transition-colors" />
+                                        <input required type="password" placeholder={t('auth.register.confirmPasswordPlaceholder')} value={formData.confirmPassword} onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })} className="w-full pl-11 pr-4 py-3 bg-[var(--surface-card)] border border-[var(--border)] rounded-xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none text-[var(--text-main)]" />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-dagang-green-pale border border-dagang-green/15 rounded-[16px] p-6 space-y-4">
+                            <div className="bg-dagang-green/5 border border-dagang-green/15 rounded-[16px] p-6 space-y-4">
                                 <div className="flex items-center gap-2 text-sm font-bold text-dagang-green">
                                     <Home className="w-4 h-4" /> {t('auth.register.familyData')}
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[13px] font-semibold text-dagang-dark">{t('auth.register.familyName')} {!invitationId && <span className="text-red-500">*</span>}</label>
-                                    <div className="relative">
-                                        <Home className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dagang-gray/60" />
+                                    <label className="text-[13px] font-semibold text-[var(--text-main)] opacity-70 tracking-wide">{t('auth.register.familyName')} {!invitationId && <span className="text-red-500">*</span>}</label>
+                                    <div className="relative group">
+                                        <Home className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] opacity-60 group-focus-within:text-dagang-green group-focus-within:opacity-100 transition-colors" />
                                         <input 
                                             required={!invitationId} 
                                             disabled={!!invitationId}
@@ -402,7 +401,7 @@ export const RegisterPage = () => {
                                             placeholder={invitationId ? t('auth.register.autoSetByInviter') : t('auth.register.familyPlaceholder')} 
                                             value={formData.familyName} 
                                             onChange={e => setFormData({ ...formData, familyName: e.target.value })} 
-                                            className="w-full pl-11 pr-4 py-3 bg-white border-1.5 border-dagang-green/20 rounded-xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none disabled:bg-dagang-gray/5 disabled:text-dagang-gray" 
+                                            className="w-full pl-11 pr-4 py-3 bg-[var(--surface-card)] border border-[var(--border)] rounded-xl text-sm focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 transition-all outline-none disabled:bg-[var(--text-muted)]/5 disabled:text-[var(--text-muted)] text-[var(--text-main)]" 
                                         />
                                     </div>
                                 </div>
@@ -459,7 +458,7 @@ export const RegisterPage = () => {
                                         const val = e.target.value.replace(/\D/g, '').slice(0, 6);
                                         setOtp(val);
                                     }}
-                                    className="w-full text-center text-3xl font-bold tracking-[0.5em] py-4 bg-white border-1.5 border-black/10 rounded-2xl focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 outline-none transition-all placeholder:tracking-normal placeholder:text-gray-200"
+                                    className="w-full text-center text-3xl font-bold tracking-[0.5em] py-4 bg-[var(--surface-card)] border border-[var(--border)] rounded-2xl focus:border-dagang-green focus:ring-4 focus:ring-dagang-green/5 outline-none transition-all placeholder:tracking-normal placeholder:text-[var(--text-muted)] opacity-80 text-[var(--text-main)]"
                                 />
                             </div>
                             <button type="submit" disabled={loading} className="w-full py-4.5 bg-dagang-green text-white rounded-xl text-base font-bold shadow-lg shadow-dagang-green/20 hover:bg-dagang-green-light transition-all flex items-center justify-center gap-2.5 disabled:opacity-70">

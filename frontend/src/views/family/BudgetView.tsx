@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useOutletContext, useNavigate, useParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus,
     TrendingUp,
@@ -18,7 +19,8 @@ import {
     AlertCircle,
     Settings2,
     Eraser,
-    Calculator
+    Calculator,
+    Search
 } from 'lucide-react';
 import { FinanceController } from '../../controllers/FinanceController';
 import { BudgetController } from '../../controllers/BudgetController';
@@ -288,6 +290,106 @@ const CategoryRow = ({
                     </div>
                 )}
             </div>
+        </div>
+    );
+};
+
+/* --- Premium Select Component --- */
+const PremiumPeriodSelector = ({ label, value, options, onChange }: any) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [search, setSearch] = useState('');
+    const containerRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const selectedOption = options.find((o: any) => parseInt(o.value) === parseInt(value)) || options[0];
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    useEffect(() => {
+        if (!isOpen) setSearch('');
+        else if (inputRef.current) setTimeout(() => inputRef.current?.focus(), 100);
+    }, [isOpen]);
+
+    const filteredOptions = options.filter((o: any) => 
+        o.label.toLowerCase().includes(search.toLowerCase())
+    );
+
+    return (
+        <div className="relative inline-block" ref={containerRef}>
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="inline-flex items-center gap-3 px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl backdrop-blur-md transition-all cursor-pointer text-white font-black text-[12px] uppercase tracking-wider min-w-[140px] justify-between shadow-inner"
+            >
+                <div className="flex flex-col items-start gap-0.5">
+                    <span className="text-[9px] opacity-40 leading-none">{label}</span>
+                    <span>{selectedOption?.label}</span>
+                </div>
+                <ChevronDown className={`w-4 h-4 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 10, filter: 'blur(10px)' }}
+                        animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                        exit={{ opacity: 0, scale: 0.9, y: 10, filter: 'blur(10px)' }}
+                        style={{ originY: 0 }}
+                        className="absolute top-full left-0 mt-4 w-[260px] bg-[var(--surface-card)]/90 backdrop-blur-xl rounded-[32px] shadow-2xl shadow-black/30 border border-[var(--border)] z-[100] overflow-hidden flex flex-col"
+                    >
+                        <div className="p-4 border-b border-[var(--border)] bg-black/5 dark:bg-white/5 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent)] text-dagang-green">PILIH {label}</span>
+                                <Search className="w-3 h-3 text-[var(--text-muted)] opacity-50" />
+                            </div>
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                placeholder={`Cari ${label}...`}
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border)] rounded-xl px-4 py-2 text-[12px] font-bold outline-none focus:ring-1 focus:ring-dagang-green transition-all"
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </div>
+                        <div className="max-h-[300px] overflow-y-auto py-2 custom-scrollbar">
+                            {filteredOptions.length > 0 ? (
+                                filteredOptions.map((opt: any) => (
+                                    <button
+                                        key={opt.value}
+                                        onClick={() => {
+                                            onChange(parseInt(opt.value));
+                                            setIsOpen(false);
+                                        }}
+                                        className={`w-full text-left px-5 py-3 text-[13px] font-bold transition-all flex items-center justify-between group ${
+                                            parseInt(value) === parseInt(opt.value) 
+                                            ? 'bg-dagang-green text-white shadow-lg shadow-dagang-green/20 scale-[1.02]' 
+                                            : 'text-[var(--text-main)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95'
+                                        }`}
+                                    >
+                                        <span>{opt.label}</span>
+                                        {parseInt(value) === parseInt(opt.value) && (
+                                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                                                <Check className="w-4 h-4" />
+                                            </motion.div>
+                                        )}
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="p-8 text-center">
+                                    <p className="text-[11px] font-bold text-[var(--text-muted)] opacity-60 italic">Tidak ditemukan</p>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
@@ -562,28 +664,26 @@ export const BudgetView = () => {
                                 </h2>
                                 <div className="flex items-center gap-3 text-white font-bold">
                                     <span className="text-body-s uppercase tracking-widest opacity-60">untuk bulan</span>
-                                    <div className="inline-flex items-center gap-1.5 p-1 bg-white/10 border border-white/20 rounded-2xl backdrop-blur-md shadow-inner select-none transition-all hover:bg-white/20">
-                                        <select
+                                    <div className="flex flex-wrap items-center gap-3 select-none">
+                                        <PremiumPeriodSelector
+                                            label="Bulan"
                                             value={selectedMonth}
-                                            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                                            className="bg-transparent border-none text-[12px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl focus:ring-0 cursor-pointer text-white"
-                                        >
-                                            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                                                <option key={m} value={m} className="bg-[var(--surface-card)] text-[var(--text-main)]">
-                                                    {new Date(2000, m - 1, 1).toLocaleDateString('id-ID', { month: 'long' })}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div className="w-px h-4 bg-white/20" />
-                                        <select
+                                            onChange={setSelectedMonth}
+                                            options={Array.from({ length: 12 }, (_, i) => ({
+                                                label: new Date(2000, i, 1).toLocaleDateString('id-ID', { month: 'long' }),
+                                                value: (i + 1).toString()
+                                            }))}
+                                        />
+                                        <div className="hidden md:block w-px h-6 bg-white/20 self-center" />
+                                        <PremiumPeriodSelector
+                                            label="Tahun"
                                             value={selectedYear}
-                                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                                            className="bg-transparent border-none text-[12px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl focus:ring-0 cursor-pointer text-white"
-                                        >
-                                            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(y => (
-                                                <option key={y} value={y} className="bg-[var(--surface-card)] text-[var(--text-main)]">{y}</option>
-                                            ))}
-                                        </select>
+                                            onChange={setSelectedYear}
+                                            options={Array.from({ length: 21 }, (_, i) => ({
+                                                label: (new Date().getFullYear() - 10 + i).toString(),
+                                                value: (new Date().getFullYear() - 10 + i).toString()
+                                            }))}
+                                        />
                                     </div>
                                 </div>
                             </div>

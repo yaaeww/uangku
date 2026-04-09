@@ -72,11 +72,11 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
     }
 
     return (
-        <section className="py-12 px-4 bg-white" id="pricing">
+        <section className="py-12 px-4 bg-transparent" id="pricing">
             <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-10">
-                    <h2 className="text-2xl sm:text-3xl font-serif mb-3 text-dagang-dark">Mulai Uji Coba Gratis Anda</h2>
-                    <p className="text-dagang-gray text-sm max-w-lg mx-auto">
+                    <h2 className="text-2xl sm:text-3xl font-serif mb-3 text-[var(--text-main)]">Mulai Uji Coba Gratis Anda</h2>
+                    <p className="text-[var(--text-muted)] text-sm max-w-lg mx-auto">
                         Coba gratis {trialDays} hari. Batalkan kapan saja jika tidak sesuai.
                     </p>
                 </div>
@@ -86,8 +86,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
                         <div
                             key={plan.id}
                             className={`
-                                relative p-8 md:p-10 rounded-[40px] border-2 transition-all duration-300 w-full max-w-md
-                                ${plan.isPopular ? 'border-dagang-accent shadow-2xl shadow-dagang-accent/5 z-10' : 'border-black/5'}
+                                relative p-8 md:p-10 rounded-[40px] border-2 transition-all duration-300 w-full max-w-md bg-[var(--surface-card)]
+                                ${plan.isPopular ? 'border-dagang-accent shadow-2xl shadow-dagang-accent/5 z-10' : 'border-[var(--border)]'}
                                 ${selectedPlanId === plan.id ? 'ring-4 ring-dagang-green/20' : ''}
                             `}
                         >
@@ -96,12 +96,12 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
                             </div>
 
                             <div className="mb-10 text-center">
-                                <h3 className="text-sm font-black text-dagang-gray/60 uppercase tracking-[0.2em] mb-4">{plan.name}</h3>
+                                <h3 className="text-sm font-black text-[var(--text-muted)] opacity-60 uppercase tracking-[0.2em] mb-4">{plan.name}</h3>
                                 <div className="flex flex-col items-center justify-center">
-                                    <span className="text-xl text-dagang-gray/40 line-through font-serif mb-1">Rp {plan.price}</span>
+                                    <span className="text-xl text-[var(--text-muted)] opacity-40 line-through font-serif mb-1">Rp {plan.price}</span>
                                     <div className="flex items-baseline gap-2">
-                                        <span className="text-6xl font-serif text-dagang-dark">Rp 0</span>
-                                        <span className="text-dagang-gray text-lg font-medium">/ {trialDays} hari</span>
+                                        <span className="text-6xl font-serif text-[var(--text-main)]">Rp 0</span>
+                                        <span className="text-[var(--text-muted)] text-lg font-medium">/ {trialDays} hari</span>
                                     </div>
                                     <p className="text-xs font-bold text-dagang-green mt-3 bg-dagang-green/10 px-4 py-1.5 rounded-full">
                                         Kemudian Rp {plan.price} / {plan.period}
@@ -117,13 +117,13 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
                             </button>
 
                             <div className="space-y-5">
-                                <p className="text-[11px] font-black text-dagang-gray/40 uppercase tracking-widest mb-2">Fitur Termasuk:</p>
+                                <p className="text-[11px] font-black text-[var(--text-muted)] opacity-40 uppercase tracking-widest mb-2">Fitur Termasuk:</p>
                                 {plan.features.map((feature, idx) => (
                                     <div key={idx} className="flex items-center gap-4">
                                         <div className="w-6 h-6 rounded-full bg-dagang-green/10 text-dagang-green flex items-center justify-center flex-shrink-0">
                                             <Check className="w-3.5 h-3.5" strokeWidth={4} />
                                         </div>
-                                        <span className="text-[14px] font-medium text-dagang-dark/80">{feature}</span>
+                                        <span className="text-[14px] font-medium text-[var(--text-main)] opacity-80">{feature}</span>
                                     </div>
                                 ))}
                             </div>

@@ -111,12 +111,12 @@ export const LoginPage = () => {
 
                 <div className="max-w-[420px] mx-auto w-full">
                     <div className="mb-10">
-                        <a href="/" className="inline-flex items-center gap-2 text-dagang-gray text-xs font-semibold hover:text-dagang-green transition-colors mb-8">
+                        <a href="/" className="inline-flex items-center gap-2 text-[var(--text-muted)] text-xs font-semibold hover:text-dagang-green transition-colors mb-8">
                             <ArrowLeft className="w-4 h-4" /> {t('auth.login.backToHome')}
                         </a>
-                        <h1 className="font-serif text-[42px] mb-2 leading-none">{t('auth.login.heading')}</h1>
-                        <p className="text-dagang-gray text-sm">
-                            {t('auth.login.noAccount')}<a href="/register" className="text-dagang-green font-bold hover:underline">{t('auth.login.startTrial')}</a>
+                        <h1 className="font-serif text-[42px] mb-2 leading-none text-[var(--text-main)]">{t('auth.login.heading')}</h1>
+                        <p className="text-[var(--text-muted)] text-sm">
+                            {t('auth.login.noAccount')}<a href="/register" className="text-dagang-green font-bold hover:underline ml-1">{t('auth.login.startTrial')}</a>
                         </p>
                     </div>
 
@@ -128,9 +128,9 @@ export const LoginPage = () => {
                         )}
 
                         <div className="space-y-2">
-                            <label className="text-[13px] font-bold text-dagang-dark/70 tracking-wide uppercase">{t('auth.login.emailLabel')}</label>
+                            <label className="text-[13px] font-bold text-[var(--text-muted)] opacity-70 tracking-wide uppercase">{t('auth.login.emailLabel')}</label>
                             <div className="relative group">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-dagang-gray/40 group-focus-within:text-dagang-green transition-colors" />
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-[var(--text-muted)] opacity-40 group-focus-within:text-dagang-green group-focus-within:opacity-100 transition-colors" />
                                 <input
                                     type="email"
                                     required
@@ -144,7 +144,7 @@ export const LoginPage = () => {
 
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <label className="text-[13px] font-bold text-dagang-dark/70 tracking-wide uppercase">{t('auth.login.passwordLabel')}</label>
+                                <label className="text-[13px] font-bold text-[var(--text-muted)] opacity-70 tracking-wide uppercase">{t('auth.login.passwordLabel')}</label>
                                 <button 
                                     type="button"
                                     onClick={() => setIsForgotModalOpen(true)}
@@ -154,7 +154,7 @@ export const LoginPage = () => {
                                 </button>
                             </div>
                             <div className="relative group">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-dagang-gray/40 group-focus-within:text-dagang-green transition-colors" />
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-[var(--text-muted)] opacity-40 group-focus-within:text-dagang-green group-focus-within:opacity-100 transition-colors" />
                                 <input
                                     type="password"
                                     required

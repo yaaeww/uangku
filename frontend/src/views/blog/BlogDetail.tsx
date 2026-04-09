@@ -159,7 +159,7 @@ export const BlogDetail = () => {
                 </div>
                 <h2 className="text-4xl font-heading text-[var(--text-main)]">{t('blogDetail.notFound.title')}</h2>
                 <p className="text-[var(--text-muted)] opacity-60 max-w-md text-center font-medium">{t('blogDetail.notFound.desc')}</p>
-                <Link to="/blog" className="px-10 py-5 bg-dagang-dark text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-black/20 active:scale-95 transition-all hover:opacity-90">{t('blogDetail.notFound.backBtn')}</Link>
+                <Link to="/blog" className="px-10 py-5 bg-dagang-deep text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-black/20 active:scale-95 transition-all hover:opacity-90">{t('blogDetail.notFound.backBtn')}</Link>
             </div>
             <PublicFooter />
         </div>
@@ -211,7 +211,7 @@ export const BlogDetail = () => {
                                 className="flex flex-col sm:flex-row sm:items-center justify-between gap-8 py-10 border-t border-[var(--border)] border-dashed mt-12"
                             >
                                 <div className="flex items-center gap-6">
-                                    <div className="w-16 h-16 bg-gradient-to-br from-dagang-dark to-black rounded-[24px] flex items-center justify-center text-white font-black text-2xl shadow-2xl shadow-black/20 ring-4 ring-white/5 overflow-hidden">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-dagang-deep to-black rounded-[24px] flex items-center justify-center text-white font-black text-2xl shadow-2xl shadow-black/20 ring-4 ring-white/5 overflow-hidden">
                                         <img 
                                             src={`https://ui-avatars.com/api/?name=${encodeURIComponent(post.author_name || 'Admin')}&background=10b981&color=ffffff&bold=true&font-size=0.33`} 
                                             alt="Author"

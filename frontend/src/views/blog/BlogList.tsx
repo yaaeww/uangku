@@ -59,9 +59,9 @@ export const BlogList = () => {
             <PublicHeader />
             <div className="pb-20">
                 {/* Header Spacer - keeps light bg behind the transparent header */}
-                <div className="h-[80px] bg-[#faf8f3]" />
+                <div className="h-[80px] bg-[var(--background)]" />
                 {/* Hero Header */}
-                <div className="relative overflow-hidden bg-dagang-dark text-white pt-20 pb-24 px-6 md:px-10">
+                <div className="relative overflow-hidden bg-dagang-deep text-white pt-20 pb-24 px-6 md:px-10">
                     <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[var(--primary)] opacity-10 blur-[130px] rounded-full translate-x-1/2 -translate-y-1/2" />
                     <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[var(--accent)] opacity-5 blur-[120px] rounded-full -translate-x-1/2 translate-y-1/2" />
                     
