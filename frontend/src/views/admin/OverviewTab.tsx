@@ -16,9 +16,10 @@ interface OverviewTabProps {
     financialSummary?: any;
     chartDays?: number;
     setChartDays?: (days: number) => void;
+    onTabChange?: (tab: string) => void;
 }
 
-export const OverviewTab: React.FC<OverviewTabProps> = ({ stats, theme, plans, financialSummary, chartDays = 7, setChartDays }) => {
+export const OverviewTab: React.FC<OverviewTabProps> = ({ stats, theme, plans, financialSummary, chartDays = 7, setChartDays, onTabChange }) => {
     // Use financialSummary (from /reports) as primary source, fallback to stats
     const revenue = financialSummary?.total_revenue ?? stats?.total_revenue ?? 0;
     const expenses = financialSummary?.total_expenses ?? stats?.total_expenses ?? 0;
@@ -36,7 +37,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ stats, theme, plans, f
             {/* Premium Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {/* Revenue Card */}
-                <div className="relative group overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 p-5 sm:p-6 rounded-2xl sm:rounded-[32px] text-white shadow-xl shadow-emerald-500/20 transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-emerald-500/30">
+                <div 
+                    onClick={() => onTabChange && onTabChange('reports')}
+                    className="relative group overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 p-5 sm:p-6 rounded-2xl sm:rounded-[32px] text-white shadow-xl shadow-emerald-500/20 transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-emerald-500/30 cursor-pointer"
+                >
                     <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-colors" />
                     <div className="relative z-10">
                         <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -49,37 +53,47 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ stats, theme, plans, f
                             <div className="text-xl sm:text-2xl md:text-3xl font-heading font-black break-all">
                                 Rp {revenue.toLocaleString('id-ID')}
                             </div>
-                            <div className="text-[9px] sm:text-[10px] font-medium opacity-80">Penjualan Paket Berhasil</div>
+                            <div className="text-[9px] sm:text-[10px] font-medium opacity-80">Total Omzet (Sudah termasuk Pajak & Fee)</div>
                         </div>
                     </div>
                 </div>
 
                 {/* Expenses Card */}
-                <div className="relative group overflow-hidden bg-gradient-to-br from-rose-500 to-pink-600 p-5 sm:p-6 rounded-2xl sm:rounded-[32px] text-white shadow-xl shadow-rose-500/20 transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-rose-500/30">
+                <div 
+                    onClick={() => onTabChange && onTabChange('reports')}
+                    className="relative group overflow-hidden bg-gradient-to-br from-rose-500 to-pink-600 p-5 sm:p-6 rounded-2xl sm:rounded-[32px] text-white shadow-xl shadow-rose-500/20 transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-rose-500/30 cursor-pointer"
+                >
                     <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-colors" />
                     <div className="relative z-10">
                         <div className="flex items-center justify-between mb-3 sm:mb-4">
                             <div className="p-2.5 sm:p-3 bg-white/20 backdrop-blur-md rounded-xl sm:rounded-2xl">
                                 <History className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                             </div>
-                            <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest opacity-80">Pengeluaran</span>
+                            <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest opacity-80">Pengeluaran & Estimasi</span>
                         </div>
                         <div className="space-y-1">
                             <div className="text-xl sm:text-2xl md:text-3xl font-heading font-black break-all">
                                 Rp {expenses.toLocaleString('id-ID')}
                             </div>
-                            <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-medium opacity-80">
-                                <span>Anggaran: Rp {expenseTarget.toLocaleString('id-ID')}</span>
-                                {expenses > expenseTarget && expenseTarget > 0 && (
-                                    <span className="bg-white/20 px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] font-black">OVER</span>
-                                )}
+                            {/* BREAKDOWN: Realized vs Liability */}
+                            <div className="mt-2 pt-2 border-t border-white/20 flex flex-col gap-1 text-[8px] font-black uppercase tracking-tighter">
+                                <div className="flex justify-between items-center opacity-90">
+                                    <span>Sudah Dibayar:</span>
+                                    <span>Rp {(stats?.realized_expenses ?? 0).toLocaleString('id-ID')}</span>
+                                </div>
+                                <div className="flex justify-between items-center opacity-70">
+                                    <span>Kewajiban (Pajak/Fee):</span>
+                                    <span>Rp {(stats?.pending_liabilities ?? 0).toLocaleString('id-ID')}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Profit Card — Dynamic */}
-                <div className={`relative group overflow-hidden p-5 sm:p-6 rounded-2xl sm:rounded-[32px] text-white shadow-xl transition-all hover:scale-[1.02] hover:shadow-2xl ${
+                <div 
+                    onClick={() => onTabChange && onTabChange('reports')}
+                    className={`relative group overflow-hidden p-5 sm:p-6 rounded-2xl sm:rounded-[32px] text-white shadow-xl transition-all hover:scale-[1.02] hover:shadow-2xl cursor-pointer ${
                     actualLabaBersih >= 0 
                     ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/20 hover:shadow-blue-500/30' 
                     : 'bg-gradient-to-br from-red-600 to-red-800 shadow-red-500/20 hover:shadow-red-500/30'
@@ -99,15 +113,15 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ stats, theme, plans, f
                             <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-medium opacity-80">
                                 {expenses > 0 ? (
                                     labaDiff >= 0 ? (
-                                        <span>+Rp {labaDiff.toLocaleString('id-ID')} dari target</span>
+                                        <span>+Rp {labaDiff.toLocaleString('id-ID')} melampaui target</span>
                                     ) : (
                                         <span className="flex items-center gap-1">
                                             <AlertTriangle className="w-3 h-3" />
-                                            -Rp {Math.abs(labaDiff).toLocaleString('id-ID')} dari target
+                                            -Rp {Math.abs(labaDiff).toLocaleString('id-ID')} di bawah target
                                         </span>
                                     )
                                 ) : (
-                                    <span>Target: Rp {profitTarget.toLocaleString('id-ID')} ({profitPct}%)</span>
+                                    <span>Profit Akhir Platform</span>
                                 )}
                             </div>
                         </div>

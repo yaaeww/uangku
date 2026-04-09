@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"strings"
+	"strconv"
+	"math"
 )
 
 type UserWithFamily struct {
@@ -115,19 +117,36 @@ func (s *adminService) GetDashboardStats(chartDays int) (map[string]interface{},
 	config.DB.Model(&models.Family{}).Where("status = ?", "active").Count(&activeFamilies)
 	config.DB.Model(&models.FamilyApplication{}).Where("status = ?", "pending").Count(&pendingApps)
 
-	// Financial Stats (Current Month)
-	now := time.Now()
-	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
+	// Financial Stats (Dynamic Period)
+	startTime := time.Now().AddDate(0, 0, -chartDays)
 	
 	var totalRevenue float64
 	config.DB.Model(&models.PaymentTransaction{}).
-		Where("status = ? AND created_at >= ?", "PAID", monthStart).
+		Where("status = ? AND created_at >= ?", "PAID", startTime).
 		Select("COALESCE(SUM(total_amount), 0)").Scan(&totalRevenue)
+
+	var gatewayFees float64
+	config.DB.Model(&models.PaymentTransaction{}).
+		Where("status = ? AND created_at >= ?", "PAID", startTime).
+		Select("COALESCE(SUM(fee), 0)").Scan(&gatewayFees)
+
+	var taxPctStr string
+	config.DB.Model(&models.SystemSetting{}).Where("key = ?", "tax_percentage").Select("value").Scan(&taxPctStr)
+	taxPct, _ := strconv.ParseFloat(taxPctStr, 64)
+	if taxPct == 0 {
+		taxPct = 11
+	}
+	ppnAmount := math.Round(totalRevenue * (taxPct / 100))
 
 	var totalExpenses float64
 	config.DB.Table("platform_expenses").
-		Where("expense_date >= ?", monthStart).
+		Where("expense_date >= ?", startTime).
 		Select("COALESCE(SUM(amount), 0)").Scan(&totalExpenses)
+
+	// Combine all "Costs" for Overview consistency
+	realizedExpenses := totalExpenses
+	pendingLiabilities := gatewayFees + ppnAmount
+	actualNetProfit := totalRevenue - ppnAmount - gatewayFees - totalExpenses
 
 	// Activity Data (configurable period)
 	type DailyActivity struct {
@@ -156,10 +175,12 @@ func (s *adminService) GetDashboardStats(chartDays int) (map[string]interface{},
 		"active_families":      activeFamilies,
 		"pending_applications": pendingApps,
 		"total_revenue":        totalRevenue,
-		"total_expenses":       totalExpenses,
-		"net_profit":           totalRevenue - totalExpenses,
+		"total_expenses":       totalExpenses + gatewayFees + ppnAmount,
+		"realized_expenses":    realizedExpenses,
+		"pending_liabilities":  pendingLiabilities,
+		"net_profit":           actualNetProfit,
 		"activity_chart":       activities,
-		"period_label":         now.Format("January 2006"), // For UI feedback
+		"period_label":         fmt.Sprintf("%d Hari Terakhir", chartDays), // For UI feedback
 	}, nil
 }
 

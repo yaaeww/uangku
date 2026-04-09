@@ -89,7 +89,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     const renderSettingRow = (s: any) => (
         <tr key={s.key} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors border-b border-[var(--border)]">
             <td className="px-8 py-6 font-black text-[var(--text-main)] uppercase tracking-tighter" colSpan={1}>
-                {s.key === 'trial_duration_days' ? 'DURASI MASA TRIAL (HARI)' : 
+                {s.key === 'tax_percentage' ? 'PERSENTASE PAJAK PPN (%)' :
+                 s.key === 'trial_duration_days' ? 'DURASI MASA TRIAL (HARI)' : 
                  s.key === 'allow_registration' ? 'IZINKAN PENDAFTARAN' :
                  s.key === 'trial_max_members' ? 'LIMIT ANGGOTA TRIAL' :
                  s.key === 'otp_expiry_duration' ? 'DURASI KADALUARSA OTP (MENIT)' :
@@ -138,6 +139,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
     const trialKeys = ['trial_duration_days', 'trial_max_members', 'allow_registration'];
     const hiddenKeys = ['platform_expense_allocation_pct'];
+    const websiteKeys = ['website_name', 'logo_url_light', 'logo_url_dark', 'tax_percentage'];
     const contactKeys = [
         'contact_address', 'contact_building',
         'contact_email_support', 'contact_email_admin',

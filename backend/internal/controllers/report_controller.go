@@ -61,6 +61,15 @@ func (c *ReportController) GetFinancialSummary(ctx *gin.Context) {
 		// Get first day of current month, then subtract 1 month
 		periodStart = time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, -1, 0)
 		periodEnd = periodStart.AddDate(0, 1, 0)
+	case "rolling-7":
+		periodStart = start.AddDate(0, 0, -7)
+		periodEnd = start
+	case "rolling-30":
+		periodStart = start.AddDate(0, 0, -30)
+		periodEnd = start
+	case "rolling-365":
+		periodStart = start.AddDate(0, 0, -365)
+		periodEnd = start
 	default: // month
 		periodStart = time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC)
 		periodEnd = periodStart.AddDate(0, 1, 0)

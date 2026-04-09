@@ -30,6 +30,7 @@ type FinancialSummary struct {
 	AllocationPct   float64                      `json:"allocation_pct"`
 	TotalFees       float64                      `json:"total_fees"`
 	NetRevenue      float64                      `json:"net_revenue"`
+	TaxPct          float64                      `json:"tax_pct"`
 }
 
 type CategoryAllocation struct {
@@ -163,16 +164,19 @@ func (s *reportService) GetFinancialSummary(start, end time.Time) (*FinancialSum
 		}
 	}
 
-	// Calculate metrics
-	// Gross Revenue is Total Revenue (including fees)
-	// Gross Profit is Revenue - COGS (TriPay Fees)
-	grossProfit := revenue - tripayFees
-	
-	// total platform expenses (operational/salary/etc)
+	// 2. Fetch tax percentage from settings
+	var taxPctStr string
+	config.DB.Model(&models.SystemSetting{}).Where("key = ?", "tax_percentage").Select("value").Scan(&taxPctStr)
+	taxPct, _ := strconv.ParseFloat(taxPctStr, 64)
+	if taxPct == 0 {
+		taxPct = 11 // Default fallback
+	}
+
+	ppnAmount := math.Round(revenue * (taxPct / 100))
 	otherExpenses := expenses
 	
-	// Net Profit = Revenue - COGS - OtherExpenses
-	netProfit := revenue - tripayFees - otherExpenses
+	// Net Profit = Revenue - PPN - COGS - OtherExpenses
+	netProfit := revenue - ppnAmount - tripayFees - otherExpenses
 
 	// NEW: Calculate dynamic allocations based on hierarchy
 	// 1. Get total expense allocation percentage from settings
@@ -183,15 +187,15 @@ func (s *reportService) GetFinancialSummary(start, end time.Time) (*FinancialSum
 		allocationPct = 60 // Default fallback
 	}
 
-	// 1. Total Expense Budget (e.g. 60% of Gross Revenue)
+	// 3. Total Expense Budget (e.g. 60% of Gross Revenue)
 	totalExpenseBudget := math.Round(revenue * (allocationPct / 100))
 	
-	// 2. Mandatory Deductions from the 60% Budget
-	ppnTarget := math.Round(revenue * 0.11)
+	// 4. Mandatory Deductions from the 60% Budget
+	ppnTarget := ppnAmount
 	// Gateway/TriPay fees are also part of the expense cake
 	tripayFees = math.Round(tripayFees)
 	
-	// 3. Remaining Budget for Operational Categories
+	// 5. Remaining Budget for Operational Categories
 	operationalBudget := math.Round(totalExpenseBudget - ppnTarget - tripayFees)
 	if operationalBudget < 0 {
 		operationalBudget = 0
@@ -204,13 +208,14 @@ func (s *reportService) GetFinancialSummary(start, end time.Time) (*FinancialSum
 	var expenseAllocations []CategoryAllocation
 	var profitAllocations []CategoryAllocation
 
-	// Add Mandatory Tax (PPN 11%) - This takes a piece of the 60%
+	// Add Mandatory Tax (PPN) - This takes a piece of the 60%
+	taxName := fmt.Sprintf("Pajak PPN (%v%%) - Hutang Ke Negara", taxPct)
 	expenseAllocations = append(expenseAllocations, CategoryAllocation{
 		CategoryID:   "tax-ppn",
-		CategoryName: "Pajak PPN (11%)",
-		Percentage:   11.0, 
+		CategoryName: taxName,
+		Percentage:   taxPct, 
 		TargetAmount: ppnTarget,
-		ActualAmount: math.Round(expenseByCat["Pajak PPN (11%)"]),
+		ActualAmount: math.Round(expenseByCat["Pajak PPN (11%)"] + expenseByCat[taxName] + expenseByCat["Pajak PPN"]), // support variants
 	})
 
 	// Add Mandatory Gateway Fee (TriPay) - This also takes a piece of the 60%
@@ -220,10 +225,10 @@ func (s *reportService) GetFinancialSummary(start, end time.Time) (*FinancialSum
 	}
 	expenseAllocations = append(expenseAllocations, CategoryAllocation{
 		CategoryID:   "tax-gateway",
-		CategoryName: "Biaya Gateway (TriPay)",
+		CategoryName: "Biaya Gateway (TriPay) - Hutang",
 		Percentage:   gatewayPct,
 		TargetAmount: tripayFees, 
-		ActualAmount: math.Round(expenseByCat["Biaya Gateway (TriPay)"]),
+		ActualAmount: math.Round(expenseByCat["Biaya Gateway (TriPay)"] + expenseByCat["Biaya Gateway"]),
 	})
 
 	// 5. Dynamic Categories (Expense & Profit)
@@ -292,7 +297,9 @@ func (s *reportService) GetFinancialSummary(start, end time.Time) (*FinancialSum
 	}
 
 	// Final Summary Total Expenses & Stats
-	totalExpensesWithCogs := expenses + tripayFees
+	grossProfit := revenue - tripayFees
+	// Total Expenses = Recorded Expenses + PPN + Gateway Fees
+	totalExpensesWithCogs := expenses + tripayFees + ppnAmount
 	var margin float64
 	if revenue > 0 {
 		margin = (netProfit / revenue) * 100
@@ -317,6 +324,7 @@ func (s *reportService) GetFinancialSummary(start, end time.Time) (*FinancialSum
 		AllocationPct:   allocationPct,
 		TotalFees:       tripayFees,
 		NetRevenue:      math.Round(revenue - tripayFees),
+		TaxPct:          taxPct,
 	}, nil
 }
 

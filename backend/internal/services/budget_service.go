@@ -35,7 +35,9 @@ func (s *BudgetService) SeedDefaultBudget(db *gorm.DB, familyID uuid.UUID, userI
 		baseBudget = 5000000 // Default fallback 5jt
 	}
 
-	// 1. Define Categories (Level 1)
+	// 1. Define Categories — Indonesia-First v2.0
+	// Prinsip: Kontekstual keluarga Indonesia, realistis, inklusif
+	// Total: 100% (30+15+10+10+8+10+5+7+5)
 	type catDef struct {
 		Name    string
 		Icon    string
@@ -51,45 +53,63 @@ func (s *BudgetService) SeedDefaultBudget(db *gorm.DB, familyID uuid.UUID, userI
 
 	categories := []catDef{
 		{
-			Name: "Makanan", Icon: "Coffee", Color: "text-orange-500", BgColor: "bg-orange-50", Type: "kebutuhan", Percent: 20,
+			// Rata-rata keluarga Indonesia menghabiskan 35-40% untuk makanan
+			Name: "Makanan & Dapur", Icon: "Coffee", Color: "text-orange-500", BgColor: "bg-orange-50", Type: "kebutuhan", Percent: 30,
 			Items: []struct{ Name, Emoji string }{
-				{"Makan harian", "🍲"}, {"Ngopi", "☕"}, {"Jajan", "🍿"}, {"Delivery (GoFood/GrabFood)", "🛵"},
+				{"Belanja kebutuhan dapur", "🛒"}, {"Makan harian", "🍲"}, {"Jajan & ngopi", "☕"}, {"Delivery makanan", "🛵"},
 			},
 		},
 		{
-			Name: "Transport", Icon: "Wallet", Color: "text-blue-500", BgColor: "bg-blue-50", Type: "kebutuhan", Percent: 15,
+			// Tagihan-tagihan wajib rumah tangga
+			Name: "Tagihan Rumah", Icon: "ShieldCheck", Color: "text-purple-500", BgColor: "bg-purple-50", Type: "kebutuhan", Percent: 15,
 			Items: []struct{ Name, Emoji string }{
-				{"Bensin", "⛽"}, {"Ojol", "🏍️"}, {"Parkir", "🅿️"}, {"Servis kendaraan", "🔧"},
+				{"Listrik", "⚡"}, {"Air (PDAM)", "💧"}, {"Internet & TV kabel", "🌐"}, {"Pulsa & paket data", "📱"},
 			},
 		},
 		{
-			Name: "Tagihan", Icon: "ShieldCheck", Color: "text-purple-500", BgColor: "bg-purple-50", Type: "kebutuhan", Percent: 15,
+			Name: "Transport", Icon: "Wallet", Color: "text-blue-500", BgColor: "bg-blue-50", Type: "kebutuhan", Percent: 10,
 			Items: []struct{ Name, Emoji string }{
-				{"Listrik", "⚡"}, {"Air", "💧"}, {"Internet", "🌐"}, {"Pulsa", "📱"},
+				{"Bensin", "⛽"}, {"Ojol & transportasi online", "🏍️"}, {"Parkir & tol", "🅿️"}, {"Servis kendaraan", "🔧"},
 			},
 		},
 		{
-			Name: "Hiburan", Icon: "Coins", Color: "text-pink-500", BgColor: "bg-pink-50", Type: "keinginan", Percent: 10,
+			Name: "Kesehatan", Icon: "ShieldCheck", Color: "text-red-500", BgColor: "bg-red-50", Type: "kebutuhan", Percent: 10,
 			Items: []struct{ Name, Emoji string }{
-				{"Netflix", "📺"}, {"Spotify", "🎧"}, {"Nongkrong", "🤝"}, {"Game", "🎮"},
+				{"Obat & apotek", "💊"}, {"Klinik & dokter", "🏥"}, {"BPJS Kesehatan", "🛡️"},
 			},
 		},
 		{
-			Name: "Belanja", Icon: "ShoppingCart", Color: "text-emerald-500", BgColor: "bg-emerald-50", Type: "keinginan", Percent: 15,
+			Name: "Pendidikan", Icon: "Coins", Color: "text-indigo-500", BgColor: "bg-indigo-50", Type: "kebutuhan", Percent: 8,
 			Items: []struct{ Name, Emoji string }{
-				{"Pakaian", "👕"}, {"Skincare", "🧴"}, {"Gadget", "📱"},
+				{"SPP & biaya sekolah", "🎒"}, {"Buku & alat tulis", "📚"}, {"Kursus & les privat", "🎓"},
 			},
 		},
 		{
-			Name: "Kesehatan", Icon: "ShieldCheck", Color: "text-red-500", BgColor: "bg-red-50", Type: "kebutuhan", Percent: 15,
+			// Dana darurat: target 3-6x pengeluaran bulanan — prioritas utama
+			Name: "Dana Darurat", Icon: "ShieldCheck", Color: "text-cyan-500", BgColor: "bg-cyan-50", Type: "kebutuhan", Percent: 10,
 			Items: []struct{ Name, Emoji string }{
-				{"Obat", "💊"}, {"Klinik", "🏥"}, {"Asuransi", "🛡️"},
+				{"Tabungan darurat bulanan", "🛡️"},
 			},
 		},
 		{
-			Name: "Pendidikan", Icon: "Coins", Color: "text-indigo-500", BgColor: "bg-indigo-50", Type: "kebutuhan", Percent: 10,
+			// Zakat & Sedekah: kewajiban finansial untuk mayoritas keluarga Indonesia
+			Name: "Zakat & Sedekah", Icon: "Coins", Color: "text-yellow-600", BgColor: "bg-yellow-50", Type: "kebutuhan", Percent: 5,
 			Items: []struct{ Name, Emoji string }{
-				{"Kursus", "🎓"}, {"Buku", "📚"},
+				{"Zakat penghasilan (2.5%)", "🌙"}, {"Sedekah & infaq rutin", "🤲"},
+			},
+		},
+		{
+			// Hiburan & belanja dikompres jadi satu agar lebih sehat
+			Name: "Hiburan & Belanja", Icon: "ShoppingCart", Color: "text-pink-500", BgColor: "bg-pink-50", Type: "keinginan", Percent: 7,
+			Items: []struct{ Name, Emoji string }{
+				{"Pakaian & perawatan diri", "👕"}, {"Hiburan & langganan (streaming dll)", "🎬"}, {"Hobi & rekreasi", "🎮"},
+			},
+		},
+		{
+			// Tabungan & investasi jangka panjang
+			Name: "Tabungan & Investasi", Icon: "Coins", Color: "text-emerald-600", BgColor: "bg-emerald-50", Type: "kebutuhan", Percent: 5,
+			Items: []struct{ Name, Emoji string }{
+				{"Tabungan tujuan", "🎯"}, {"Investasi (reksa dana/emas/dll)", "📈"},
 			},
 		},
 	}

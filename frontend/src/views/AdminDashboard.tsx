@@ -55,7 +55,7 @@ export const AdminDashboard: React.FC = () => {
     const [supportTickets, setSupportTickets] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [financialSummary, setFinancialSummary] = useState<any>(null);
-    const [reportPeriod, setReportPeriod] = useState<'day' | 'week' | 'month' | 'year'>('month');
+    const [reportPeriod, setReportPeriod] = useState<'day' | 'week' | 'month' | 'last-month' | 'year' | 'rolling-7' | 'rolling-30' | 'rolling-365'>('month');
     const [chartDays, setChartDays] = useState<number>(7);
 
     // UI States
@@ -72,6 +72,10 @@ export const AdminDashboard: React.FC = () => {
     const [profitPage, setProfitPage] = useState(1);
     const usersPerPage = 5;
     const transPerPage = 10;
+
+    const setActiveTab = (tab: string) => {
+        navigate(`/admin/${tab}`);
+    };
 
     // Modal States
     const [confirmModal, setConfirmModal] = useState({
@@ -104,6 +108,15 @@ export const AdminDashboard: React.FC = () => {
         fetchFinancialSummary();
         fetchCategories();
     }, [reportPeriod, currentPage, searchQuery, statusFilter, periodFilter, chartDays]);
+
+    useEffect(() => {
+        // Sync reportPeriod with chartDays when in Overview tab
+        if (activeTab === 'overview') {
+            if (chartDays === 7) setReportPeriod('rolling-7');
+            else if (chartDays === 30) setReportPeriod('rolling-30');
+            else if (chartDays === 365) setReportPeriod('rolling-365');
+        }
+    }, [chartDays, activeTab]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -573,14 +586,14 @@ export const AdminDashboard: React.FC = () => {
         summaryRows.push(["Status", labaDiff >= 0 ? "SURPLUS (Hemat Pengeluaran)" : "DEFISIT (Overbudget)"]);
         summaryRows.push(["Selisih dari Target Laba", labaDiff]);
 
-        // 2. Prepare Detailed Transaction Sheets
+        const taxPct = financialSummary.tax_pct || 11;
         const revenueData = financialSummary.revenue_details.map((r: any) => ({
             "No. Ref": r.reference,
             "Keluarga": r.family?.name || 'Tanpa Keluarga',
             "Paket": r.plan_name,
             "Jumlah Kotor": r.total_amount,
-            "PPN (11%)": -(r.total_amount * 0.11),
-            "Setelah PPN": r.total_amount * 0.89,
+            [`PPN (${taxPct}%)`]: -(r.total_amount * (taxPct / 100)),
+            "Setelah PPN": r.total_amount * (1 - (taxPct / 100)),
             "Fee Merchant": -(r.fee_merchant || 0),
             "Fee Customer": r.fee_customer || 0,
             "Total Fee Gateway": -(r.fee || 0),
@@ -683,21 +696,21 @@ export const AdminDashboard: React.FC = () => {
             styles: { fontSize: 7 }
         });
 
-        // Page 2: Revenue Details
+        const taxPct = financialSummary.tax_pct || 11;
         doc.addPage();
         doc.setFontSize(16);
         doc.setFont(undefined, 'bold');
         doc.text("RIWAYAT PENDAPATAN", 14, 20);
         autoTable(doc, {
             startY: 28,
-            head: [['REFERENCE', 'KELUARGA', 'PAKET', 'GROSS', 'PPN (11%)', 'NETT (PPN)', 'FEE GW', 'TERIMA', 'TANGGAL']],
+            head: [['REFERENCE', 'KELUARGA', 'PAKET', 'GROSS', `PPN (${taxPct}%)`, 'NETT (PPN)', 'FEE GW', 'TERIMA', 'TANGGAL']],
             body: financialSummary.revenue_details.map((r: any) => [
                 r.reference,
                 r.family?.name || '-',
                 r.plan_name,
                 `Rp ${r.total_amount.toLocaleString('id-ID')}`,
-                `Rp -${(r.total_amount * 0.11).toLocaleString('id-ID')}`,
-                `Rp ${(r.total_amount * 0.89).toLocaleString('id-ID')}`,
+                `Rp -${(r.total_amount * (taxPct / 100)).toLocaleString('id-ID')}`,
+                `Rp ${(r.total_amount * (1 - (taxPct / 100))).toLocaleString('id-ID')}`,
                 `Rp -${(r.fee || 0).toLocaleString('id-ID')}`,
                 `Rp ${(r.amount || 0).toLocaleString('id-ID')}`,
                 new Date(r.created_at).toLocaleDateString('id-ID')
@@ -751,7 +764,7 @@ export const AdminDashboard: React.FC = () => {
 
         switch (activeTab) {
             case 'overview':
-                return <OverviewTab stats={stats} theme={theme} plans={plans} financialSummary={financialSummary} chartDays={chartDays} setChartDays={setChartDays} />;
+                return <OverviewTab stats={stats} theme={theme} plans={plans} financialSummary={financialSummary} chartDays={chartDays} setChartDays={setChartDays} onTabChange={setActiveTab} />;
             case 'reports':
                 return (
                     <ReportsTab

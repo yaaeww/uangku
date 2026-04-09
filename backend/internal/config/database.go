@@ -256,6 +256,10 @@ func EnsurePartitionForDate(db *gorm.DB, date time.Time) error {
 func seedDefaultSettings() {
 	defaultSettings := []models.SystemSetting{
 		{
+			Key:   "tax_percentage",
+			Value: "11",
+		},
+		{
 			Key:   "trial_duration_days",
 			Value: "7",
 		},

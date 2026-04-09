@@ -33,7 +33,8 @@ export const TaxReportsTab: React.FC<TaxReportsTabProps> = ({
     const revenue = financialSummary?.total_revenue || 0;
     const totalFees = financialSummary?.total_fees || 0;
     const netRevenue = financialSummary?.net_revenue || (revenue - totalFees);
-    const ppnTarget = revenue * 0.11;
+    const taxPct = financialSummary?.tax_pct || 11;
+    const ppnTarget = revenue * (taxPct / 100);
 
     // Pagination states
     const [revPage, setRevPage] = useState(1);
@@ -129,7 +130,7 @@ export const TaxReportsTab: React.FC<TaxReportsTabProps> = ({
                             <Percent className="w-6 h-6 text-amber-500" />
                         </div>
                         <div>
-                            <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest block">Potongan PPN (11%)</span>
+                            <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest block">Potongan PPN ({taxPct}%)</span>
                             <span className="text-[9px] text-amber-500/60 font-bold">Kewajiban Pajak</span>
                         </div>
                     </div>
@@ -170,7 +171,7 @@ export const TaxReportsTab: React.FC<TaxReportsTabProps> = ({
                                     <th className="px-8 py-5 font-black">Ref / Keluarga</th>
                                     <th className="px-6 py-5 font-black">Paket</th>
                                     <th className="px-6 py-5 font-black">Jumlah Kotor</th>
-                                    <th className="px-6 py-5 font-black">PPN (11%)</th>
+                                    <th className="px-6 py-5 font-black">PPN ({taxPct}%)</th>
                                     <th className="px-6 py-5 font-black">Setelah PPN</th>
                                     <th className="px-8 py-5 text-right font-black">Tanggal</th>
                                 </tr>
@@ -189,10 +190,10 @@ export const TaxReportsTab: React.FC<TaxReportsTabProps> = ({
                                             Rp {rev.total_amount.toLocaleString('id-ID')}
                                         </td>
                                         <td className="px-6 py-6 font-bold text-amber-500">
-                                            - Rp {(rev.total_amount * 0.11).toLocaleString('id-ID')}
+                                            - Rp {(rev.total_amount * (taxPct / 100)).toLocaleString('id-ID')}
                                         </td>
                                         <td className="px-6 py-6 font-bold text-emerald-500">
-                                            Rp {(rev.total_amount - (rev.total_amount * 0.11)).toLocaleString('id-ID')}
+                                            Rp {(rev.total_amount - (rev.total_amount * (taxPct / 100))).toLocaleString('id-ID')}
                                         </td>
                                         <td className="px-8 py-6 text-right text-xs text-[var(--text-muted)] font-medium">
                                             {new Date(rev.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -282,7 +283,7 @@ export const TaxReportsTab: React.FC<TaxReportsTabProps> = ({
                 <div>
                     <h5 className="text-sm font-black text-amber-600 uppercase tracking-tight mb-1">Informasi Kebijakan Pajak</h5>
                     <p className="text-xs text-amber-700/80 leading-relaxed">
-                        Laporan ini mencakup seluruh kewajiban pajak platform. Potongan PPN (11%) dihitung otomatis dari total Omzet Kotor sebelum potongan biaya apapun. Biaya Gateway adalah nominal yang ditarik oleh penyedia layanan pembayaran (TriPay) untuk kelancaran transaksi otomatis di platform.
+                        Laporan ini mencakup seluruh kewajiban pajak platform. Potongan PPN ({taxPct}%) dihitung otomatis dari total Omzet Kotor sebelum potongan biaya apapun. Biaya Gateway adalah nominal yang ditarik oleh penyedia layanan pembayaran (TriPay) untuk kelancaran transaksi otomatis di platform.
                     </p>
                 </div>
             </div>

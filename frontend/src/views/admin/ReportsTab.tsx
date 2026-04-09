@@ -434,13 +434,15 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                                 {paginatedAllocDetails?.map((alloc: any) => {
                                     const isSpecial = alloc.category_id.startsWith('tax-');
                                     const diff = alloc.target_amount - alloc.actual_amount;
+                                    const isLiability = isSpecial && diff > 0;
+                                    
                                     return (
                                         <tr key={alloc.category_id} className={`hover:bg-black/5 transition-colors ${isSpecial ? 'bg-amber-500/5' : ''}`}>
                                             <td className="px-4 sm:px-6 md:px-8 py-3 sm:py-5 font-bold text-[var(--text-main)]">
                                                 <div className="flex items-center gap-2">
                                                     {alloc.category_name}
                                                     {isSpecial && (
-                                                        <span className="text-[7px] sm:text-[8px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded uppercase font-black tracking-widest">Wajib</span>
+                                                        <span className="text-[7px] sm:text-[8px] bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded uppercase font-black tracking-widest">Wajib</span>
                                                     )}
                                                 </div>
                                             </td>
@@ -482,11 +484,19 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                                                     </div>
                                                 ) : '-'}
                                             </td>
-                                            <td className={`px-3 sm:px-6 md:px-8 py-3 sm:py-5 text-right font-mono font-bold text-[11px] sm:text-sm ${isSpecial ? 'text-amber-600' : 'text-red-500'}`}>
+                                            <td className={`px-3 sm:px-6 md:px-8 py-3 sm:py-5 text-right font-mono font-bold text-[11px] sm:text-sm ${isSpecial ? 'text-blue-600' : 'text-red-500'}`}>
                                                 Rp {alloc.actual_amount.toLocaleString('id-ID')}
+                                                {isSpecial && <div className="text-[7px] uppercase font-black opacity-60">Realisasi</div>}
                                             </td>
-                                            <td className={`px-4 sm:px-6 md:px-8 py-3 sm:py-5 text-right font-mono font-black text-[11px] sm:text-sm ${isSpecial ? (diff > 0 ? 'text-amber-500' : 'text-emerald-500') : (diff >= 0 ? 'text-emerald-500' : 'text-amber-500')}`}>
-                                                {isSpecial ? (diff > 0 ? '○ Belos Lunas' : '● Lunas') : (diff >= 0 ? '+' : '') + diff.toLocaleString('id-ID')}
+                                            <td className={`px-4 sm:px-6 md:px-8 py-3 sm:py-5 text-right font-mono font-black text-[11px] sm:text-sm ${isSpecial ? (diff > 0 ? 'text-red-500' : 'text-emerald-500') : (diff >= 0 ? 'text-emerald-500' : 'text-amber-500')}`}>
+                                                {isSpecial ? (
+                                                    <div className="flex flex-col items-end">
+                                                        <span>{diff > 0 ? `Rp ${diff.toLocaleString('id-ID')}` : '● LUNAS'}</span>
+                                                        {diff > 0 && <span className="text-[7px] uppercase font-black text-red-500/50">Hutang/Dana Mengendap</span>}
+                                                    </div>
+                                                ) : (
+                                                    (diff >= 0 ? '+' : '') + diff.toLocaleString('id-ID')
+                                                )}
                                             </td>
                                         </tr>
                                     );
