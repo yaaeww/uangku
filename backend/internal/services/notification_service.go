@@ -20,6 +20,8 @@ type NotificationService interface {
 	DeleteAllNotifications(userID uuid.UUID) error
 	DeleteBulkNotifications(userID uuid.UUID, ids []uuid.UUID) error
 	NotifyUser(userID uuid.UUID, nType, title, message string) error
+	NotifyUserInApp(userID uuid.UUID, nType, title, message string) error
+	NotifyFamily(familyID, skipUserID uuid.UUID, nType, title, message string) error
 }
 
 type notificationService struct {
@@ -133,15 +135,38 @@ func (s *notificationService) DeleteBulkNotifications(userID uuid.UUID, ids []uu
 	return config.DB.Where("user_id = ? AND id IN ?", userID, ids).Delete(&models.Notification{}).Error
 }
 
-func (s *notificationService) NotifyUser(userID uuid.UUID, nType, title, message string) error {
-	// 1. Record Notification in DB
+func (s *notificationService) NotifyUserInApp(userID uuid.UUID, nType, title, message string) error {
 	notification := &models.Notification{
 		UserID:  userID,
 		Type:    nType,
 		Title:   title,
 		Message: message,
 	}
-	if err := config.DB.Create(notification).Error; err != nil {
+	return config.DB.Create(notification).Error
+}
+
+func (s *notificationService) NotifyFamily(familyID, skipUserID uuid.UUID, nType, title, message string) error {
+	var userIDs []uuid.UUID
+	err := config.DB.Table("family_members").Where("family_id = ?", familyID).Pluck("user_id", &userIDs).Error
+	if err != nil {
+		return err
+	}
+
+	for _, uID := range userIDs {
+		if uID == skipUserID {
+			continue
+		}
+		// Create in-app notification for members
+		if err := s.NotifyUserInApp(uID, nType, title, message); err != nil {
+			log.Printf("[Notification] Failed to notify family member %s: %v", uID, err)
+		}
+	}
+	return nil
+}
+
+func (s *notificationService) NotifyUser(userID uuid.UUID, nType, title, message string) error {
+	// 1. Record Notification in DB
+	if err := s.NotifyUserInApp(userID, nType, title, message); err != nil {
 		log.Printf("[Notification] Failed to save to DB: %v", err)
 	}
 
@@ -153,7 +178,6 @@ func (s *notificationService) NotifyUser(userID uuid.UUID, nType, title, message
 
 	// 3. Send WhatsApp if phone number exists
 	if user.PhoneNumber != "" {
-		// Branding: Uangku: *[Title]* \n\n Message
 		waMessage := fmt.Sprintf("Uangku: *%s*\n\n%s", title, message)
 		err := s.mail.SendWhatsApp(user.PhoneNumber, waMessage)
 		if err != nil {

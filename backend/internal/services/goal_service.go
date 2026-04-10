@@ -22,14 +22,27 @@ type GoalService interface {
 type goalService struct {
 	repo      repositories.GoalRepository
 	assetRepo repositories.AssetRepository
+	notif     NotificationService
 }
 
-func NewGoalService(repo repositories.GoalRepository, assetRepo repositories.AssetRepository) GoalService {
-	return &goalService{repo: repo, assetRepo: assetRepo}
+func NewGoalService(repo repositories.GoalRepository, assetRepo repositories.AssetRepository, notif NotificationService) GoalService {
+	return &goalService{repo: repo, assetRepo: assetRepo, notif: notif}
 }
 
 func (s *goalService) CreateGoal(goal *models.Goal) error {
-	return s.repo.Create(goal)
+	if err := s.repo.Create(goal); err != nil {
+		return err
+	}
+
+	go func() {
+		var user models.User
+		config.DB.Select("full_name").First(&user, "id = ?", goal.UserID)
+		
+		s.notif.NotifyFamily(goal.FamilyID, goal.UserID, "info", "Target Baru", 
+			fmt.Sprintf("%s membuat target baru: %s (Target: Rp%.0f)", user.FullName, goal.Name, goal.TargetAmount))
+	}()
+
+	return nil
 }
 
 func (s *goalService) GetFamilyGoals(familyID uuid.UUID) ([]models.Goal, error) {

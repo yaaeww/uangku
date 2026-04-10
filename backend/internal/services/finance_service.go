@@ -43,6 +43,7 @@ type financeService struct {
 	budgetRepo   repositories.BudgetRepository
 	aiService    AIService
 	debtService  DebtService
+	notif        NotificationService
 }
 
 func NewFinanceService(
@@ -54,6 +55,7 @@ func NewFinanceService(
 	budgetRepo repositories.BudgetRepository,
 	aiService AIService,
 	debtService DebtService,
+	notif NotificationService,
 ) FinanceService {
 	return &financeService{
 		repo:         repo,
@@ -64,6 +66,7 @@ func NewFinanceService(
 		budgetRepo:   budgetRepo,
 		aiService:    aiService,
 		debtService:  debtService,
+		notif:        notif,
 	}
 }
 
@@ -426,6 +429,21 @@ func (s *financeService) CreateTransaction(tx *models.Transaction) error {
 
 	// Trigger async sync 
 	go s.repo.SyncMonthlySummary(tx.FamilyID, int(tx.Date.Month()), tx.Date.Year())
+	
+	// Notify Family
+	go func() {
+		var user models.User
+		config.DB.Select("full_name").First(&user, "id = ?", tx.UserID)
+		
+		title := "Transaksi Baru"
+		message := fmt.Sprintf("%s mencatat %s: %s sebesar Rp%.0f", 
+			user.FullName, 
+			map[string]string{"income": "pemasukan", "expense": "pengeluaran", "transfer": "transfer"}[string(tx.Type)],
+			tx.Description,
+			tx.Amount,
+		)
+		s.notif.NotifyFamily(tx.FamilyID, tx.UserID, "info", title, message)
+	}()
 	
 	return nil
 }
@@ -870,24 +888,47 @@ func (s *financeService) createTransactionWithDB(dbTx *gorm.DB, tx *models.Trans
 }
 
 func (s *financeService) UpdateFamilyBudget(familyID uuid.UUID, amount float64) error {
-	return config.DB.Model(&models.Family{}).Where("id = ?", familyID).Update("monthly_budget", amount).Error
+	if err := config.DB.Model(&models.Family{}).Where("id = ?", familyID).Update("monthly_budget", amount).Error; err != nil {
+		return err
+	}
+	
+	go s.notif.NotifyFamily(familyID, uuid.Nil, "info", "Update Anggaran", 
+		fmt.Sprintf("Anggaran bulanan keluarga telah diperbarui menjadi Rp%.0f", amount))
+		
+	return nil
 }
 
 func (s *financeService) SetMonthlyBudget(familyID, userID uuid.UUID, month, year int, amount float64) error {
-	return s.repo.SetMonthlyBudget(familyID, userID, month, year, amount)
+	if err := s.repo.SetMonthlyBudget(familyID, userID, month, year, amount); err != nil {
+		return err
+	}
+	
+	months := []string{"", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"}
+	go s.notif.NotifyFamily(familyID, uuid.Nil, "info", "Update Anggaran Bulanan", 
+		fmt.Sprintf("Anggaran untuk bulan %s %d telah diperbarui menjadi Rp%.0f", months[month], year, amount))
+		
+	return nil
 }
 
 func (s *financeService) UpdateMemberBudget(familyID, userID uuid.UUID, amount float64, targetUserID *uuid.UUID) error {
-	// If it's a specific month (currently we don't pass month/year here, 
-	// but the controller can call SetMonthlyBudget instead if context is provided).
-	// This existing method is for the default monthly budget in FamilyMember table.
-	
 	idToUpdate := userID
 	if targetUserID != nil {
 		idToUpdate = *targetUserID
 	}
 	
-	return config.DB.Model(&models.FamilyMember{}).
+	if err := config.DB.Model(&models.FamilyMember{}).
 		Where("family_id = ? AND user_id = ?", familyID, idToUpdate).
-		Update("monthly_budget", amount).Error
+		Update("monthly_budget", amount).Error; err != nil {
+		return err
+	}
+
+	go func() {
+		var user models.User
+		config.DB.Select("full_name").First(&user, "id = ?", idToUpdate)
+		
+		s.notif.NotifyFamily(familyID, uuid.Nil, "info", "Update Jatah Anggaran", 
+			fmt.Sprintf("Jatah anggaran bulanan untuk %s telah diperbarui menjadi Rp%.0f", user.FullName, amount))
+	}()
+
+	return nil
 }

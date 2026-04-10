@@ -37,12 +37,14 @@ func SetupRoutes(router *gin.Engine) {
 	v1 := router.Group("/api/v1")
 
 	// Dependencies
-	savingService := services.NewSavingService()
-	budgetService := services.NewBudgetService()
-	budgetController := controllers.NewBudgetController(budgetService, savingService)
-
 	authRepo := repositories.NewAuthRepository()
 	mailService := services.NewMailService()
+	notificationService := services.NewNotificationService(mailService)
+	
+	savingService := services.NewSavingService(notificationService)
+	budgetService := services.NewBudgetService()
+	budgetController := controllers.NewBudgetController(budgetService, savingService)
+	
 	authService := services.NewAuthService(authRepo, mailService, budgetService)
 	authController := controllers.NewAuthController(authService)
 
@@ -56,10 +58,9 @@ func SetupRoutes(router *gin.Engine) {
 	assetRepo := repositories.NewAssetRepository()
 	budgetRepo := repositories.NewBudgetRepository()
 	aiService := services.NewAIService()
-	notificationService := services.NewNotificationService(mailService)
 	debtService := services.NewDebtService(notificationService)
 
-	financeService := services.NewFinanceService(financeRepo, walletRepo, behaviorRepo, assetRepo, goalRepo, budgetRepo, aiService, debtService)
+	financeService := services.NewFinanceService(financeRepo, walletRepo, behaviorRepo, assetRepo, goalRepo, budgetRepo, aiService, debtService, notificationService)
 	financeController := controllers.NewFinanceController(financeService)
 
 	memberRepo := repositories.NewMemberRepository()
@@ -91,7 +92,7 @@ func SetupRoutes(router *gin.Engine) {
 	assetService := services.NewAssetService(assetRepo, goalRepo)
 	assetController := controllers.NewAssetController(assetService)
 
-	goalService := services.NewGoalService(goalRepo, assetRepo)
+	goalService := services.NewGoalService(goalRepo, assetRepo, notificationService)
 	goalController := controllers.NewGoalController(goalService, financeService, walletService)
 
 	// Public Routes

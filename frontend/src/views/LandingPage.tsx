@@ -115,9 +115,9 @@ export const LandingPage = () => {
                                     token 
                                         ? (user?.role === 'super_admin' 
                                             ? "/admin" 
-                                            : user?.role === 'content_strategist'
+                                            : (user?.role === 'content_strategist' || user?.role === 'writer')
                                                 ? "/writing-room"
-                                                : (user?.familyName ? `/${encodeURIComponent(user.familyName)}/dashboard` : "/")) 
+                                                : (user?.familyName ? `/${encodeURIComponent(user.familyName)}/dashboard` : "/admin")) 
                                         : "/register"
                                 }
                                 className="btn-primary w-full sm:w-auto"
@@ -407,9 +407,9 @@ export const LandingPage = () => {
                             token 
                                 ? (user?.role === 'super_admin' 
                                     ? "/admin" 
-                                    : user?.role === 'content_strategist'
+                                    : (user?.role === 'content_strategist' || user?.role === 'writer')
                                         ? "/writing-room"
-                                        : (user?.familyName ? `/${encodeURIComponent(user.familyName)}/dashboard` : "/")) 
+                                        : (user?.familyName ? `/${encodeURIComponent(user.familyName)}/dashboard` : "/admin")) 
                                 : "/register"
                         }
                         className="inline-block bg-dagang-accent text-white px-11 py-4.5 rounded-full text-base font-bold shadow-[0_8px_32px_rgba(245,158,11,0.4)] hover:-translate-y-px hover:shadow-[0_16px_48px_rgba(245,158,11,0.5)] transition-all"

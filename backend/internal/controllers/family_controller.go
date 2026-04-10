@@ -259,6 +259,7 @@ func (ctrl *FamilyController) UpdateMemberBudget(c *gin.Context) {
 			repositories.NewBudgetRepository(),
 			services.NewAIService(),
 			services.NewDebtService(services.NewNotificationService(services.NewMailService())),
+			services.NewNotificationService(services.NewMailService()),
 		)
 		if err := financeSvc.SetMonthlyBudget(familyID, targetUserID, input.Month, input.Year, input.Amount); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui budget bulanan: " + err.Error()})

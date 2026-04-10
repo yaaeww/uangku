@@ -18,10 +18,12 @@ type SavingService interface {
 	DeleteByCategory(categoryID uuid.UUID, familyID uuid.UUID, userID uuid.UUID) error
 }
 
-type savingService struct{}
+type savingService struct {
+	notif NotificationService
+}
 
-func NewSavingService() SavingService {
-	return &savingService{}
+func NewSavingService(notif NotificationService) SavingService {
+	return &savingService{notif: notif}
 }
 
 func (s *savingService) GetByID(id uuid.UUID) (*models.Saving, error) {
