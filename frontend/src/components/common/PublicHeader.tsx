@@ -61,7 +61,7 @@ export const PublicHeader = () => {
                             to={
                                 user?.role === 'super_admin' 
                                     ? "/admin" 
-                                    : user?.role === 'content_strategist' 
+                                    : (user?.role === 'content_strategist' || user?.role === 'writer')
                                         ? "/writing-room" 
                                         : (user?.familyName ? `/${encodeURIComponent(user.familyName)}/dashboard` : "/")
                             }
@@ -71,7 +71,7 @@ export const PublicHeader = () => {
                         </Link>
                         <button 
                             onClick={() => logout()}
-                            className="p-2 hover:bg-red-50 rounded-full text-dagang-gray hover:text-red-500 transition-all"
+                            className="p-2 hover:bg-red-500/10 rounded-full text-dagang-gray hover:text-red-500 transition-all font-bold"
                             title="Logout"
                         >
                             <LogOut className="w-4 h-4" />
@@ -79,7 +79,7 @@ export const PublicHeader = () => {
                     </div>
                 ) : (
                     <>
-                        <Link to="/login" className="text-[13px] sm:text-sm font-semibold text-dagang-green border border-dagang-green/30 hover:bg-dagang-green-pale px-3 sm:px-5 py-2 sm:py-2.5 rounded-full transition-all whitespace-nowrap">
+                        <Link to="/login" className="text-[13px] sm:text-sm font-semibold text-dagang-green border border-dagang-green/30 hover:bg-[var(--primary)]/10 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full transition-all whitespace-nowrap">
                             {t('nav.login')}
                         </Link>
                         <Link to="/register" className="px-4 sm:px-6 py-2 sm:py-2.5 bg-dagang-green text-white rounded-full text-[13px] sm:text-sm font-semibold hover:bg-dagang-green-light transition-all shadow-sm whitespace-nowrap">

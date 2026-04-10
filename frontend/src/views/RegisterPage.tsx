@@ -264,7 +264,7 @@ export const RegisterPage = () => {
                     </div>
                 </div>
  
-                <div className="bg-white/5 border border-white/10 rounded-[20px] p-5 md:px-6 flex items-center gap-4 relative z-10">
+                <div className="bg-white/5 border border-white/10 rounded-[20px] p-5 md:px-6 flex items-center gap-4 relative z-10 transition-colors">
                     <div className="text-[24px] md:text-[28px]">🎁</div>
                     <div className="text-[12px] md:text-[13px] text-white/70 text-left">
                         <strong className="block text-[14px] md:text-[15px] text-white mb-0.5">{t('auth.register.trialTitle', { days: trialDays })}</strong>
@@ -325,7 +325,7 @@ export const RegisterPage = () => {
                         <form className="space-y-5" onSubmit={handleRegister}>
                             {error && (
                                 <div className="space-y-3">
-                                    <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-xs font-bold flex flex-col gap-2">
+                                    <div className="bg-red-500/10 border border-red-500/20 text-red-600 px-4 py-3 rounded-xl text-xs font-bold flex flex-col gap-2">
                                         <span>{error}</span>
                                         {error.includes('undangan') && (
                                             <button 
@@ -386,7 +386,7 @@ export const RegisterPage = () => {
                                 </div>
                             </div>
 
-                            <div className="bg-dagang-green/5 border border-dagang-green/15 rounded-[16px] p-6 space-y-4">
+                            <div className="bg-[var(--primary)]/5 border border-[var(--primary)]/15 rounded-[16px] p-6 space-y-4">
                                 <div className="flex items-center gap-2 text-sm font-bold text-dagang-green">
                                     <Home className="w-4 h-4" /> {t('auth.register.familyData')}
                                 </div>
@@ -434,13 +434,13 @@ export const RegisterPage = () => {
                                         Kode berakhir dalam: {formatTime(timeLeft)}
                                     </div>
                                 ) : (
-                                    <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-full text-sm font-bold border border-red-100">
+                                    <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-600 rounded-full text-sm font-bold border border-red-500/10">
                                         Kode telah kadaluarsa
                                     </div>
                                 )}
                             </div>
                             {error && (
-                                <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-xs font-bold">
+                                <div className="bg-red-500/10 border border-red-500/20 text-red-600 px-4 py-3 rounded-xl text-xs font-bold">
                                     {error}
                                 </div>
                             )}

@@ -6,7 +6,7 @@ export interface User {
     fullName: string;
     phoneNumber?: string;
     familyName: string;
-    role: 'super_admin' | 'family_admin' | 'family_member' | 'content_strategist';
+    role: 'super_admin' | 'family_admin' | 'family_member' | 'content_strategist' | 'writer' | 'user';
     familyStatus?: 'active' | 'trial' | 'expired';
     trialEndsAt?: string;
 }

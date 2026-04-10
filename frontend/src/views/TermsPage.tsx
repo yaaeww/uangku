@@ -13,9 +13,9 @@ export const TermsPage: React.FC = () => {
                     <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-white p-10 md:p-16 rounded-[40px] shadow-2xl shadow-dagang-dark/5 space-y-12"
+                        className="bg-[var(--surface-card)] p-10 md:p-16 rounded-[40px] shadow-2xl shadow-black/5 space-y-12 border border-[var(--border)]"
                     >
-                        <header className="space-y-4 border-b border-dagang-dark/5 pb-8 text-right">
+                        <header className="space-y-4 border-b border-[var(--border)] pb-8 text-right">
                             <h1 className="text-4xl font-serif text-dagang-dark italic">Syarat & Ketentuan</h1>
                             <p className="text-sm text-dagang-gray font-serif italic">Efektif sejak: 20 Maret 2026</p>
                         </header>
@@ -35,7 +35,7 @@ export const TermsPage: React.FC = () => {
                                 </p>
                             </section>
 
-                            <section className="space-y-4 text-dagang-green bg-dagang-green/5 p-6 rounded-2xl border border-dagang-green/10">
+                            <section className="space-y-4 text-dagang-green bg-[var(--primary)]/5 p-6 rounded-2xl border border-[var(--primary)]/10">
                                 <h2 className="text-2xl font-serif">3. Masa Uji Coba (Trial)</h2>
                                 <p>
                                     UangKu menyediakan masa uji coba gratis untuk pengguna baru. Durasi masa uji coba ditentukan oleh admin dan dapat berubah sewaktu-waktu. Setelah masa uji coba berakhir, akses ke fitur pencatatan dan laporan akan dibatasi kecuali jika Anda melakukan aktivasi paket berlangganan.

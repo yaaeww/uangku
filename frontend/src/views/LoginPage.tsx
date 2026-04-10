@@ -42,7 +42,7 @@ export const LoginPage = () => {
 
             if (user.role === 'super_admin') {
                 navigate('/admin');
-            } else if (user.role === 'content_strategist') {
+            } else if (user.role === 'content_strategist' || user.role === 'writer') {
                 navigate('/writing-room');
             } else {
                 navigate(`/${encodeURIComponent(family_name)}/dashboard`);
@@ -62,10 +62,10 @@ export const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-dagang-cream text-dagang-dark font-sans flex flex-col md:flex-row transition-colors duration-300">
+        <div className="min-h-screen bg-[var(--bg-body)] text-[var(--text-main)] font-sans flex flex-col md:flex-row transition-colors duration-300">
             {/* Left Panel - Branding */}
-            <div className="hidden md:flex md:w-[40%] bg-dagang-deep p-12 lg:p-16 flex-col justify-between relative overflow-hidden">
-                <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-dagang-green/20 blur-[120px] rounded-full" />
+            <div className="hidden md:flex md:w-[40%] bg-[var(--bg-deep)] p-12 lg:p-16 flex-col justify-between relative overflow-hidden">
+                <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-[var(--primary)]/20 blur-[120px] rounded-full" />
 
                 <Link to="/" className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity relative z-10">
                     <Logo variant="horizontal" />
@@ -75,7 +75,7 @@ export const LoginPage = () => {
                     <h2 
                         className="font-serif text-[42px] text-white leading-tight mb-6"
                         dangerouslySetInnerHTML={{ 
-                            __html: `${t('auth.login.titlePart1')}<span class="text-dagang-green italic">${t('auth.login.titlePart2')}</span>` 
+                            __html: `${t('auth.login.titlePart1')}<span class="text-[var(--primary)] italic">${t('auth.login.titlePart2')}</span>` 
                         }}
                     />
                     <p className="text-white/40 text-lg max-w-sm mb-10 leading-relaxed">
@@ -84,7 +84,7 @@ export const LoginPage = () => {
 
                     <div className="space-y-6">
                         <div className="flex items-center gap-4 group cursor-default">
-                            <div className="w-11 h-11 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-dagang-green group-hover:bg-dagang-green group-hover:text-white transition-all">
+                            <div className="w-11 h-11 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-[var(--primary)] group-hover:bg-[var(--primary)] group-hover:text-white transition-all">
                                 <ShieldCheck className="w-5 h-5" />
                             </div>
                             <div className="text-sm text-white/70">{t('auth.login.securityDesc')}</div>
@@ -97,12 +97,12 @@ export const LoginPage = () => {
                 </div>
             </div>
 
-            {/* Right Panel - Login Form */}
-            <div className="flex-1 p-6 md:p-12 lg:p-[100px] flex flex-col justify-center bg-dagang-cream relative">
+            {/* Right Panel - Form */}
+            <div className="flex-1 p-6 sm:p-12 md:p-[64px] flex flex-col justify-center bg-[var(--background)] text-[var(--text-main)] transition-colors duration-500">
                 <div className="absolute top-6 right-6 md:top-12 md:right-12">
                     <button
                         onClick={toggleLanguage}
-                        className="p-2.5 rounded-full bg-[var(--surface-card)] border border-[var(--border)] text-dagang-gray hover:text-dagang-green transition-all flex items-center gap-2 shadow-sm"
+                        className="p-2.5 rounded-full bg-[var(--surface-card)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--primary)] transition-all flex items-center gap-2 shadow-sm"
                     >
                         <Globe className="w-4 h-4" />
                         <span className="text-[11px] font-bold uppercase">{i18n.language}</span>
@@ -122,7 +122,7 @@ export const LoginPage = () => {
 
                     <form className="space-y-6" onSubmit={handleLogin}>
                         {error && (
-                            <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-xs font-bold animate-fade-in flex items-center gap-2">
+                            <div className="bg-red-500/10 border border-red-500/20 text-red-600 px-4 py-3 rounded-xl text-xs font-bold animate-fade-in flex items-center gap-2">
                                 <span className="text-[16px]">⚠️</span> {error}
                             </div>
                         )}

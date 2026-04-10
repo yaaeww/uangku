@@ -176,7 +176,7 @@ function App() {
               token && user ? (
                 user.role === 'super_admin' ? (
                   <Navigate to="/admin" />
-                ) : user.role === 'content_strategist' ? (
+                ) : (user.role === 'content_strategist' || user.role === 'writer') ? (
                   <Navigate to="/writing-room" />
                 ) : (
                   <Navigate to={`/${encodeURIComponent(user.familyName)}/dashboard`} />
@@ -192,7 +192,7 @@ function App() {
               token && user ? (
                 user.role === 'super_admin' ? (
                   <Navigate to="/admin" />
-                ) : user.role === 'content_strategist' ? (
+                ) : (user.role === 'content_strategist' || user.role === 'writer') ? (
                   <Navigate to="/writing-room" />
                 ) : (
                   <Navigate to={`/${encodeURIComponent(user.familyName)}/dashboard`} />
@@ -239,7 +239,7 @@ function App() {
           />
           <Route 
             path="/writing-room" 
-            element={token && (user?.role === 'content_strategist' || user?.role === 'super_admin') ? <WritingRoomLayout /> : <Navigate to="/login" />}
+            element={token && (user?.role === 'content_strategist' || user?.role === 'writer' || user?.role === 'super_admin') ? <WritingRoomLayout /> : <Navigate to="/login" />}
           >
             <Route index element={<WritingRoom activeSection="dashboard" />} />
             <Route path="articles" element={<WritingRoom activeSection="articles" />} />

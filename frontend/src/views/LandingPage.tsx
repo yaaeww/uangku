@@ -72,7 +72,7 @@ export const LandingPage = () => {
     const trialDuration = settings.trial_duration_days || "7";
 
     return (
-        <div className="bg-dagang-cream text-[var(--text-main)] font-sans selection:bg-dagang-green-pale selection:text-dagang-green transition-colors duration-500">
+        <div className="bg-[var(--background)] text-[var(--text-main)] font-sans selection:bg-[var(--primary)]/20 selection:text-[var(--primary)] transition-colors duration-500">
             {/* Navigation */}
             <PublicHeader />
 
@@ -83,7 +83,7 @@ export const LandingPage = () => {
                 {/* Decorative Grid */}
                 <div className="absolute top-[120px] right-20 grid grid-cols-8 gap-5 opacity-15">
                     {Array.from({ length: 32 }).map((_, i) => (
-                        <span key={i} className="w-1 h-1 bg-dagang-green rounded-full block" />
+                        <span key={i} className="w-1 h-1 bg-[var(--primary)] rounded-full block" />
                     ))}
                 </div>
 
@@ -95,7 +95,7 @@ export const LandingPage = () => {
                         viewport={{ once: true }}
                         className="max-w-[620px] z-10 text-center lg:text-left"
                     >
-                        <div className="inline-flex items-center gap-2 bg-dagang-green-pale text-dagang-green px-4 py-1.5 rounded-full text-sm font-semibold mb-7 border border-dagang-green/15 before:content-['✦'] before:text-[10px]">
+                        <div className="inline-flex items-center gap-2 bg-[var(--primary)]/10 text-[var(--primary)] px-4 py-1.5 rounded-full text-sm font-semibold mb-7 border border-[var(--primary)]/15 before:content-['✦'] before:text-[10px]">
                             {t('hero.badge', { days: trialDuration })}
                         </div>
                         <h1 className="font-heading text-h1 mobile:text-display-l desktop:text-display-xl leading-[1.05] text-[var(--text-main)] mb-6" dangerouslySetInnerHTML={{ __html: t('hero.title') }} />
@@ -133,7 +133,7 @@ export const LandingPage = () => {
                         <div className="flex items-center justify-center lg:justify-start gap-4">
                             <div className="flex -space-x-2.5">
                                 {['B', 'S', 'R', 'A'].map((char, i) => (
-                                    <div key={i} className="w-9 h-9 rounded-full border-2 border-white bg-gradient-to-br from-dagang-green to-dagang-green-light flex items-center justify-center text-[12px] font-bold text-white">
+                                    <div key={i} className="w-9 h-9 rounded-full border-2 border-[var(--surface-card)] bg-gradient-to-br from-[var(--primary)] to-[var(--primary)]/60 flex items-center justify-center text-[12px] font-bold text-white">
                                         {char}
                                     </div>
                                 ))}
@@ -152,25 +152,25 @@ export const LandingPage = () => {
                         <div className="bg-[var(--surface-card)] rounded-[24px] shadow-[0_32px_80px_rgba(0,0,0,0.12),0_4px_16px_rgba(0,0,0,0.06)] p-7 overflow-hidden border border-[var(--border)]">
                             <div className="flex justify-between items-center mb-5">
                                 <div className="text-[13px] font-semibold text-[var(--text-main)]">{t('appPreview.familyBudi')}</div>
-                                <div className="bg-dagang-accent text-white text-[11px] font-bold px-2.5 py-1 rounded-full">{t('appPreview.trialBadge', { days: trialDuration })}</div>
+                                <div className="bg-[var(--accent)] text-white text-[11px] font-bold px-2.5 py-1 rounded-full">{t('appPreview.trialBadge', { days: trialDuration })}</div>
                             </div>
 
-                            <div className="bg-gradient-to-br from-dagang-green to-dagang-green-light rounded-[16px] p-5 mb-4 text-white">
+                            <div className="bg-gradient-to-br from-[var(--primary)] to-[var(--primary)]/80 rounded-[16px] p-5 mb-4 text-white">
                                 <div className="text-[12px] opacity-80 mb-1.5">{t('appPreview.netBalance')}</div>
                                 <div className="font-serif text-[32px]">Rp 8.450.000</div>
                                 <div className="text-[12px] opacity-70 mt-1">{t('appPreview.balanceChange')}</div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-2.5 mb-4">
-                                <div className="bg-dagang-cream/50 rounded-[12px] p-3 flex items-center gap-2.5 border border-[var(--border)]">
-                                    <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-500/20 flex items-center justify-center text-sm">💚</div>
+                                <div className="bg-[var(--bg-main)] rounded-[12px] p-3 flex items-center gap-2.5 border border-[var(--border)]">
+                                    <div className="w-8 h-8 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center text-sm">💚</div>
                                     <div>
                                         <div className="text-[13px] font-semibold text-[var(--text-main)]">Rp 12,5 jt</div>
                                         <div className="text-[11px] text-[var(--text-muted)]">{t('appPreview.income')}</div>
                                     </div>
                                 </div>
-                                <div className="bg-dagang-cream/50 rounded-[12px] p-3 flex items-center gap-2.5 border border-[var(--border)]">
-                                    <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-500/20 flex items-center justify-center text-sm">❤️</div>
+                                <div className="bg-[var(--bg-main)] rounded-[12px] p-3 flex items-center gap-2.5 border border-[var(--border)]">
+                                    <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-sm">❤️</div>
                                     <div>
                                         <div className="text-[13px] font-semibold text-[var(--text-main)]">Rp 4,05 jt</div>
                                         <div className="text-[11px] text-[var(--text-muted)]">{t('appPreview.expense')}</div>
@@ -179,25 +179,25 @@ export const LandingPage = () => {
                             </div>
 
                             <div className="flex flex-col gap-2">
-                                <div className="flex items-center justify-between py-2 border-b border-black/5">
+                                <div className="flex items-center justify-between py-2 border-b border-[var(--border)]">
                                     <div className="flex items-center gap-2.5">
-                                        <div className="w-[28px] h-[28px] rounded-lg bg-dagang-green-pale flex items-center justify-center text-[12px]">🛒</div>
+                                        <div className="w-[28px] h-[28px] rounded-lg bg-[var(--primary)]/10 flex items-center justify-center text-[12px]">🛒</div>
                                         <div>
                                             <div className="text-[12px] font-medium">{t('appPreview.groceries')}</div>
-                                            <div className="text-[11px] text-[#334155]">{t('appPreview.today')}</div>
+                                            <div className="text-[11px] text-[var(--text-muted)]">{t('appPreview.today')}</div>
                                         </div>
                                     </div>
                                     <div className="text-[12px] font-semibold text-red-500">- Rp 450k</div>
                                 </div>
-                                <div className="flex items-center justify-between py-2 border-b border-black/5">
+                                <div className="flex items-center justify-between py-2 border-b border-[var(--border)]">
                                     <div className="flex items-center gap-2.5">
-                                        <div className="w-[28px] h-[28px] rounded-lg bg-dagang-green-pale flex items-center justify-center text-[12px]">💰</div>
+                                        <div className="w-[28px] h-[28px] rounded-lg bg-[var(--primary)]/10 flex items-center justify-center text-[12px]">💰</div>
                                         <div>
                                             <div className="text-[12px] font-medium">{t('appPreview.salary')}</div>
-                                            <div className="text-[11px] text-dagang-gray">1 Mar</div>
+                                            <div className="text-[11px] text-[var(--text-muted)]">1 Mar</div>
                                         </div>
                                     </div>
-                                    <div className="text-[12px] font-semibold text-dagang-green">+ Rp 8jt</div>
+                                    <div className="text-[12px] font-semibold text-[var(--primary)]">+ Rp 8jt</div>
                                 </div>
                             </div>
                         </div>
@@ -210,7 +210,7 @@ export const LandingPage = () => {
                             viewport={{ once: true }}
                             className="absolute bottom-[-20px] left-[-60px] bg-[var(--surface-card)] rounded-[14px] shadow-[0_8px_32px_rgba(0,0,0,0.1)] p-3 px-4 flex items-center gap-2.5 border border-[var(--border)]"
                         >
-                            <div className="w-9 h-9 bg-amber-100 dark:bg-amber-500/20 rounded-[10px] flex items-center justify-center text-base">📊</div>
+                            <div className="w-9 h-9 bg-amber-500/10 rounded-[10px] flex items-center justify-center text-base">📊</div>
                             <div className="text-[12px]">
                                 <strong className="block font-semibold text-[var(--text-main)]">{t('appPreview.groceryBudget')}</strong>
                                 <span className="text-[var(--text-muted)]">{t('appPreview.budgetUsed')}</span>
@@ -223,8 +223,8 @@ export const LandingPage = () => {
             {/* FEATURES */}
             <section id="features" className="px-6 md:px-[60px] py-32 bg-[var(--surface)]/50 relative overflow-hidden transition-colors duration-500">
                 {/* Background decorative elements */}
-                <div className="absolute top-[10%] left-[-5%] w-[400px] h-[400px] bg-dagang-green/5 blur-[120px] rounded-full -z-10" />
-                <div className="absolute bottom-[10%] right-[-5%] w-[400px] h-[400px] bg-dagang-accent/5 blur-[120px] rounded-full -z-10" />
+                <div className="absolute top-[10%] left-[-5%] w-[400px] h-[400px] bg-[var(--primary)]/5 blur-[120px] rounded-full -z-10" />
+                <div className="absolute bottom-[10%] right-[-5%] w-[400px] h-[400px] bg-[var(--accent)]/5 blur-[120px] rounded-full -z-10" />
 
                 <div className="max-w-[1280px] mx-auto">
                     <motion.div 
@@ -234,7 +234,7 @@ export const LandingPage = () => {
                         variants={fadeInUpVariants}
                         className="mb-16"
                     >
-                        <div className="text-xs font-bold text-dagang-green tracking-[0.15em] uppercase mb-4 opacity-70">{t('featuresSection.label')}</div>
+                        <div className="text-xs font-bold text-[var(--primary)] tracking-[0.15em] uppercase mb-4 opacity-70">{t('featuresSection.label')}</div>
                         <h2 className="font-serif text-5xl mobile:text-h1 leading-[1.1] mb-6 text-[var(--text-main)]">{t('featuresSection.title')}</h2>
                         <p className="text-[var(--text-muted)] text-lg max-w-[520px] leading-relaxed">
                             {t('featuresSection.subtitle')}
@@ -259,12 +259,12 @@ export const LandingPage = () => {
                             <motion.div 
                                 key={i} 
                                 variants={itemVariants}
-                                className="group bg-[var(--surface-card)]/60 backdrop-blur-md rounded-[28px] p-9 border border-dagang-green/10 transition-all hover:-translate-y-2 hover:shadow-[0_40px_80px_-20px_rgba(26,107,74,0.15)] relative overflow-hidden"
+                                className="group bg-[var(--surface-card)]/60 backdrop-blur-md rounded-[28px] p-9 border border-[var(--primary)]/10 transition-all hover:-translate-y-2 hover:shadow-[0_40px_80px_-20px_rgba(var(--primary-rgb),0.15)] relative overflow-hidden"
                             >
-                                <div className="w-[56px] h-[56px] rounded-[18px] bg-dagang-green-pale flex items-center justify-center text-[24px] mb-6 transition-transform group-hover:scale-110 duration-300 ring-4 ring-dagang-green/5">{f.icon}</div>
+                                <div className="w-[56px] h-[56px] rounded-[18px] bg-[var(--primary)]/10 flex items-center justify-center text-[24px] mb-6 transition-transform group-hover:scale-110 duration-300 ring-4 ring-[var(--primary)]/5">{f.icon}</div>
                                 <h3 className="text-[19px] font-bold mb-3 text-[var(--text-main)]">{f.title}</h3>
                                 <p className="text-[15px] text-[var(--text-muted)] leading-relaxed opacity-85">{f.desc}</p>
-                                <div className="absolute bottom-0 left-0 right-0 h-[3.5px] bg-gradient-to-r from-dagang-green to-dagang-green-light scale-x-0 transition-transform group-hover:scale-x-100 origin-left duration-300" />
+                                <div className="absolute bottom-0 left-0 right-0 h-[3.5px] bg-gradient-to-r from-[var(--primary)] to-[var(--primary)]/40 scale-x-0 transition-transform group-hover:scale-x-100 origin-left duration-300" />
                             </motion.div>
                         ))}
                     </motion.div>
@@ -272,7 +272,7 @@ export const LandingPage = () => {
             </section>
 
             {/* HOW IT WORKS */}
-            <section id="how-it-works" className="mx-6 md:mx-10 mb-20 px-6 md:px-[60px] py-28 bg-dagang-deep text-white rounded-[40px] relative overflow-hidden shadow-[0_40px_100px_-20px_rgba(6,19,15,0.4)]">
+            <section id="how-it-works" className="mx-6 md:mx-10 mb-20 px-6 md:px-[60px] py-28 bg-[var(--bg-deep)] text-white rounded-[40px] relative overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.4)]">
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(26,107,74,0.15),transparent_40%)]" />
                 <div className="max-w-[1280px] mx-auto text-center relative z-10">
                     <motion.div 
@@ -281,7 +281,7 @@ export const LandingPage = () => {
                         viewport={{ once: true }}
                         variants={fadeInUpVariants}
                     >
-                        <div className="text-xs font-bold text-dagang-accent tracking-[0.15em] uppercase mb-4">{t('howItWorksSection.label')}</div>
+                        <div className="text-xs font-bold text-[var(--accent)] tracking-[0.15em] uppercase mb-4">{t('howItWorksSection.label')}</div>
                         <h2 className="font-serif text-5xl mobile:text-h1 text-white mb-6">{t('howItWorksSection.title')}</h2>
                         <p className="text-white/60 text-lg mb-20 mx-auto max-w-[500px]">{t('howItWorksSection.subtitle')}</p>
                     </motion.div>
@@ -305,7 +305,7 @@ export const LandingPage = () => {
                                 variants={itemVariants}
                                 className="flex flex-col items-center group"
                             >
-                                <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center font-serif text-[24px] text-dagang-accent mb-6 relative z-10 transition-all group-hover:bg-dagang-accent group-hover:text-white duration-300">
+                                <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center font-serif text-[24px] text-[var(--accent)] mb-6 relative z-10 transition-all group-hover:bg-[var(--accent)] group-hover:text-white duration-300">
                                     {s.num}
                                 </div>
                                 <h3 className="text-lg font-semibold mb-3">{s.title}</h3>
@@ -320,15 +320,15 @@ export const LandingPage = () => {
             <section id="pricing" className="px-6 md:px-[60px] py-20">
                 <div className="max-w-[1280px] mx-auto">
                     <div className="text-center mb-14">
-                        <div className="text-xs font-bold text-dagang-green tracking-[0.08em] uppercase mb-3">{t('pricingSection.label')}</div>
+                        <div className="text-xs font-bold text-[var(--primary)] tracking-[0.08em] uppercase mb-3">{t('pricingSection.label')}</div>
                         <h2 className="font-serif text-5xl mb-4 text-[var(--text-main)]">{t('pricingSection.title')}</h2>
-                        <p className="text-dagang-gray text-lg">{t('pricingSection.subtitle', { days: trialDuration })}</p>
+                        <p className="text-[var(--text-muted)] text-lg">{t('pricingSection.subtitle', { days: trialDuration })}</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-9 max-w-[1100px] mx-auto items-stretch">
                         {loading ? (
                             <div className="col-span-full flex justify-center py-20">
-                                <div className="w-12 h-12 border-4 border-dagang-green/20 border-t-dagang-green rounded-full animate-spin" />
+                                <div className="w-12 h-12 border-4 border-[var(--primary)]/20 border-t-[var(--primary)] rounded-full animate-spin" />
                             </div>
                         ) : plans.length > 0 ? (
                             plans.map((plan, pIdx) => {
@@ -342,28 +342,28 @@ export const LandingPage = () => {
                                         whileInView={{ opacity: 1, y: 0 }}
                                         transition={{ delay: pIdx * 0.15, duration: 0.6 }}
                                         viewport={{ once: true }}
-                                        className={`${isPopular ? 'bg-dagang-green text-white scale-[1.04] shadow-2xl shadow-dagang-green/20' : 'bg-[var(--surface-card)] border border-[var(--border)]'} rounded-[40px] p-10 flex flex-col items-center relative transition-all hover:-translate-y-2`}
+                                        className={`${isPopular ? 'bg-[var(--primary)] text-white scale-[1.04] shadow-2xl shadow-[var(--primary)]/20' : 'bg-[var(--surface-card)] border border-[var(--border)]'} rounded-[40px] p-10 flex flex-col items-center relative transition-all hover:-translate-y-2`}
                                     >
                                         {isPopular && (
-                                            <div className="absolute top-[-12px] left-1/2 -translate-x-1/2 bg-dagang-accent text-white text-[11px] font-bold px-4 py-1 rounded-full whitespace-nowrap z-10">
+                                            <div className="absolute top-[-12px] left-1/2 -translate-x-1/2 bg-[var(--accent)] text-white text-[11px] font-bold px-4 py-1 rounded-full whitespace-nowrap z-10">
                                                 {t('pricingSection.popular')}
                                             </div>
                                         )}
                                         <div className={`text-xs font-bold ${isPopular ? 'text-white/70' : 'opacity-70'} mb-4 tracking-wider uppercase`}>
                                             {plan.name}
                                         </div>
-                                        <div className={`font-serif text-[40px] mb-1 ${isPopular ? 'text-white' : 'text-dagang-dark'}`}>
+                                        <div className={`font-serif text-[40px] mb-1 ${isPopular ? 'text-white' : 'text-[var(--text-main)]'}`}>
                                             {formatPrice(plan.price)}
                                         </div>
-                                        <div className={`text-[13px] ${isPopular ? 'text-white/60' : 'text-dagang-gray'} mb-7`}>
+                                        <div className={`text-[13px] ${isPopular ? 'text-white/60' : 'text-[var(--text-muted)]'} mb-7`}>
                                             {t('pricingSection.perDays', { days: plan.duration_days })}
                                         </div>
                                         
                                         <ul className="w-full list-none space-y-4 mb-10 flex-1">
                                             {features.map((feature: string, fIdx: number) => (
                                                 <li key={fIdx} className="text-[14px] flex items-start gap-3">
-                                                    <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isPopular ? 'text-dagang-accent' : 'text-dagang-green'}`} />
-                                                    <span className={isPopular ? 'text-white/90' : 'text-dagang-dark/80'}>{feature}</span>
+                                                    <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isPopular ? 'text-[var(--accent)]' : 'text-[var(--primary)]'}`} />
+                                                    <span className={isPopular ? 'text-white/90' : 'text-[var(--text-main)]/80'}>{feature}</span>
                                                 </li>
                                             ))}
                                         </ul>
@@ -372,8 +372,8 @@ export const LandingPage = () => {
                                             href="/register" 
                                             className={`w-full py-4 rounded-full text-sm font-bold transition-all text-center ${
                                                 isPopular 
-                                                ? 'bg-white text-dagang-green hover:bg-white/90' 
-                                                : 'border-[1.5px] border-black/15 hover:border-dagang-green hover:text-dagang-green'
+                                                ? 'bg-white text-[var(--primary)] hover:bg-white/90' 
+                                                : 'border-[1.5px] border-[var(--text-main)]/15 hover:border-[var(--primary)] hover:text-[var(--primary)]'
                                             }`}
                                         >
                                             {t('pricingSection.choosePlan')} {plan.name}
@@ -383,7 +383,7 @@ export const LandingPage = () => {
                             })
                         ) : (
                             <div className="col-span-full text-center py-20 bg-[var(--surface-card)] rounded-3xl border border-[var(--border)]">
-                                <p className="text-dagang-gray">{t('pricingSection.unavailable')}</p>
+                                <p className="text-[var(--text-muted)]">{t('pricingSection.unavailable')}</p>
                             </div>
                         )}
                     </div>

@@ -20,7 +20,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         full_name: '',
         email: '',
         password: '',
-        role: 'user',
+        role: 'family_admin',
         family_name: ''
     });
 
@@ -139,9 +139,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                                 className="w-full px-4 py-3.5 bg-[var(--surface)] text-[var(--text-main)] border border-[var(--border)] rounded-xl text-[15px] focus:ring-2 focus:ring-[var(--primary)]/20 outline-none transition-all font-bold"
                             >
                                 <option value="family_admin">Admin Keluarga (Kepala)</option>
-                                <option value="user">User Biasa</option>
                                 <option value="super_admin">Super Admin</option>
-                                <option value="family_member">Anggota Keluarga</option>
                                 <option value="writer">Content Writer</option>
                             </select>
                         </div>

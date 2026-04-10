@@ -8,7 +8,7 @@ import { Shield, Target, Users, Zap } from 'lucide-react';
 export const AboutPage: React.FC = () => {
     const { t } = useTranslation();
     return (
-        <div className="min-h-screen bg-dagang-cream flex flex-col">
+        <div className="min-h-screen bg-[var(--background)] flex flex-col transition-colors duration-500">
             <PublicHeader />
             
             <main className="flex-grow pt-32 pb-20 px-6">
@@ -19,7 +19,7 @@ export const AboutPage: React.FC = () => {
                         <motion.span 
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="inline-block px-4 py-1.5 bg-dagang-green/10 text-dagang-green text-xs font-bold tracking-widest uppercase rounded-full"
+                            className="inline-block px-4 py-1.5 bg-[var(--primary)]/10 text-[var(--primary)] text-xs font-bold tracking-widest uppercase rounded-full"
                         >
                             {t('aboutPage.hero.badge')}
                         </motion.span>
@@ -27,16 +27,16 @@ export const AboutPage: React.FC = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1 }}
-                            className="text-4xl md:text-6xl font-serif text-dagang-dark leading-tight"
+                            className="text-4xl md:text-6xl font-serif text-[var(--text-main)] leading-tight"
                         >
                             {t('aboutPage.hero.titlePart1')} <br />
-                            <span className="text-dagang-green italic">{t('aboutPage.hero.titlePart2')}</span>
+                            <span className="text-[var(--primary)] italic">{t('aboutPage.hero.titlePart2')}</span>
                         </motion.h1>
                         <motion.p 
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
-                            className="text-lg text-dagang-gray max-w-2xl mx-auto leading-relaxed"
+                            className="text-lg text-[var(--text-muted)] max-w-2xl mx-auto leading-relaxed"
                         >
                             {t('aboutPage.hero.subtitle')}
                         </motion.p>
@@ -48,13 +48,13 @@ export const AboutPage: React.FC = () => {
                             initial={{ opacity: 0, x: -20 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
-                            className="p-8 bg-white rounded-3xl border border-dagang-dark/5 shadow-xl shadow-dagang-dark/5 space-y-4"
+                            className="p-8 bg-[var(--surface-card)] rounded-3xl border border-[var(--border)] shadow-xl shadow-black/5 space-y-4"
                         >
                             <div className="w-12 h-12 bg-dagang-green text-white rounded-2xl flex items-center justify-center">
                                 <Target className="w-6 h-6" />
                             </div>
-                            <h3 className="text-2xl font-serif text-dagang-dark">{t('aboutPage.vision.title')}</h3>
-                            <p className="text-dagang-gray leading-relaxed">
+                            <h3 className="text-2xl font-serif text-[var(--text-main)]">{t('aboutPage.vision.title')}</h3>
+                            <p className="text-[var(--text-muted)] leading-relaxed">
                                 {t('aboutPage.vision.desc')}
                             </p>
                         </motion.div>
@@ -63,13 +63,13 @@ export const AboutPage: React.FC = () => {
                             initial={{ opacity: 0, x: 20 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
-                            className="p-8 bg-white rounded-3xl border border-dagang-dark/5 shadow-xl shadow-dagang-dark/5 space-y-4"
+                            className="p-8 bg-[var(--surface-card)] rounded-3xl border border-[var(--border)] shadow-xl shadow-black/5 space-y-4"
                         >
                             <div className="w-12 h-12 bg-dagang-accent text-dagang-dark rounded-2xl flex items-center justify-center">
                                 <Zap className="w-6 h-6" />
                             </div>
-                            <h3 className="text-2xl font-serif text-dagang-dark">{t('aboutPage.mission.title')}</h3>
-                            <ul className="text-dagang-gray space-y-2 list-disc list-inside leading-relaxed">
+                            <h3 className="text-2xl font-serif text-[var(--text-main)]">{t('aboutPage.mission.title')}</h3>
+                            <ul className="text-[var(--text-muted)] space-y-2 list-disc list-inside leading-relaxed">
                                 <li>{t('aboutPage.mission.items.0')}</li>
                                 <li>{t('aboutPage.mission.items.1')}</li>
                                 <li>{t('aboutPage.mission.items.2')}</li>
@@ -81,8 +81,8 @@ export const AboutPage: React.FC = () => {
                     {/* Core Values */}
                     <section className="space-y-12">
                         <div className="text-center space-y-4">
-                            <h2 className="text-3xl font-serif text-dagang-dark">{t('aboutPage.values.title')}</h2>
-                            <p className="text-dagang-gray">{t('aboutPage.values.subtitle')}</p>
+                            <h2 className="text-3xl font-serif text-[var(--text-main)]">{t('aboutPage.values.title')}</h2>
+                            <p className="text-[var(--text-muted)]">{t('aboutPage.values.subtitle')}</p>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -91,13 +91,13 @@ export const AboutPage: React.FC = () => {
                                     icon: Shield, 
                                     title: t('aboutPage.values.items.0.title'), 
                                     desc: t('aboutPage.values.items.0.desc'),
-                                    color: 'text-dagang-green'
+                                    color: 'text-[var(--primary)]'
                                 },
                                 { 
                                     icon: Users, 
                                     title: t('aboutPage.values.items.1.title'), 
                                     desc: t('aboutPage.values.items.1.desc'),
-                                    color: 'text-dagang-accent'
+                                    color: 'text-[var(--accent)]'
                                 },
                                 { 
                                     icon: Zap, 
@@ -114,11 +114,11 @@ export const AboutPage: React.FC = () => {
                                     viewport={{ once: true }}
                                     className="text-center space-y-4"
                                 >
-                                    <div className={`mx-auto w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-lg shadow-black/5 ${value.color}`}>
+                                    <div className={`mx-auto w-16 h-16 rounded-full bg-[var(--surface-card)] border border-[var(--border)] flex items-center justify-center shadow-lg shadow-black/5 ${value.color}`}>
                                         <value.icon className="w-8 h-8" />
                                     </div>
-                                    <h4 className="text-lg font-bold text-dagang-dark uppercase tracking-wider">{value.title}</h4>
-                                    <p className="text-sm text-dagang-gray leading-relaxed">{value.desc}</p>
+                                    <h4 className="text-lg font-bold text-[var(--text-main)] uppercase tracking-wider">{value.title}</h4>
+                                    <p className="text-sm text-[var(--text-muted)] leading-relaxed">{value.desc}</p>
                                 </motion.div>
                             ))}
                         </div>

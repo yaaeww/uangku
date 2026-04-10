@@ -13,9 +13,9 @@ export const PrivacyPage: React.FC = () => {
                     <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-white p-10 md:p-16 rounded-[40px] shadow-2xl shadow-dagang-dark/5 space-y-12"
+                        className="bg-[var(--surface-card)] p-10 md:p-16 rounded-[40px] shadow-2xl shadow-black/5 space-y-12 border border-[var(--border)]"
                     >
-                        <header className="space-y-4 border-b border-dagang-dark/5 pb-8">
+                        <header className="space-y-4 border-b border-[var(--border)] pb-8">
                             <h1 className="text-4xl font-serif text-dagang-dark italic">Kebijakan Privasi</h1>
                             <p className="text-sm text-dagang-gray font-serif italic">Terakhir diperbarui: 20 Maret 2026</p>
                         </header>
@@ -63,7 +63,7 @@ export const PrivacyPage: React.FC = () => {
                                 </p>
                             </section>
 
-                            <section className="space-y-4 pt-8 border-t border-dagang-dark/5">
+                            <section className="space-y-4 pt-8 border-t border-[var(--border)]">
                                 <p className="text-sm">
                                     Jika Anda memiliki pertanyaan tentang Kebijakan Privasi ini, silakan hubungi kami melalui tim dukungan WhatsApp UangKu.
                                 </p>

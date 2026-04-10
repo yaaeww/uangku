@@ -121,20 +121,20 @@ export const PricingPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-dagang-cream text-dagang-dark font-sans selection:bg-dagang-green-pale selection:text-dagang-green relative overflow-hidden">
+        <div className="min-h-screen bg-[var(--background)] text-[var(--text-main)] font-sans selection:bg-[var(--primary)]/20 selection:text-[var(--primary)] relative overflow-hidden">
             {/* Background decoration */}
             <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] bg-dagang-green/5 blur-[120px] rounded-full" />
             <div className="absolute bottom-[-100px] right-[-100px] w-[400px] h-[400px] bg-dagang-accent/5 blur-[100px] rounded-full" />
 
             {/* Navigation */}
-            <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-5 md:px-[60px] bg-[#faf8f3]/80 backdrop-blur-md border-b border-black/5">
+            <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-5 md:px-[60px] bg-[var(--background)]/80 backdrop-blur-md border-b border-[var(--border)]">
                 <Link to="/" className="hover:opacity-80 transition-opacity">
-                    <Logo forceTheme="light" />
+                    <Logo />
                 </Link>
                 <div className="flex items-center gap-6">
                     <Link
                         to={user?.role === 'super_admin' ? "/admin" : (user?.familyName ? `/${encodeURIComponent(user.familyName)}/dashboard` : "/")}
-                        className="flex items-center gap-2 text-sm font-semibold text-dagang-gray hover:text-dagang-green transition-colors"
+                        className="flex items-center gap-2 text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
                     >
                         <ArrowLeft className="w-4 h-4" /> {t('pricingPage.nav.dashboard')}
                     </Link>
@@ -154,18 +154,18 @@ export const PricingPage = () => {
 
             <main className="pt-[140px] pb-24 px-6 md:px-[60px] max-w-[1280px] mx-auto relative z-10">
                 <div id="pricing-plans" className="text-center mb-16">
-                    <div className="inline-flex items-center gap-2 bg-dagang-green-pale text-dagang-green px-4 py-1.5 rounded-full text-xs font-bold mb-6 border border-dagang-green/15 tracking-wide uppercase">
+                    <div className="inline-flex items-center gap-2 bg-[var(--primary)]/10 text-[var(--primary)] px-4 py-1.5 rounded-full text-xs font-bold mb-6 border border-[var(--primary)]/20 tracking-wide uppercase">
                         {t('pricingPage.hero.badge')}
                     </div>
-                    <h1 className="font-serif text-[42px] md:text-[54px] leading-tight mb-4">{t('pricingPage.hero.title')} <br className="hidden md:block" /><em className="italic font-serif text-dagang-green not-italic">{settings.website_name}</em></h1>
-                    <p className="text-dagang-gray text-lg max-w-[620px] mx-auto leading-relaxed">
+                    <h1 className="font-serif text-[42px] md:text-[54px] leading-tight mb-4">{t('pricingPage.hero.title')} <br className="hidden md:block" /><em className="italic font-serif text-[var(--primary)] not-italic">{settings.website_name}</em></h1>
+                    <p className="text-[var(--text-muted)] text-lg max-w-[620px] mx-auto leading-relaxed">
                         {t('pricingPage.hero.subtitle')}
                     </p>
 
                     {isExpired && (
-                        <div className="mt-8 p-6 bg-red-50 border-2 border-red-200 rounded-[28px] max-w-[800px] mx-auto animate-in fade-in zoom-in duration-500 shadow-xl shadow-red-500/5">
+                        <div className="mt-8 p-6 bg-red-500/10 border-2 border-red-500/20 rounded-[28px] max-w-[800px] mx-auto animate-in fade-in zoom-in duration-500 shadow-xl shadow-red-500/5">
                             <div className="flex flex-col md:flex-row items-center gap-6 text-left">
-                                <div className="w-16 h-16 bg-red-500 text-white rounded-2xl flex items-center justify-center flex-shrink-0 animate-pulse">
+                                <div className="w-16 h-16 bg-red-500 text-white rounded-2xl flex items-center justify-center flex-shrink-0">
                                     <Clock className="w-8 h-8" />
                                 </div>
                                 <div>
@@ -188,8 +188,8 @@ export const PricingPage = () => {
                     )}
 
                     {familyStatus === 'trial' && !isExpired && (
-                        <div className="mt-8 p-4 bg-orange-50 border border-orange-200 rounded-2xl inline-block animate-in fade-in slide-in-from-top-4 duration-500">
-                             <p className="text-orange-700 font-bold flex items-center gap-2">
+                        <div className="mt-8 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl inline-block animate-in fade-in slide-in-from-top-4 duration-500">
+                             <p className="text-orange-600 font-bold flex items-center gap-2 text-sm">
                                 <Clock className="w-4 h-4" /> {t('pricingPage.alerts.trialActive', { remaining: getRemainingTrialTime(trialEndsAt) })}
                              </p>
                         </div>
@@ -234,8 +234,8 @@ export const PricingPage = () => {
                 )}
 
                 <div className="mt-20 flex flex-col items-center justify-center text-center">
-                    <p className="text-[13px] text-dagang-gray flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-dagang-green" /> {t('pricingPage.trustFooter')}
+                    <p className="text-[13px] text-[var(--text-muted)] flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-[var(--primary)]" /> {t('pricingPage.trustFooter')}
                     </p>
                 </div>
             </main>
@@ -243,32 +243,32 @@ export const PricingPage = () => {
             {/* Lockout Overlay (Trial Expired) */}
             {isExpired && !hideOverlay && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
-                    <div className="absolute inset-0 bg-[#0c130d]/90 backdrop-blur-sm" />
-                    <div className="bg-white rounded-[32px] max-w-[500px] w-full p-8 md:p-11 text-center relative z-10 shadow-[0_32px_120px_rgba(0,0,0,0.5)] animate-fade-in">
-                        <div className="w-20 h-20 bg-red-50 text-red-500 rounded-[28px] flex items-center justify-center mx-auto mb-8 animate-pulse">
+                    <div className="absolute inset-0 bg-[var(--bg-deep)]/90 backdrop-blur-sm" />
+                    <div className="bg-[var(--surface-card)] rounded-[32px] max-w-[500px] w-full p-8 md:p-11 text-center relative z-10 shadow-[0_32px_120px_rgba(0,0,0,0.5)] animate-fade-in border border-[var(--border)]">
+                        <div className="w-20 h-20 bg-red-500/10 text-red-500 rounded-[28px] flex items-center justify-center mx-auto mb-8">
                             <Clock className="w-10 h-10" />
                         </div>
 
-                        <h2 className="font-serif text-[38px] mb-4 leading-tight">{t('pricingPage.overlay.titlePart1')} <br /><span className="text-red-500 italic">{t('pricingPage.overlay.titlePart2')}</span></h2>
-                        <p className="text-dagang-gray text-[15px] leading-relaxed mb-10">
+                        <h2 className="font-serif text-[38px] mb-4 leading-tight text-[var(--text-main)]">{t('pricingPage.overlay.titlePart1')} <br /><span className="text-red-500 italic">{t('pricingPage.overlay.titlePart2')}</span></h2>
+                        <p className="text-[var(--text-muted)] text-[15px] leading-relaxed mb-10">
                             {t('pricingPage.overlay.desc', { days: trialDays })}
                         </p>
 
                         <div className="space-y-4 mb-10">
-                            <div className="flex items-center gap-4 p-4 bg-dagang-cream rounded-[16px] text-left">
-                                <div className="w-9 h-9 bg-dagang-green-pale text-dagang-green rounded-full flex items-center justify-center flex-shrink-0">
+                            <div className="flex items-center gap-4 p-4 bg-[var(--surface)] rounded-[16px] text-left border border-[var(--border)]">
+                                <div className="w-9 h-9 bg-[var(--primary)]/10 text-dagang-green rounded-full flex items-center justify-center flex-shrink-0">
                                     <Check className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <div className="text-[14px] font-bold">{t('pricingPage.overlay.safeDataTitle')}</div>
-                                    <div className="text-[12px] text-dagang-gray">{t('pricingPage.overlay.safeDataDesc')}</div>
+                                    <div className="text-[14px] font-bold text-[var(--text-main)]">{t('pricingPage.overlay.safeDataTitle')}</div>
+                                    <div className="text-[12px] text-[var(--text-muted)]">{t('pricingPage.overlay.safeDataDesc')}</div>
                                 </div>
                             </div>
                         </div>
 
                         <button
                             onClick={scrollToPricing}
-                            className="w-full py-4.5 bg-dagang-dark text-white rounded-2xl text-[16px] font-bold shadow-xl shadow-black/10 hover:bg-[#202821] transition-all flex items-center justify-center gap-3 group"
+                            className="w-full py-4.5 bg-[var(--bg-deep)] text-white rounded-2xl text-[16px] font-bold shadow-xl shadow-black/10 hover:opacity-90 transition-all flex items-center justify-center gap-3 group"
                         >
                             {t('pricingPage.overlay.upgradeBtn')} <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </button>
@@ -284,7 +284,7 @@ const PricingCard = ({ name, price, durationDays, description, features, current
     return (
     <div 
         onClick={!isCurrentPlan ? onSelect : undefined}
-        className={`bg-white rounded-[32px] p-8 md:p-10 border transition-all relative flex flex-col ${isCurrentPlan ? 'border-dagang-green bg-dagang-green-pale/5 cursor-default' : 'cursor-pointer hover:-translate-y-2 hover:shadow-[0_32px_64px_rgba(0,0,0,0.08)]'} ${isSelected ? 'border-dagang-green ring-4 ring-dagang-green/10 bg-dagang-green-pale/5' : ''} ${featured ? (isSelected || isCurrentPlan ? 'border-dagang-green ring-dagang-green/20' : 'border-dagang-green/30 ring-4 ring-dagang-green/5 shadow-xl shadow-dagang-green/10') : 'border-black/5 shadow-sm'}`}
+        className={`bg-[var(--surface-card)] rounded-[32px] p-8 md:p-10 border transition-all relative flex flex-col ${isCurrentPlan ? 'border-dagang-green bg-[var(--primary)]/5 cursor-default' : 'cursor-pointer hover:-translate-y-2 hover:shadow-[0_32px_64px_rgba(0,0,0,0.08)]'} ${isSelected ? 'border-dagang-green ring-4 ring-dagang-green/10 bg-[var(--primary)]/5' : ''} ${featured ? (isSelected || isCurrentPlan ? 'border-dagang-green ring-dagang-green/20' : 'border-dagang-green/30 ring-4 ring-dagang-green/5 shadow-xl shadow-dagang-green/10') : 'border-[var(--border)] shadow-sm'}`}
     >
         {isCurrentPlan && (
             <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-dagang-green text-white text-[10px] font-black px-4 py-1.5 rounded-full tracking-[0.1em] shadow-lg animate-bounce">{t('pricingPage.card.current')}</div>
@@ -301,15 +301,15 @@ const PricingCard = ({ name, price, durationDays, description, features, current
         )}
 
         <div className="text-center mb-8">
-            <div className={`text-[12px] font-bold tracking-[0.08em] mb-4 ${featured ? 'text-dagang-green' : 'text-dagang-gray/60'}`}>{name}</div>
+            <div className={`text-[12px] font-bold tracking-[0.08em] mb-4 ${featured ? 'text-[var(--primary)]' : 'text-[var(--text-muted)]/60'}`}>{name}</div>
             <div className="flex items-baseline justify-center gap-1.5 mb-2">
-                <span className="text-[20px] font-bold text-dagang-gray mt-2">Rp</span>
+                <span className="text-[20px] font-bold text-[var(--text-muted)] mt-2">Rp</span>
                 <span className="text-[42px] md:text-[54px] font-serif leading-none">{price}rb</span>
             </div>
-            <div className="text-[13px] text-dagang-gray">/ {durationDays} Hari</div>
+            <div className="text-[13px] text-[var(--text-muted)]">/ {durationDays} Hari</div>
         </div>
 
-        <p className="text-[14px] text-dagang-gray text-center mb-9 leading-relaxed line-clamp-2">
+        <p className="text-[14px] text-[var(--text-muted)] text-center mb-9 leading-relaxed line-clamp-2">
             {description}
         </p>
 
@@ -334,12 +334,12 @@ const PricingCard = ({ name, price, durationDays, description, features, current
             disabled={isCurrentPlan}
             className={`w-full py-4 rounded-full text-center text-[15px] font-bold transition-all ${
                 isCurrentPlan 
-                    ? 'bg-dagang-green/10 text-dagang-green cursor-default' 
+                    ? 'bg-[var(--primary)]/10 text-[var(--primary)] cursor-default' 
                     : isSelected 
-                        ? 'bg-dagang-dark text-white' 
+                        ? 'bg-[var(--bg-deep)] text-white' 
                         : featured 
-                            ? 'bg-dagang-green text-white shadow-xl shadow-dagang-green/30 hover:bg-dagang-green-light' 
-                            : 'bg-white text-dagang-dark border-2 border-dagang-dark/10 hover:border-dagang-green hover:text-dagang-green hover:bg-dagang-green-pale/20'
+                            ? 'bg-[var(--primary)] text-white shadow-xl shadow-[var(--primary)]/30 hover:bg-[var(--primary)]/90' 
+                            : 'bg-[var(--background)] text-[var(--text-main)] border-2 border-[var(--border)] hover:border-[var(--primary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5'
             }`}
         >
             {isCurrentPlan ? t('pricingPage.card.btnCurrent') : isSelected ? t('pricingPage.card.btnSelected') : buttonText}
