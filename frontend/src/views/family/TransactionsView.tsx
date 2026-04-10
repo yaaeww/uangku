@@ -1313,7 +1313,7 @@ const SingleTransactionModal = ({
                             >
                                 <option value="">Pilih Dompet...</option>
                                 {wallets.filter((w: any) => (w.userId || w.user_id) === currentUserId).map((w: any) => (
-                                    <option key={w.id} value={w.id}>{w.name}</option>
+                                    <option key={w.id} value={w.id}>{w.name} (Saya)</option>
                                 ))}
                             </select>
                         </div>
@@ -1329,9 +1329,20 @@ const SingleTransactionModal = ({
                                     className="w-full px-4 py-3 bg-black/5 dark:bg-white/5 border-none rounded-xl outline-none font-bold text-sm text-[var(--text-main)]"
                                 >
                                     <option value="">Pilih Tujuan...</option>
-                                    {wallets.filter((w: any) => w.id !== newTx.walletId).map((w: any) => (
-                                        <option key={w.id} value={w.id}>{w.name}</option>
-                                    ))}
+                                    {(familyMembers || []).map((member: any) => {
+                                        const memberWallets = wallets.filter((w: any) => 
+                                            ((w.userId || w.user_id) === (member.userId || member.user_id)) && 
+                                            w.id !== newTx.walletId
+                                        );
+                                        if (memberWallets.length === 0) return null;
+                                        return (
+                                            <optgroup key={member.userId || member.user_id} label={member.fullName + ((member.userId || member.user_id) === currentUserId ? ' (Saya)' : '')}>
+                                                {memberWallets.map((w: any) => (
+                                                    <option key={w.id} value={w.id}>{w.name}</option>
+                                                ))}
+                                            </optgroup>
+                                        );
+                                    })}
                                 </select>
                             ) : (
                                 <CategorySelector
@@ -1460,7 +1471,7 @@ const BulkTransactionModal = ({ isOpen, onClose, wallets, savings, goals, handle
                                                 className="bg-transparent font-bold text-xs outline-none w-full text-[var(--text-main)] cursor-pointer"
                                             >
                                                 {wallets.filter((w: any) => (w.userId || w.user_id) === currentUserId).map((w: any) => (
-                                                    <option key={w.id} value={w.id}>{w.name}</option>
+                                                    <option key={w.id} value={w.id}>{w.name} (Saya)</option>
                                                 ))}
                                             </select>
                                         </td>

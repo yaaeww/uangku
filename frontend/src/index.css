@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: light;
   --background: #FFFFFF;
   --surface: #F1F5F9;
   --surface-card: #FFFFFF;
@@ -20,6 +21,7 @@
 }
 
 [data-theme='dark'] {
+  color-scheme: dark;
   --background: #06130F;
   --surface: #0A1F18;
   --surface-card: #142B23;
@@ -68,17 +70,22 @@ select {
   @apply text-[var(--text-main)] bg-transparent;
 }
 
-select option {
-  @apply bg-[var(--surface-card)] text-[var(--text-main)] py-2;
+select option, select optgroup {
+  @apply bg-[var(--surface-card)] text-[var(--text-main)];
 }
 
-[data-theme='dark'] select option {
+select optgroup {
+  @apply font-black uppercase text-[10px] tracking-widest;
+}
+
+[data-theme='dark'] select option, 
+[data-theme='dark'] select optgroup {
   background-color: #142B23 !important; /* Force surface-card color */
   color: #E8F5EE !important; /* Force text-main color */
 }
 
 /* For browsers that don't respect the above (like some versions of Chrome) */
-option {
+option, optgroup {
   background: var(--surface-card);
   color: var(--text-main);
 }
