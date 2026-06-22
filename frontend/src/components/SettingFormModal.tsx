@@ -41,14 +41,14 @@ export const SettingFormModal: React.FC<SettingFormModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 lg:p-12 overflow-hidden">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-hidden">
             <div 
                 className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" 
                 onClick={onClose}
             />
             
             <div className="bg-[var(--surface-card)] rounded-[24px] mobile:rounded-[32px] max-w-[480px] w-full max-h-[90vh] overflow-y-auto relative z-10 shadow-[var(--card-shadow)] border border-[var(--border)] animate-scale-up custom-scrollbar">
-                <div className="sticky top-0 bg-[var(--surface-card)]/80 backdrop-blur-md px-6 mobile:px-8 py-5 mobile:py-6 flex items-center justify-between border-b border-[var(--border)] z-20">
+                <div className="sticky top-0 bg-[var(--surface-card)]/80 backdrop-blur-md px-5 sm:px-8 py-4 sm:py-6 flex items-center justify-between border-b border-[var(--border)] z-20">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-[var(--accent)]/10 text-[var(--accent)] rounded-xl flex items-center justify-center">
                             <Settings className="w-5 h-5" />
@@ -66,7 +66,7 @@ export const SettingFormModal: React.FC<SettingFormModalProps> = ({
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                <form onSubmit={handleSubmit} className="p-5 sm:p-8 space-y-5 sm:space-y-6">
                     <div className="space-y-4">
                         <div className="space-y-1.5">
                             <label className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-widest flex items-center gap-2">
@@ -120,6 +120,31 @@ export const SettingFormModal: React.FC<SettingFormModalProps> = ({
                                         </div>
                                     )}
                                 </div>
+                            ) : settingKey === 'whatsapp_enabled' || settingKey === 'allow_registration' ? (
+                                <div className="flex gap-2 p-1.5 bg-[var(--surface)] border border-[var(--border)] rounded-2xl w-full">
+                                    <button
+                                        type="button"
+                                        onClick={() => setValue('true')}
+                                        className={`flex-1 py-3.5 rounded-xl text-[13px] sm:text-[14px] font-black tracking-wider uppercase transition-all duration-200 ${
+                                            value === 'true'
+                                                ? 'bg-[var(--accent)] text-white shadow-md'
+                                                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-black/5 dark:hover:bg-white/5'
+                                        }`}
+                                    >
+                                        AKTIF / ENABLED
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setValue('false')}
+                                        className={`flex-1 py-3.5 rounded-xl text-[13px] sm:text-[14px] font-black tracking-wider uppercase transition-all duration-200 ${
+                                            value === 'false'
+                                                ? 'bg-red-500/90 text-white shadow-md'
+                                                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-black/5 dark:hover:bg-white/5'
+                                        }`}
+                                    >
+                                        NONAKTIF / DISABLED
+                                    </button>
+                                </div>
                             ) : (
                                 <input
                                     required
@@ -133,12 +158,14 @@ export const SettingFormModal: React.FC<SettingFormModalProps> = ({
                             <p className="text-[11px] text-[var(--text-muted)] italic text-center mt-2">
                                 {settingKey.includes('logo_url') 
                                     ? 'Pilih file gambar untuk mengganti logo.'
+                                    : settingKey === 'whatsapp_enabled' || settingKey === 'allow_registration'
+                                    ? 'Pilih status aktif atau nonaktif dari pilihan di atas.'
                                     : 'Pastikan format nilai sesuai dengan kebutuhan sistem (misal: angka untuk durasi hari).'}
                             </p>
                         </div>
                     </div>
 
-                    <div className="pt-4 flex gap-3">
+                    <div className="pt-4 flex flex-col-reverse sm:flex-row gap-3">
                         <button
                             type="button"
                             onClick={onClose}

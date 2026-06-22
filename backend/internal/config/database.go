@@ -347,6 +347,18 @@ func seedDefaultSettings() {
 			Key:   "whatsapp_link",
 			Value: "https://wa.me/6281222429289",
 		},
+		{
+			Key:   "whatsapp_enabled",
+			Value: "true",
+		},
+		{
+			Key:   "whatsapp_api_key",
+			Value: "LYfxsgvpzW9oJGqkitxG",
+		},
+		{
+			Key:   "whatsapp_sender_number",
+			Value: "6281222429289",
+		},
 	}
 
 	for _, s := range defaultSettings {
@@ -357,7 +369,8 @@ func seedDefaultSettings() {
 			Scan(&exists)
 
 		// For contact and social keys, we want to ensure they are synced/updated if they are defaults
-		isContactKey := len(s.Key) > 8 && (s.Key[:8] == "contact_" || s.Key[:7] == "social_" || s.Key[:9] == "whatsapp_")
+		// Exclude whatsapp_enabled, whatsapp_api_key, whatsapp_sender_number from force sync
+		isContactKey := len(s.Key) > 8 && (s.Key[:8] == "contact_" || s.Key[:7] == "social_" || s.Key == "whatsapp_number" || s.Key == "whatsapp_link")
 		
 		if !exists {
 			log.Printf("Seeding default setting: %s = %s", s.Key, s.Value)

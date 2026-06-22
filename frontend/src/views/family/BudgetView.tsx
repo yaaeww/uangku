@@ -61,8 +61,8 @@ const CategoryRow = ({
     const totalTarget = catSavings.reduce((acc: number, s: any) => acc + (s.targetAmount || s.target_amount || 0), 0);
     const totalUsed = catSavings.reduce((acc: number, s: any) => {
         const sSpent = (context.transactions || [])
-            .filter((tx: any) => 
-                (tx.type === 'expense' || tx.type === 'saving' || tx.type === 'goal_allocation' || tx.type === 'debt_payment') && 
+            .filter((tx: any) =>
+                (tx.type === 'expense' || tx.type === 'saving' || tx.type === 'goal_allocation' || tx.type === 'debt_payment') &&
                 (String(tx.savingId) === String(s.id) || String(tx.saving_id) === String(s.id))
             )
             .reduce((tAcc: number, tx: any) => tAcc + tx.amount, 0);
@@ -182,12 +182,12 @@ const CategoryRow = ({
                 <div className="h-4 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden relative shadow-inner border border-[var(--border)]">
                     {/* Allocation Goal Bar (Faint) */}
                     <div
-                        className={`absolute inset-y-0 left-0 transition-all duration-1000 opacity-20 ${ (cat.color || 'text-dagang-green').replace('text', 'bg')}`}
+                        className={`absolute inset-y-0 left-0 transition-all duration-1000 opacity-20 ${(cat.color || 'text-dagang-green').replace('text', 'bg')}`}
                         style={{ width: `${Math.min(progress, 100)}%` }}
                     />
                     {/* Actual Usage Bar (Solid) */}
                     <div
-                        className={`absolute inset-y-0 left-0 transition-all duration-1000 ${ (cat.color || 'text-dagang-green').replace('text', 'bg')} shadow-lg`}
+                        className={`absolute inset-y-0 left-0 transition-all duration-1000 ${(cat.color || 'text-dagang-green').replace('text', 'bg')} shadow-lg`}
                         style={{ width: `${Math.min(usedProgress, 100)}%` }}
                     />
                 </div>
@@ -203,8 +203,8 @@ const CategoryRow = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {catSavings.map((s: any) => {
                     const sSpent = (context.transactions || [])
-                        .filter((tx: any) => 
-                            (tx.type === 'expense' || tx.type === 'saving' || tx.type === 'goal_allocation' || tx.type === 'debt_payment') && 
+                        .filter((tx: any) =>
+                            (tx.type === 'expense' || tx.type === 'saving' || tx.type === 'goal_allocation' || tx.type === 'debt_payment') &&
                             (String(tx.savingId) === String(s.id) || String(tx.saving_id) === String(s.id))
                         )
                         .reduce((acc: number, tx: any) => acc + tx.amount, 0);
@@ -243,8 +243,8 @@ const CategoryRow = ({
                                 </div>
                                 <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                                     {canEditItem && (
-                                        <button 
-                                            onClick={() => openEditModal(s)} 
+                                        <button
+                                            onClick={() => openEditModal(s)}
                                             className="p-2 text-[var(--text-muted)] hover:text-dagang-blue hover:bg-dagang-blue/10 rounded-xl transition-all shadow-sm bg-[var(--surface-card)] border border-[var(--border)]"
                                             title="Edit Item"
                                         >
@@ -252,8 +252,8 @@ const CategoryRow = ({
                                         </button>
                                     )}
                                     {canDeleteItem && (
-                                        <button 
-                                            onClick={() => handleDeleteSaving(s.id)} 
+                                        <button
+                                            onClick={() => handleDeleteSaving(s.id)}
                                             className="p-2 text-red-400 hover:text-white hover:bg-red-500 rounded-xl transition-all shadow-sm bg-[var(--surface-card)] border border-[var(--border)]"
                                             title="Hapus Item"
                                         >
@@ -369,7 +369,7 @@ export const BudgetView = () => {
     const canSeeAllBudgets = isAdmin || isMonitor;
 
     // Filter members to hide admins (KK/BDH) from the member list, but keep yourself in tabs
-    const filteredMembers = familyMembers.filter((m: any) => 
+    const filteredMembers = familyMembers.filter((m: any) =>
         m.userId === currentUserId || (m.role !== 'head_of_family' && m.role !== 'treasurer')
     );
 
@@ -387,17 +387,17 @@ export const BudgetView = () => {
         if (context.loading && totalBudget > 0) return;
 
         const lowerActiveId = String(activeMemberId).toLowerCase();
-        
+
         // Priority 1: From summary.memberBudgets (calculated summary)
         if (summary?.memberBudgets && summary.memberBudgets[lowerActiveId] !== undefined) {
             setTotalBudget(summary.memberBudgets[lowerActiveId]);
         } else if (summary?.memberBudgets && summary.memberBudgets[activeMemberId] !== undefined) {
             setTotalBudget(summary.memberBudgets[activeMemberId]);
-        } 
+        }
         // Priority 2: From summary.userBudget (direct current user summary)
         else if (activeMemberId === currentUserId && summary?.userBudget !== undefined) {
             setTotalBudget(summary.userBudget);
-        } 
+        }
         // Priority 3: From activeMember.monthly_budget (fallback to profile data)
         else if (activeMember && activeMember.monthly_budget !== undefined) {
             setTotalBudget(activeMember.monthly_budget);
@@ -508,31 +508,31 @@ export const BudgetView = () => {
 
     const confirmDeleteCategory = (id: string) => {
         showConfirm(
-            'Hapus Kategori PERMANEN', 
-            'AWAS: Ini akan menghapus kategori ini dan SEMUA item di dalamnya untuk SEMUA BULAN selamanya. Lanjutkan?', 
+            'Hapus Kategori PERMANEN',
+            'AWAS: Ini akan menghapus kategori ini dan SEMUA item di dalamnya untuk SEMUA BULAN selamanya. Lanjutkan?',
             () => {
                 handleDeleteBudgetCategory(id, undefined, undefined, isAdmin ? activeMemberId : undefined); // Global delete
-            }, 
+            },
             'danger'
         );
     };
 
     const confirmClearCategoryItems = (id: string) => {
         showConfirm(
-            'Kosongkan Bulan Ini', 
-            `Yakin ingin menghapus semua item budget pada kategori ini untuk bulan ${selectedMonth}/${selectedYear}? Transaksi tidak akan terhapus.`, 
+            'Kosongkan Bulan Ini',
+            `Yakin ingin menghapus semua item budget pada kategori ini untuk bulan ${selectedMonth}/${selectedYear}? Transaksi tidak akan terhapus.`,
             () => {
                 handleDeleteBudgetCategory(id, selectedMonth, selectedYear, isAdmin ? activeMemberId : undefined); // Period-specific clear
-            }, 
+            },
             'danger'
         );
     };
 
     const handleClearAll = () => {
         showConfirm(
-            'Hapus Semua Kategori?', 
-            'AWAS: Ini akan menghapus SEMUA kategori dan item budget selamanya (semua bulan). Lanjutkan?', 
-            () => handleClearAllCategories(isAdmin ? activeMemberId : undefined), 
+            'Hapus Semua Kategori?',
+            'AWAS: Ini akan menghapus SEMUA kategori dan item budget selamanya (semua bulan). Lanjutkan?',
+            () => handleClearAllCategories(isAdmin ? activeMemberId : undefined),
             'danger'
         );
     };
@@ -593,25 +593,25 @@ export const BudgetView = () => {
                                 </div>
                             </div>
                             <div className="flex gap-2 self-center md:self-auto">
-                        {isOwner && (
-                            <button
-                                onClick={() => {
-                                    setEditingCategory(null);
-                                    setCatName('');
-                                    setCatPercent(0);
-                                    setCatDesc('');
-                                    setCatIcon('ShoppingCart');
-                                    setCatColor('text-blue-500');
-                                    setCatBg('bg-blue-50');
-                                    setCatType('kebutuhan');
-                                    setIsCategoryModalOpen(true);
-                                }}
-                                className="px-6 py-3 bg-white text-[#064E3B] rounded-2xl text-[11px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-xl shadow-black/10"
-                            >
-                                <Plus className="w-4 h-4" /> TAMBAH KATEGORI PENGELUARAN
-                            </button>
-                        )}
-                    </div>
+                                {isOwner && (
+                                    <button
+                                        onClick={() => {
+                                            setEditingCategory(null);
+                                            setCatName('');
+                                            setCatPercent(0);
+                                            setCatDesc('');
+                                            setCatIcon('ShoppingCart');
+                                            setCatColor('text-blue-500');
+                                            setCatBg('bg-blue-50');
+                                            setCatType('kebutuhan');
+                                            setIsCategoryModalOpen(true);
+                                        }}
+                                        className="px-6 py-3 bg-white text-[#064E3B] rounded-2xl text-[11px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-xl shadow-black/10"
+                                    >
+                                        <Plus className="w-4 h-4" /> TAMBAH KATEGORI PENGELUARAN
+                                    </button>
+                                )}
+                            </div>
                         </div>
                         <p className="text-white/60 text-sm md:text-base max-w-md leading-relaxed font-medium text-center md:text-left">
                             "Atur budgetmu setiap bulan supaya pengeluaran lebih terencana."
@@ -717,83 +717,82 @@ export const BudgetView = () => {
                                 return (roleOrder[a.role] ?? 99) - (roleOrder[b.role] ?? 99);
                             })
                             .map((m: any) => {
-                            const memberTransactions = (context.transactions || []).filter((tx: any) => 
-                                String(tx.userId || tx.user_id) === String(m.userId) &&
-                                (tx.type === 'expense' || tx.type === 'saving' || tx.type === 'goal_allocation' || tx.type === 'debt_payment')
-                            );
-                            const memberSpent = memberTransactions.reduce((acc: number, tx: any) => acc + tx.amount, 0);
-                            
-                            const memberDebtSpent = memberTransactions
-                                .filter((tx: any) => tx.type === 'debt_payment')
-                                .reduce((acc: number, tx: any) => acc + tx.amount, 0);
-                                
-                            const memberGoalSpent = memberTransactions
-                                .filter((tx: any) => tx.type === 'saving' || tx.type === 'goal_allocation')
-                                .reduce((acc: number, tx: any) => acc + tx.amount, 0);
+                                const memberTransactions = (context.transactions || []).filter((tx: any) =>
+                                    String(tx.userId || tx.user_id) === String(m.userId) &&
+                                    (tx.type === 'expense' || tx.type === 'saving' || tx.type === 'goal_allocation' || tx.type === 'debt_payment')
+                                );
+                                const memberSpent = memberTransactions.reduce((acc: number, tx: any) => acc + tx.amount, 0);
 
-                            const memberAllocated = budgetCategories.reduce((acc: number, cat: any) => {
-                                const catItems = (cat.items || []).filter((s: any) => String(s.user_id || s.userId) === String(m.userId));
-                                return acc + catItems.reduce((iAcc: number, item: any) => iAcc + (item.targetAmount || item.target_amount || 0), 0);
-                            }, 0);
+                                const memberDebtSpent = memberTransactions
+                                    .filter((tx: any) => tx.type === 'debt_payment')
+                                    .reduce((acc: number, tx: any) => acc + tx.amount, 0);
 
-                            const memberBudget = summary?.memberBudgets?.[String(m.userId).toLowerCase()] ?? summary?.memberBudgets?.[m.userId] ?? m.monthly_budget ?? 0;
-                            const spentPercent = memberBudget > 0 ? (memberSpent / memberBudget) * 100 : 0;
+                                const memberGoalSpent = memberTransactions
+                                    .filter((tx: any) => tx.type === 'saving' || tx.type === 'goal_allocation')
+                                    .reduce((acc: number, tx: any) => acc + tx.amount, 0);
 
-                            return (
-                                <div key={m.id} className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--border)] transition-all hover:border-dagang-accent/30 flex flex-col justify-between">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="font-bold text-[13px] truncate">{m.fullName || m.full_name || 'Member'}</div>
-                                        <div className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter ${
-                                            m.role === 'head_of_family' ? 'bg-dagang-accent text-dagang-dark' : 
-                                            m.role === 'treasurer' ? 'bg-dagang-green text-white' :
-                                            m.role === 'viewer' ? 'bg-dagang-accent/20 text-dagang-accent border border-dagang-accent/30' :
-                                            'bg-black/10 text-[var(--text-muted)]'
-                                        }`}>
-                                            {m.role === 'head_of_family' ? 'KK' : m.role === 'treasurer' ? 'BDH' : m.role === 'viewer' ? 'PTU' : 'MBR'}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between text-[10px] font-medium opacity-60">
-                                            <span>Limit:</span>
-                                            <span className="font-bold">Rp {memberBudget.toLocaleString('id-ID')}</span>
-                                        </div>
-                                        <div className="flex justify-between text-[10px] font-medium opacity-60">
-                                            <span>Teralokasi:</span>
-                                            <span className="font-bold">Rp {memberAllocated.toLocaleString('id-ID')}</span>
-                                        </div>
-                                        <div className="flex justify-between text-[10px] font-medium">
-                                            <span>Realisasi:</span>
-                                            <div className="text-right">
-                                                <span className={`font-bold ${memberSpent > memberBudget ? 'text-red-500' : 'text-dagang-green'}`}>
-                                                    Rp {memberSpent.toLocaleString('id-ID')}
-                                                </span>
-                                                <div className="flex flex-col items-end gap-0.5 mt-0.5">
-                                                    {memberDebtSpent > 0 && (
-                                                        <span className="text-[9px] opacity-70 block font-medium">
-                                                            (Lunas Hutang: Rp {memberDebtSpent.toLocaleString('id-ID')})
-                                                        </span>
-                                                    )}
-                                                    {memberGoalSpent > 0 && (
-                                                        <span className="text-[9px] opacity-70 block font-medium">
-                                                            (Tabung Goals: Rp {memberGoalSpent.toLocaleString('id-ID')})
-                                                        </span>
-                                                    )}
-                                                </div>
+                                const memberAllocated = budgetCategories.reduce((acc: number, cat: any) => {
+                                    const catItems = (cat.items || []).filter((s: any) => String(s.user_id || s.userId) === String(m.userId));
+                                    return acc + catItems.reduce((iAcc: number, item: any) => iAcc + (item.targetAmount || item.target_amount || 0), 0);
+                                }, 0);
+
+                                const memberBudget = summary?.memberBudgets?.[String(m.userId).toLowerCase()] ?? summary?.memberBudgets?.[m.userId] ?? m.monthly_budget ?? 0;
+                                const spentPercent = memberBudget > 0 ? (memberSpent / memberBudget) * 100 : 0;
+
+                                return (
+                                    <div key={m.id} className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--border)] transition-all hover:border-dagang-accent/30 flex flex-col justify-between">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="font-bold text-[13px] truncate">{m.fullName || m.full_name || 'Member'}</div>
+                                            <div className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter ${m.role === 'head_of_family' ? 'bg-dagang-accent text-dagang-dark' :
+                                                    m.role === 'treasurer' ? 'bg-dagang-green text-white' :
+                                                        m.role === 'viewer' ? 'bg-dagang-accent/20 text-dagang-accent border border-dagang-accent/30' :
+                                                            'bg-black/10 text-[var(--text-muted)]'
+                                                }`}>
+                                                {m.role === 'head_of_family' ? 'KK' : m.role === 'treasurer' ? 'BDH' : m.role === 'viewer' ? 'PTU' : 'MBR'}
                                             </div>
                                         </div>
-                                        <div className="h-1.5 bg-black/10 rounded-full mt-2 overflow-hidden">
-                                            <div
-                                                className={`h-full transition-all duration-1000 ${memberSpent > memberBudget ? 'bg-red-500' : 'bg-dagang-accent'}`}
-                                                style={{ width: `${Math.min(spentPercent, 100)}%` }}
-                                            />
-                                        </div>
-                                        <div className="text-[8px] font-bold text-[var(--text-muted)] mt-1 uppercase tracking-tighter">
-                                            Pengeluaran: {spentPercent.toFixed(1)}% dari limit
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between text-[10px] font-medium opacity-60">
+                                                <span>Limit:</span>
+                                                <span className="font-bold">Rp {memberBudget.toLocaleString('id-ID')}</span>
+                                            </div>
+                                            <div className="flex justify-between text-[10px] font-medium opacity-60">
+                                                <span>Teralokasi:</span>
+                                                <span className="font-bold">Rp {memberAllocated.toLocaleString('id-ID')}</span>
+                                            </div>
+                                            <div className="flex justify-between text-[10px] font-medium">
+                                                <span>Realisasi:</span>
+                                                <div className="text-right">
+                                                    <span className={`font-bold ${memberSpent > memberBudget ? 'text-red-500' : 'text-dagang-green'}`}>
+                                                        Rp {memberSpent.toLocaleString('id-ID')}
+                                                    </span>
+                                                    <div className="flex flex-col items-end gap-0.5 mt-0.5">
+                                                        {memberDebtSpent > 0 && (
+                                                            <span className="text-[9px] opacity-70 block font-medium">
+                                                                (Lunas Hutang: Rp {memberDebtSpent.toLocaleString('id-ID')})
+                                                            </span>
+                                                        )}
+                                                        {memberGoalSpent > 0 && (
+                                                            <span className="text-[9px] opacity-70 block font-medium">
+                                                                (Tabung Goals: Rp {memberGoalSpent.toLocaleString('id-ID')})
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="h-1.5 bg-black/10 rounded-full mt-2 overflow-hidden">
+                                                <div
+                                                    className={`h-full transition-all duration-1000 ${memberSpent > memberBudget ? 'bg-red-500' : 'bg-dagang-accent'}`}
+                                                    style={{ width: `${Math.min(spentPercent, 100)}%` }}
+                                                />
+                                            </div>
+                                            <div className="text-[8px] font-bold text-[var(--text-muted)] mt-1 uppercase tracking-tighter">
+                                                Pengeluaran: {spentPercent.toFixed(1)}% dari limit
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
                     </div>
                 </div>
             )}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"keuangan-keluarga/internal/config"
+	"keuangan-keluarga/internal/models"
 	"log"
 	"net/http"
 	"net/smtp"
@@ -37,6 +38,18 @@ func normalizePhone(phone string) string {
 	return phone
 }
 
+func getSystemSetting(key, defaultValue string) string {
+	if config.DB == nil {
+		return defaultValue
+	}
+	var setting models.SystemSetting
+	err := config.DB.Where("key = ?", key).First(&setting).Error
+	if err != nil {
+		return defaultValue
+	}
+	return setting.Value
+}
+
 func (s *mailService) SendOTP(email, otp string, expiryMinutes int) error {
 	log.Printf("[MAIL] OTP for %s: %s (Expires in %d min)", email, otp, expiryMinutes)
 	// If SMTP configuration is missing, fallback to log
@@ -52,9 +65,21 @@ func (s *mailService) SendOTP(email, otp string, expiryMinutes int) error {
 
 func (s *mailService) SendWhatsAppOTP(phone, otp string, expiryMinutes int) error {
 	log.Printf("[WA] OTP for %s: %s (Expires in %d min)", phone, otp, expiryMinutes)
-	if config.AppConfig.WAToken == "" {
+	
+	enabled := getSystemSetting("whatsapp_enabled", "true")
+	if enabled != "true" {
+		log.Printf("[WA] SendWhatsAppOTP bypassed: WhatsApp notification is disabled")
 		return nil
 	}
+
+	apiKey := getSystemSetting("whatsapp_api_key", config.AppConfig.WAToken)
+	if apiKey == "" {
+		log.Printf("[WA] SendWhatsAppOTP bypassed: API Key is empty")
+		return nil
+	}
+
+	sender := getSystemSetting("whatsapp_sender_number", "6281222429289")
+	log.Printf("[WA] Using sender device: %s", sender)
 
 	message := fmt.Sprintf("Kode OTP Uangku Anda adalah: %s. Berlaku selama %d menit. Jangan bagikan kode ini kepada siapa pun.", otp, expiryMinutes)
 
@@ -63,7 +88,7 @@ func (s *mailService) SendWhatsAppOTP(phone, otp string, expiryMinutes int) erro
 	data.Set("message", message)
 
 	req, _ := http.NewRequest("POST", config.AppConfig.WAUrl, strings.NewReader(data.Encode()))
-	req.Header.Add("Authorization", config.AppConfig.WAToken)
+	req.Header.Add("Authorization", apiKey)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	res, err := http.DefaultClient.Do(req)
@@ -89,16 +114,27 @@ func (s *mailService) SendWhatsAppOTP(phone, otp string, expiryMinutes int) erro
 }
 
 func (s *mailService) SendWhatsApp(phone, message string) error {
-	if config.AppConfig.WAToken == "" {
+	enabled := getSystemSetting("whatsapp_enabled", "true")
+	if enabled != "true" {
+		log.Printf("[WA] SendWhatsApp bypassed: WhatsApp notification is disabled")
 		return nil
 	}
+
+	apiKey := getSystemSetting("whatsapp_api_key", config.AppConfig.WAToken)
+	if apiKey == "" {
+		log.Printf("[WA] SendWhatsApp bypassed: API Key is empty")
+		return nil
+	}
+
+	sender := getSystemSetting("whatsapp_sender_number", "6281222429289")
+	log.Printf("[WA] SendWhatsApp to %s using sender device: %s", phone, sender)
 
 	data := url.Values{}
 	data.Set("target", normalizePhone(phone))
 	data.Set("message", message)
 
 	req, _ := http.NewRequest("POST", config.AppConfig.WAUrl, strings.NewReader(data.Encode()))
-	req.Header.Add("Authorization", config.AppConfig.WAToken)
+	req.Header.Add("Authorization", apiKey)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	res, err := http.DefaultClient.Do(req)

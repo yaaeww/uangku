@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TablePagination } from '../../components/common/TablePagination';
-import { Settings, Shield, Globe, Monitor, Plus, Trash2, Trash, Edit3, Link2 } from 'lucide-react';
+import { Settings, Shield, Globe, Monitor, Plus, Trash2, Trash, Edit3, Link2, MessageSquare } from 'lucide-react';
 import { AdminController } from '../../controllers/AdminController';
 import toast from 'react-hot-toast';
 
@@ -15,7 +15,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     handleUpdateSetting,
     usersPerPage
 }) => {
-    const [activeSubTab, setActiveSubTab] = useState<'superadmin' | 'trial' | 'website' | 'contact'>('superadmin');
+    const [activeSubTab, setActiveSubTab] = useState<'superadmin' | 'trial' | 'website' | 'contact' | 'whatsapp'>('superadmin');
     const [currentPage, setCurrentPage] = useState(1);
     
     // Super Admin State
@@ -109,6 +109,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                  s.key === 'social_twitter' ? 'TWITTER/X LINK' :
                  s.key === 'whatsapp_number' ? 'NOMOR WHATSAPP' :
                  s.key === 'whatsapp_link' ? 'LINK WHATSAPP CTA' :
+                 s.key === 'whatsapp_enabled' ? 'NOTIFIKASI WHATSAPP' :
+                 s.key === 'whatsapp_api_key' ? 'WHATSAPP API KEY (FONNTE)' :
+                 s.key === 'whatsapp_sender_number' ? 'NOMOR WHATSAPP PENGIRIM' :
                  s.key.replace(/_/g, ' ')}
             </td>
             <td className="px-8 py-6 font-heading font-black text-[var(--accent)]" colSpan={2}>
@@ -129,6 +132,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                         )}
                         <span className="text-[10px] text-[var(--text-muted)] font-mono opacity-70 truncate max-w-[150px]">{s.value || '-'}</span>
                     </div>
+                ) : s.key === 'whatsapp_api_key' ? (
+                    s.value && s.value !== '-' ? '••••••••' + s.value.slice(-4) : '-'
+                ) : s.key === 'whatsapp_enabled' ? (
+                    s.value === 'true' ? 'AKTIF / ENABLED' : 'NONAKTIF / DISABLED'
                 ) : s.value}
             </td>
             <td className="px-8 py-6 text-right">
@@ -148,6 +155,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         'social_youtube', 'social_facebook', 'social_tiktok', 'social_twitter',
         'whatsapp_number', 'whatsapp_link'
     ];
+    const whatsappKeys = ['whatsapp_enabled', 'whatsapp_api_key', 'whatsapp_sender_number'];
     
     // Sort and Filter BEFORE paginating
     const allFilteredSettings = (() => {
@@ -161,9 +169,20 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             });
         }
 
+        if (activeSubTab === 'whatsapp') {
+            return whatsappKeys.map(key => {
+                const existing = (settings || []).find(s => s.key === key);
+                if (key === 'whatsapp_enabled') return existing || { key, value: 'true' };
+                if (key === 'whatsapp_api_key') return existing || { key, value: 'LYfxsgvpzW9oJGqkitxG' };
+                if (key === 'whatsapp_sender_number') return existing || { key, value: '6281222429289' };
+                return existing || { key, value: '-' };
+            });
+        }
+
         return (settings || []).filter(s => {
             if (hiddenKeys.includes(s.key)) return false;
             if (contactKeys.includes(s.key)) return false; // Don't show in website tab if we have contact tab
+            if (whatsappKeys.includes(s.key)) return false; // Don't show in website tab if we have whatsapp tab
             return activeSubTab === 'trial' ? trialKeys.includes(s.key) : !trialKeys.includes(s.key);
         });
     })();
@@ -212,6 +231,15 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 >
                     <Link2 className="w-4 h-4" />
                     Informasi Kontak
+                </button>
+                <button 
+                    onClick={() => setActiveSubTab('whatsapp')}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-2xl transition-all font-black text-xs lg:text-sm uppercase tracking-widest ${
+                        activeSubTab === 'whatsapp' ? 'bg-[var(--accent)] text-white shadow-lg scale-105' : 'bg-[var(--surface-card)] text-[var(--text-muted)] border border-[var(--border)] hover:text-[var(--text-main)] hover:border-[var(--accent)]'
+                    }`}
+                >
+                    <MessageSquare className="w-4 h-4" />
+                    Notifikasi WhatsApp
                 </button>
             </div>
 
