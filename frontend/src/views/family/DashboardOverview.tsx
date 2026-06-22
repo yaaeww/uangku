@@ -153,16 +153,34 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     filteredTotalIncome = 0,
     filteredTotalExpense = 0
 }) => {
+    const isFamilyView = familyRole === 'head_of_family' || familyRole === 'treasurer' || familyRole === 'viewer';
+
     // Filter wallets: members only see their own
-    const displayedWallets = (familyRole === 'head_of_family' || familyRole === 'treasurer')
+    const displayedWallets = isFamilyView
         ? wallets
         : wallets.filter(w => w.userId === currentUserId);
 
     const totalWalletBalance = displayedWallets.reduce((sum, w) => sum + w.balance, 0);
-    const totalGoalsBalance = goals.reduce((sum, g) => sum + (g.currentBalance || 0), 0);
-    const totalSavingBalance = savings.reduce((sum, s) => sum + (s.currentBalance || 0), 0) + totalGoalsBalance;
-    const totalAssetValue = assets.reduce((sum, a) => sum + (a.value || 0), 0);
-    const totalRemainingDebt = debts.reduce((sum, d) => sum + (d.remainingAmount || 0), 0);
+
+    const displayedGoals = isFamilyView
+        ? goals
+        : goals.filter(g => g.userId === currentUserId);
+    const totalGoalsBalance = displayedGoals.reduce((sum, g) => sum + (g.currentBalance || 0), 0);
+
+    const displayedSavings = isFamilyView
+        ? savings
+        : savings.filter(s => s.userId === currentUserId || s.targetUserId === currentUserId);
+    const totalSavingBalance = displayedSavings.reduce((sum, s) => sum + (s.currentBalance || 0), 0) + totalGoalsBalance;
+
+    const displayedAssets = isFamilyView
+        ? assets
+        : assets.filter(a => a.userId === currentUserId);
+    const totalAssetValue = displayedAssets.reduce((sum, a) => sum + (a.value || 0), 0);
+
+    const displayedDebts = isFamilyView
+        ? debts
+        : debts.filter(d => d.createdBy === currentUserId);
+    const totalRemainingDebt = displayedDebts.reduce((sum, d) => sum + (d.remainingAmount || 0), 0);
 
     // netWorth uses summary data if available (already RBAC-filtered in backend)
     // but we can also use frontend state for real-time reactivity
@@ -185,7 +203,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             {/* Summary Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
-                    title="Kekayaan Bersih"
+                    title={isFamilyView ? "Kekayaan Bersih Keluarga" : "Kekayaan Bersih Pribadi"}
                     value={`Rp ${(netWorth || 0).toLocaleString('id-ID')}`}
                     trend="Total"
                     trendUp={true}
@@ -195,7 +213,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 <StatCard
                     title="Posisi Tabungan"
                     value={`Rp ${(totalSavingBalance || 0).toLocaleString('id-ID')}`}
-                    trend={`${savings.length + goals.length} Target`}
+                    trend={`${displayedSavings.length + displayedGoals.length} Target`}
                     trendUp={true}
                     color="amber"
                     icon={Target}
